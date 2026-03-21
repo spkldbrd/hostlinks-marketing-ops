@@ -7,6 +7,16 @@ $is_admin    = $access->current_user_can_see_all_events();
 ?>
 <div class="hostlinks-page hmo-frontend">
 
+	<!-- Dashboard Header Banner -->
+	<div class="hmo-dashboard-header">
+		<span class="hmo-dashboard-header__title">Marketing Ops</span>
+		<span class="hmo-dashboard-header__stats">
+			<span><?php echo (int) $cards['my_classes']; ?> Classes</span>
+			<span><?php echo (int) $cards['red_risk']; ?> Red Risk</span>
+			<span><?php echo (int) $cards['next_30_days']; ?> Next 30 Days</span>
+		</span>
+	</div>
+
 	<!-- Summary Cards -->
 	<div class="hmo-fe-cards">
 		<div class="hmo-fe-card">

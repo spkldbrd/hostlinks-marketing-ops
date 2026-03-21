@@ -1,8 +1,38 @@
 /* Hostlinks Marketing Ops — Front-end Styles
-   Extends the Hostlinks theme (.hostlinks-page, .hostlinks-container, etc.)
+   Extends and aligns with the Hostlinks visual theme.
+   Color tokens match hostlinks-calendar.css exactly.
    ------------------------------------------------------------------ */
 
-/* ── Summary cards ─────────────────────────────────────────────────────── */
+/* ── Dashboard header banner ───────────────────────────────────────────── */
+
+.hmo-dashboard-header {
+	background: hsl(199 89% 48%);
+	color: #fff;
+	padding: 1rem 1.25rem;
+	border-radius: 0.75rem;
+	margin-bottom: 1.25rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.hmo-dashboard-header__title {
+	font-size: 1.25rem;
+	font-weight: 700;
+}
+
+.hmo-dashboard-header__stats {
+	font-size: 0.875rem;
+	font-weight: 400;
+	opacity: 0.92;
+	display: flex;
+	gap: 1.5rem;
+	flex-wrap: wrap;
+}
+
+/* ── Summary stat cards ─────────────────────────────────────────────────── */
 
 .hmo-fe-cards {
 	display: flex;
@@ -12,24 +42,30 @@
 }
 
 .hmo-fe-card {
-	background: #fff;
-	border: 1px solid hsl(215 15% 88%);
-	border-radius: 0.75rem;
+	background: #0da2e7;
+	border-radius: 10px;
+	box-shadow: 0 2px 8px rgba(13, 162, 231, 0.3);
 	padding: 1rem 1.5rem;
 	min-width: 120px;
 	text-align: center;
-	box-shadow: 0 1px 3px rgba(0,0,0,.06);
 }
 
-.hmo-fe-card--red  { border-top: 4px solid hsl(0 72% 51%); }
-.hmo-fe-card--warn { border-top: 4px solid hsl(38 92% 50%); }
+.hmo-fe-card--red {
+	background: hsl(0 72% 51%);
+	box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+}
+
+.hmo-fe-card--warn {
+	background: hsl(38 92% 50%);
+	box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+}
 
 .hmo-fe-card__number {
 	display: block;
 	font-size: 2rem;
 	font-weight: 700;
 	line-height: 1.1;
-	color: hsl(215 25% 15%);
+	color: #fff;
 }
 
 .hmo-fe-card__label {
@@ -37,7 +73,7 @@
 	font-size: 0.75rem;
 	text-transform: uppercase;
 	letter-spacing: .05em;
-	color: hsl(215 15% 45%);
+	color: rgba(255, 255, 255, 0.85);
 	margin-top: 4px;
 }
 
@@ -83,7 +119,10 @@
 	text-decoration: none;
 }
 
-.hmo-fe-table a:hover { text-decoration: underline; }
+.hmo-fe-table a:hover {
+	text-decoration: underline;
+	color: hsl(199 89% 38%);
+}
 
 .hmo-fe-num { text-align: center; }
 
@@ -101,9 +140,9 @@
 	white-space: nowrap;
 }
 
-.hmo-days-left--red    { background: hsl(0 72% 94%);  color: hsl(0 72% 35%); }
-.hmo-days-left--yellow { background: hsl(38 92% 93%); color: hsl(38 80% 30%); }
-.hmo-days-left--green  { background: hsl(142 55% 93%);color: hsl(142 60% 28%); }
+.hmo-days-left--red    { background: hsl(0 72% 94%);   color: hsl(0 72% 35%); }
+.hmo-days-left--yellow { background: hsl(38 92% 93%);  color: hsl(38 80% 30%); }
+.hmo-days-left--green  { background: hsl(142 55% 93%); color: hsl(142 60% 28%); }
 
 /* Risk pill */
 .hmo-risk-pill {
@@ -179,13 +218,15 @@
 	margin-bottom: 1.25rem;
 }
 
+/* Panel titles — blue left-border accent matching Hostlinks primary */
 .hmo-panel-title {
 	font-size: 1.05rem;
 	font-weight: 700;
 	color: hsl(215 25% 15%);
 	margin: 0 0 1rem 0;
-	padding-bottom: 0.6rem;
-	border-bottom: 1px solid hsl(215 15% 88%);
+	padding: 0 0 0.6rem 0.75rem;
+	border-left: 3px solid hsl(199 89% 48%);
+	border-bottom: none;
 }
 
 /* Stage update row */
@@ -202,6 +243,25 @@
 	border-radius: 6px;
 	font-size: 0.9rem;
 	min-width: 180px;
+	background: #fff;
+	color: hsl(215 25% 15%);
+}
+
+/* Primary button — mirrors .hostlinks-btn--active */
+.hmo-btn-primary,
+.hmo-btn-primary.hostlinks-btn {
+	background: hsl(199 89% 48%);
+	color: #fff;
+	border-color: hsl(199 89% 48%);
+	font-weight: 600;
+}
+
+.hmo-btn-primary:hover,
+.hmo-btn-primary.hostlinks-btn:hover {
+	background: hsl(199 89% 40%);
+	border-color: hsl(199 89% 40%);
+	color: #fff;
+	text-decoration: none;
 }
 
 /* ── Checklist accordion ───────────────────────────────────────────────── */
@@ -221,11 +281,14 @@
 	cursor: pointer;
 	user-select: none;
 	gap: 0.75rem;
+	border-left: 3px solid transparent;
+	transition: border-color 0.15s, background 0.15s;
 }
 
 .hmo-accordion--open .hmo-accordion__header {
-	background: hsl(199 89% 97%);
+	background: hsl(199 89% 95%);
 	border-bottom: 1px solid hsl(215 15% 88%);
+	border-left-color: hsl(199 89% 48%);
 }
 
 .hmo-accordion__title {
@@ -250,6 +313,7 @@
 .hmo-accordion__body {
 	display: none;
 	padding: 0.75rem 1rem;
+	background: #fff;
 }
 
 .hmo-accordion--open .hmo-accordion__body { display: block; }
@@ -265,8 +329,15 @@
 	background: hsl(215 20% 99%);
 }
 
-.hmo-task--complete { background: hsl(142 55% 97%); border-color: hsl(142 50% 85%); }
-.hmo-task--complete .hmo-task__label { text-decoration: line-through; color: hsl(215 15% 55%); }
+.hmo-task--complete {
+	background: hsl(142 55% 97%);
+	border-color: hsl(142 50% 85%);
+}
+
+.hmo-task--complete .hmo-task__label {
+	text-decoration: line-through;
+	color: hsl(215 15% 55%);
+}
 
 .hmo-task__check-label {
 	display: flex;
@@ -308,6 +379,8 @@
 	border-radius: 4px;
 	resize: vertical;
 	font-family: inherit;
+	background: #fff;
+	color: hsl(215 25% 15%);
 }
 
 /* ── List links grid ───────────────────────────────────────────────────── */
@@ -342,6 +415,8 @@
 	font-family: inherit;
 	width: 100%;
 	box-sizing: border-box;
+	background: #fff;
+	color: hsl(215 25% 15%);
 }
 
 .hmo-list-open {
@@ -393,10 +468,173 @@
 	padding: 0.5rem 0;
 }
 
+/* Access denied — matches .hostlinks-access-denied exactly */
 .hmo-access-denied {
-	background: hsl(0 72% 97%);
-	border: 1px solid hsl(0 72% 88%);
-	border-radius: 0.5rem;
-	padding: 1rem 1.25rem;
-	color: hsl(0 60% 35%);
+	background: white;
+	border: 1px solid hsl(215 15% 88%);
+	border-radius: 0.75rem;
+	padding: 2rem;
+	text-align: center;
+	color: hsl(215 15% 45%);
+	max-width: 600px;
+	margin: 2rem auto;
 }
+
+.hmo-access-denied p {
+	margin: 0;
+	font-size: 1rem;
+	line-height: 1.6;
+}
+
+/* ============================================================
+   Dark mode — matches .wp-dark-mode-active pattern from
+   hostlinks-calendar.css
+   ============================================================ */
+
+.wp-dark-mode-active .hmo-fe-card {
+	background: #0b8ec8;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.wp-dark-mode-active .hmo-fe-card--red {
+	background: hsl(0 65% 38%);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.wp-dark-mode-active .hmo-fe-card--warn {
+	background: hsl(38 80% 38%);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.wp-dark-mode-active .hmo-fe-card__label {
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.wp-dark-mode-active .hmo-dashboard-header {
+	background: hsl(199 89% 35%);
+}
+
+.wp-dark-mode-active .hmo-fe-table-wrap {
+	background: hsl(215 25% 13%);
+	border-color: hsl(215 20% 20%);
+}
+
+.wp-dark-mode-active .hmo-fe-table th {
+	background: hsl(215 20% 16%);
+	border-color: hsl(215 20% 22%);
+	color: hsl(215 15% 55%);
+}
+
+.wp-dark-mode-active .hmo-fe-table td {
+	border-color: hsl(215 20% 22%);
+	color: hsl(210 25% 90%);
+}
+
+.wp-dark-mode-active .hmo-fe-table tr:hover td {
+	background: hsl(215 20% 16%);
+}
+
+.wp-dark-mode-active .hmo-fe-row--red    { background-color: hsl(0 72% 12%) !important; }
+.wp-dark-mode-active .hmo-fe-row--yellow { background-color: hsl(38 60% 12%) !important; }
+
+.wp-dark-mode-active .hmo-detail-summary,
+.wp-dark-mode-active .hmo-detail-panel,
+.wp-dark-mode-active .hmo-fe-table-wrap {
+	background: hsl(215 25% 13%);
+	border-color: hsl(215 20% 20%);
+}
+
+.wp-dark-mode-active .hmo-detail-stat__label {
+	color: hsl(215 15% 55%);
+}
+
+.wp-dark-mode-active .hmo-detail-stat__value,
+.wp-dark-mode-active .hmo-detail-title,
+.wp-dark-mode-active .hmo-panel-title {
+	color: hsl(210 25% 90%);
+}
+
+.wp-dark-mode-active .hmo-panel-title {
+	border-left-color: hsl(199 89% 40%);
+}
+
+.wp-dark-mode-active .hmo-accordion {
+	border-color: hsl(215 20% 20%);
+}
+
+.wp-dark-mode-active .hmo-accordion__header {
+	background: hsl(215 20% 16%);
+	color: hsl(210 25% 90%);
+}
+
+.wp-dark-mode-active .hmo-accordion--open .hmo-accordion__header {
+	background: hsl(199 89% 15%);
+	border-bottom-color: hsl(215 20% 20%);
+	border-left-color: hsl(199 89% 40%);
+}
+
+.wp-dark-mode-active .hmo-accordion__body {
+	background: hsl(215 25% 13%);
+}
+
+.wp-dark-mode-active .hmo-accordion__meta,
+.wp-dark-mode-active .hmo-accordion__arrow {
+	color: hsl(215 15% 55%);
+}
+
+.wp-dark-mode-active .hmo-task {
+	background: hsl(215 20% 16%);
+	border-color: hsl(215 20% 22%);
+}
+
+.wp-dark-mode-active .hmo-task--complete {
+	background: hsl(142 40% 12%);
+	border-color: hsl(142 40% 20%);
+}
+
+.wp-dark-mode-active .hmo-task__label {
+	color: hsl(210 25% 88%);
+}
+
+.wp-dark-mode-active .hmo-task--complete .hmo-task__label {
+	color: hsl(215 15% 50%);
+}
+
+.wp-dark-mode-active .hmo-task__desc {
+	color: hsl(215 15% 55%);
+}
+
+.wp-dark-mode-active .hmo-task-note-input,
+.wp-dark-mode-active .hmo-stage-select,
+.wp-dark-mode-active .hmo-list-item select,
+.wp-dark-mode-active .hmo-list-url-input {
+	background: hsl(215 20% 18%);
+	border-color: hsl(215 20% 28%);
+	color: hsl(210 25% 88%);
+}
+
+.wp-dark-mode-active .hmo-list-label {
+	color: hsl(215 15% 55%);
+}
+
+.wp-dark-mode-active .hmo-activity-item {
+	border-color: hsl(215 20% 22%);
+}
+
+.wp-dark-mode-active .hmo-activity-time {
+	color: hsl(215 15% 50%);
+}
+
+.wp-dark-mode-active .hmo-activity-user {
+	color: hsl(210 25% 88%);
+}
+
+.wp-dark-mode-active .hmo-access-denied {
+	background: hsl(215 25% 13%);
+	border-color: hsl(215 20% 20%);
+	color: hsl(215 15% 60%);
+}
+
+.wp-dark-mode-active .hmo-days-left--red    { background: hsl(0 60% 18%);   color: hsl(0 72% 70%); }
+.wp-dark-mode-active .hmo-days-left--yellow { background: hsl(38 60% 18%);  color: hsl(38 80% 70%); }
+.wp-dark-mode-active .hmo-days-left--green  { background: hsl(142 40% 14%); color: hsl(142 55% 60%); }
