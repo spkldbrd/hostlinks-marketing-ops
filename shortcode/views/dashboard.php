@@ -1,6 +1,6 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
-// Variables: $rows (array), $cards (array), $access (HMO_Access_Service)
+// Variables: $rows (array), $cards (array), $access (HMO_Access_Service), $pagination (array)
 
 $detail_base = HMO_Page_URLs::get_event_detail();
 $is_admin    = $access->current_user_can_see_all_events();
@@ -97,6 +97,43 @@ $is_admin    = $access->current_user_can_see_all_events();
 			</tbody>
 		</table>
 	</div>
+	<?php endif; ?>
+
+	<!-- Pagination -->
+	<?php if ( $pagination['total_pages'] > 1 ) : ?>
+	<nav class="hmo-pagination" aria-label="Events pagination">
+		<span class="hmo-pagination__count">
+			Showing <?php echo (int) $pagination['from']; ?>–<?php echo (int) $pagination['to']; ?> of <?php echo (int) $pagination['total']; ?> events
+		</span>
+		<div class="hmo-pagination__links">
+			<?php if ( $pagination['prev_url'] ) : ?>
+				<a class="hmo-pagination__btn" href="<?php echo esc_url( $pagination['prev_url'] ); ?>" aria-label="Previous page">&lsaquo; Prev</a>
+			<?php else : ?>
+				<span class="hmo-pagination__btn hmo-pagination__btn--disabled">&lsaquo; Prev</span>
+			<?php endif; ?>
+
+			<?php
+			$prev_p = 0;
+			foreach ( $pagination['page_urls'] as $p => $url ) :
+				if ( $prev_p && $p - $prev_p > 1 ) : ?>
+					<span class="hmo-pagination__ellipsis">&hellip;</span>
+				<?php endif;
+				$is_current = ( $p === $pagination['page'] );
+			?>
+				<?php if ( $is_current ) : ?>
+					<span class="hmo-pagination__btn hmo-pagination__btn--current" aria-current="page"><?php echo (int) $p; ?></span>
+				<?php else : ?>
+					<a class="hmo-pagination__btn" href="<?php echo esc_url( $url ); ?>"><?php echo (int) $p; ?></a>
+				<?php endif; ?>
+			<?php $prev_p = $p; endforeach; ?>
+
+			<?php if ( $pagination['next_url'] ) : ?>
+				<a class="hmo-pagination__btn" href="<?php echo esc_url( $pagination['next_url'] ); ?>" aria-label="Next page">Next &rsaquo;</a>
+			<?php else : ?>
+				<span class="hmo-pagination__btn hmo-pagination__btn--disabled">Next &rsaquo;</span>
+			<?php endif; ?>
+		</div>
+	</nav>
 	<?php endif; ?>
 
 </div>

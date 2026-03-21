@@ -51,9 +51,11 @@ class HMO_Shortcodes {
 			return $this->access->get_denial_message_html();
 		}
 
-		$rows  = $this->dashboard->get_dashboard_rows();
-		$cards = $this->dashboard->get_summary_cards();
-		$access = $this->access;
+		$all_rows = $this->dashboard->get_dashboard_rows();
+		$cards    = $this->dashboard->get_summary_cards();
+		$access   = $this->access;
+
+		list( $rows, $pagination ) = $this->paginate_rows( $all_rows );
 
 		ob_start();
 		include HMO_PLUGIN_DIR . 'shortcode/views/dashboard.php';
@@ -71,13 +73,61 @@ class HMO_Shortcodes {
 
 		$marketer_id = $this->access->get_current_user_marketer_id();
 		$filters     = $marketer_id ? array( 'marketer_id' => $marketer_id ) : array();
-		$rows        = $this->dashboard->get_dashboard_rows( $filters );
+		$all_rows    = $this->dashboard->get_dashboard_rows( $filters );
 		$cards       = $this->dashboard->get_summary_cards();
 		$access      = $this->access;
+
+		list( $rows, $pagination ) = $this->paginate_rows( $all_rows );
 
 		ob_start();
 		include HMO_PLUGIN_DIR . 'shortcode/views/dashboard.php';
 		return ob_get_clean();
+	}
+
+	// -------------------------------------------------------------------------
+	// Pagination helper
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Slices a flat array of rows into a page of 30 and returns metadata.
+	 *
+	 * @param array $all_rows
+	 * @return array  [ sliced_rows[], pagination_meta[] ]
+	 */
+	private function paginate_rows( array $all_rows ): array {
+		$per_page    = 30;
+		$total       = count( $all_rows );
+		$total_pages = max( 1, (int) ceil( $total / $per_page ) );
+		$page        = max( 1, min( $total_pages, (int) ( $_GET['hmo_page'] ?? 1 ) ) );
+		$offset      = ( $page - 1 ) * $per_page;
+		$rows        = array_slice( $all_rows, $offset, $per_page );
+
+		$base = remove_query_arg( 'hmo_page' );
+
+		$pagination = array(
+			'page'        => $page,
+			'total_pages' => $total_pages,
+			'total'       => $total,
+			'per_page'    => $per_page,
+			'from'        => $total ? $offset + 1 : 0,
+			'to'          => min( $offset + $per_page, $total ),
+			'prev_url'    => $page > 1            ? add_query_arg( 'hmo_page', $page - 1, $base ) : '',
+			'next_url'    => $page < $total_pages ? add_query_arg( 'hmo_page', $page + 1, $base ) : '',
+			'page_urls'   => array(),
+		);
+
+		// Build per-page link list (max 7 visible page numbers).
+		$window = 2; // pages either side of current
+		for ( $p = 1; $p <= $total_pages; $p++ ) {
+			if (
+				$p === 1 || $p === $total_pages
+				|| ( $p >= $page - $window && $p <= $page + $window )
+			) {
+				$pagination['page_urls'][ $p ] = add_query_arg( 'hmo_page', $p, $base );
+			}
+		}
+
+		return array( $rows, $pagination );
 	}
 
 	// -------------------------------------------------------------------------
