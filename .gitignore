@@ -1,0 +1,19 @@
+# WordPress
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Composer
+/vendor/
+composer.lock
+
+# Node
+node_modules/

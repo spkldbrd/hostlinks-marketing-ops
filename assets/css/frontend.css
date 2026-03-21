@@ -1,0 +1,402 @@
+/* Hostlinks Marketing Ops — Front-end Styles
+   Extends the Hostlinks theme (.hostlinks-page, .hostlinks-container, etc.)
+   ------------------------------------------------------------------ */
+
+/* ── Summary cards ─────────────────────────────────────────────────────── */
+
+.hmo-fe-cards {
+	display: flex;
+	gap: 1rem;
+	flex-wrap: wrap;
+	margin-bottom: 1.5rem;
+}
+
+.hmo-fe-card {
+	background: #fff;
+	border: 1px solid hsl(215 15% 88%);
+	border-radius: 0.75rem;
+	padding: 1rem 1.5rem;
+	min-width: 120px;
+	text-align: center;
+	box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+
+.hmo-fe-card--red  { border-top: 4px solid hsl(0 72% 51%); }
+.hmo-fe-card--warn { border-top: 4px solid hsl(38 92% 50%); }
+
+.hmo-fe-card__number {
+	display: block;
+	font-size: 2rem;
+	font-weight: 700;
+	line-height: 1.1;
+	color: hsl(215 25% 15%);
+}
+
+.hmo-fe-card__label {
+	display: block;
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: .05em;
+	color: hsl(215 15% 45%);
+	margin-top: 4px;
+}
+
+/* ── Events table ──────────────────────────────────────────────────────── */
+
+.hmo-fe-table-wrap {
+	overflow-x: auto;
+	border-radius: 0.75rem;
+	border: 1px solid hsl(215 15% 88%);
+	background: #fff;
+}
+
+.hmo-fe-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+.hmo-fe-table th {
+	padding: 10px 14px;
+	border-bottom: 1px solid hsl(215 15% 88%);
+	text-align: left;
+	font-size: 0.78rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: .05em;
+	color: hsl(215 15% 45%);
+	white-space: nowrap;
+	background: hsl(215 20% 98%);
+}
+
+.hmo-fe-table td {
+	padding: 10px 14px;
+	border-bottom: 1px solid hsl(215 15% 93%);
+	vertical-align: middle;
+}
+
+.hmo-fe-table tr:last-child td { border-bottom: none; }
+
+.hmo-fe-table a {
+	color: hsl(199 89% 48%);
+	font-weight: 500;
+	text-decoration: none;
+}
+
+.hmo-fe-table a:hover { text-decoration: underline; }
+
+.hmo-fe-num { text-align: center; }
+
+/* Risk row tints */
+.hmo-fe-row--red    { background-color: hsl(0 72% 97%) !important; }
+.hmo-fe-row--yellow { background-color: hsl(38 92% 97%) !important; }
+
+/* Days left badge */
+.hmo-days-left {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 0.82rem;
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+.hmo-days-left--red    { background: hsl(0 72% 94%);  color: hsl(0 72% 35%); }
+.hmo-days-left--yellow { background: hsl(38 92% 93%); color: hsl(38 80% 30%); }
+.hmo-days-left--green  { background: hsl(142 55% 93%);color: hsl(142 60% 28%); }
+
+/* Risk pill */
+.hmo-risk-pill {
+	display: inline-block;
+	padding: 3px 10px;
+	border-radius: 12px;
+	font-size: 0.75rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+	white-space: nowrap;
+}
+
+.hmo-risk-pill--red    { background: hsl(0 72% 51%);   color: #fff; }
+.hmo-risk-pill--yellow { background: hsl(38 92% 50%);  color: #fff; }
+.hmo-risk-pill--green  { background: hsl(142 70% 42%); color: #fff; }
+
+/* ── Event detail page ─────────────────────────────────────────────────── */
+
+.hmo-back-link { margin-bottom: 1.25rem; }
+
+.hmo-detail-header {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+	margin-bottom: 1.25rem;
+}
+
+.hmo-detail-title {
+	font-size: 1.6rem;
+	font-weight: 700;
+	color: hsl(215 25% 15%);
+	margin: 0;
+	flex: 1;
+}
+
+/* Summary stat grid */
+.hmo-detail-summary {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	gap: 1rem;
+	background: #fff;
+	border: 1px solid hsl(215 15% 88%);
+	border-radius: 0.75rem;
+	padding: 1.25rem 1.5rem;
+	margin-bottom: 1.25rem;
+}
+
+.hmo-detail-stat { display: flex; flex-direction: column; }
+
+.hmo-detail-stat__label {
+	font-size: 0.72rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: .05em;
+	color: hsl(215 15% 50%);
+}
+
+.hmo-detail-stat__value {
+	font-size: 1rem;
+	font-weight: 600;
+	color: hsl(215 25% 15%);
+	margin-top: 3px;
+}
+
+/* Panel */
+.hmo-detail-panel {
+	background: #fff;
+	border: 1px solid hsl(215 15% 88%);
+	border-radius: 0.75rem;
+	padding: 1.25rem 1.5rem;
+	margin-bottom: 1.25rem;
+}
+
+.hmo-panel-title {
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: hsl(215 25% 15%);
+	margin: 0 0 1rem 0;
+	padding-bottom: 0.6rem;
+	border-bottom: 1px solid hsl(215 15% 88%);
+}
+
+/* Stage update row */
+.hmo-stage-update {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+}
+
+.hmo-stage-select {
+	padding: 6px 10px;
+	border: 1px solid hsl(215 15% 80%);
+	border-radius: 6px;
+	font-size: 0.9rem;
+	min-width: 180px;
+}
+
+/* ── Checklist accordion ───────────────────────────────────────────────── */
+
+.hmo-accordion {
+	border: 1px solid hsl(215 15% 88%);
+	border-radius: 0.5rem;
+	margin-bottom: 0.5rem;
+	overflow: hidden;
+}
+
+.hmo-accordion__header {
+	display: flex;
+	align-items: center;
+	padding: 0.75rem 1rem;
+	background: hsl(215 20% 97%);
+	cursor: pointer;
+	user-select: none;
+	gap: 0.75rem;
+}
+
+.hmo-accordion--open .hmo-accordion__header {
+	background: hsl(199 89% 97%);
+	border-bottom: 1px solid hsl(215 15% 88%);
+}
+
+.hmo-accordion__title {
+	font-weight: 600;
+	flex: 1;
+	font-size: 0.95rem;
+}
+
+.hmo-accordion__meta {
+	font-size: 0.8rem;
+	color: hsl(215 15% 50%);
+}
+
+.hmo-accordion__arrow {
+	font-size: 0.7rem;
+	color: hsl(215 15% 50%);
+	transition: transform 0.2s;
+}
+
+.hmo-accordion--open .hmo-accordion__arrow { transform: rotate(180deg); }
+
+.hmo-accordion__body {
+	display: none;
+	padding: 0.75rem 1rem;
+}
+
+.hmo-accordion--open .hmo-accordion__body { display: block; }
+
+/* ── Task list ─────────────────────────────────────────────────────────── */
+
+.hmo-task-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.hmo-task {
+	padding: 0.6rem 0.75rem;
+	border: 1px solid hsl(215 15% 90%);
+	border-radius: 0.5rem;
+	background: hsl(215 20% 99%);
+}
+
+.hmo-task--complete { background: hsl(142 55% 97%); border-color: hsl(142 50% 85%); }
+.hmo-task--complete .hmo-task__label { text-decoration: line-through; color: hsl(215 15% 55%); }
+
+.hmo-task__check-label {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+	cursor: pointer;
+}
+
+.hmo-task__check-label input[type="checkbox"] { margin-top: 3px; flex-shrink: 0; }
+
+.hmo-task__label { font-weight: 500; font-size: 0.92rem; }
+
+.hmo-task__desc {
+	font-size: 0.82rem;
+	color: hsl(215 15% 50%);
+	margin: 4px 0 0 1.5rem;
+}
+
+.hmo-task__completed-by {
+	font-size: 0.78rem;
+	color: hsl(142 60% 28%);
+	margin: 3px 0 0 1.5rem;
+}
+
+.hmo-task__note-wrap {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+	margin: 6px 0 0 1.5rem;
+	flex-wrap: wrap;
+}
+
+.hmo-task-note-input {
+	flex: 1;
+	min-width: 160px;
+	padding: 5px 8px;
+	font-size: 0.82rem;
+	border: 1px solid hsl(215 15% 82%);
+	border-radius: 4px;
+	resize: vertical;
+	font-family: inherit;
+}
+
+/* ── List links grid ───────────────────────────────────────────────────── */
+
+.hmo-list-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+	.hmo-list-grid { grid-template-columns: 1fr; }
+}
+
+.hmo-list-item { display: flex; flex-direction: column; gap: 4px; }
+
+.hmo-list-label {
+	font-size: 0.78rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+	color: hsl(215 15% 45%);
+}
+
+.hmo-list-item select,
+.hmo-list-url-input {
+	padding: 6px 10px;
+	border: 1px solid hsl(215 15% 80%);
+	border-radius: 6px;
+	font-size: 0.88rem;
+	font-family: inherit;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.hmo-list-open {
+	display: inline-block;
+	margin-top: 4px;
+	font-size: 0.8rem;
+}
+
+/* ── Activity list ─────────────────────────────────────────────────────── */
+
+.hmo-activity-list { list-style: none; margin: 0; padding: 0; }
+
+.hmo-activity-item {
+	display: flex;
+	gap: 0.75rem;
+	padding: 6px 0;
+	border-bottom: 1px solid hsl(215 15% 93%);
+	font-size: 0.84rem;
+	flex-wrap: wrap;
+}
+
+.hmo-activity-item:last-child { border-bottom: none; }
+
+.hmo-activity-time {
+	color: hsl(215 15% 55%);
+	white-space: nowrap;
+	min-width: 130px;
+}
+
+.hmo-activity-user { font-weight: 600; white-space: nowrap; }
+
+/* ── Inline status ─────────────────────────────────────────────────────── */
+
+.hmo-inline-status,
+.hmo-note-status,
+.hmo-lists-status {
+	display: none;
+	font-size: 0.82rem;
+}
+
+.hmo-status--ok    { color: hsl(142 60% 28%); }
+.hmo-status--error { color: hsl(0 72% 51%); }
+
+/* ── Generic notice ────────────────────────────────────────────────────── */
+
+.hmo-notice {
+	color: hsl(215 15% 50%);
+	font-style: italic;
+	padding: 0.5rem 0;
+}
+
+.hmo-access-denied {
+	background: hsl(0 72% 97%);
+	border: 1px solid hsl(0 72% 88%);
+	border-radius: 0.5rem;
+	padding: 1rem 1.25rem;
+	color: hsl(0 60% 35%);
+}

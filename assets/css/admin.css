@@ -1,0 +1,315 @@
+/* Hostlinks Marketing Ops — Admin Styles */
+
+/* -------------------------------------------------------------------------
+   Layout
+   ---------------------------------------------------------------------- */
+
+.hmo-wrap {
+	max-width: 1400px;
+}
+
+/* -------------------------------------------------------------------------
+   Summary Cards
+   ---------------------------------------------------------------------- */
+
+.hmo-cards {
+	display: flex;
+	gap: 16px;
+	flex-wrap: wrap;
+	margin: 20px 0;
+}
+
+.hmo-card {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 16px 24px;
+	min-width: 130px;
+	text-align: center;
+	box-shadow: 0 1px 3px rgba(0,0,0,.06);
+}
+
+.hmo-card--red   { border-top: 4px solid #d63638; }
+.hmo-card--warn  { border-top: 4px solid #dba617; }
+
+.hmo-card__number {
+	display: block;
+	font-size: 2rem;
+	font-weight: 700;
+	line-height: 1.1;
+	color: #1d2327;
+}
+
+.hmo-card__label {
+	display: block;
+	font-size: 0.8rem;
+	color: #50575e;
+	margin-top: 4px;
+}
+
+/* -------------------------------------------------------------------------
+   Dashboard Table
+   ---------------------------------------------------------------------- */
+
+.hmo-table {
+	margin-top: 0;
+}
+
+.hmo-table td,
+.hmo-table th {
+	vertical-align: middle;
+}
+
+.hmo-num {
+	text-align: center;
+}
+
+/* Risk row colors */
+tr.hmo-risk--red    { background-color: #fce8e8 !important; }
+tr.hmo-risk--yellow { background-color: #fef7e0 !important; }
+tr.hmo-risk--green  {}
+
+/* Risk badge */
+.hmo-risk-badge {
+	display: inline-block;
+	padding: 2px 8px;
+	border-radius: 3px;
+	font-size: 0.78rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: .04em;
+}
+
+.hmo-risk-badge--red    { background: #d63638; color: #fff; }
+.hmo-risk-badge--yellow { background: #dba617; color: #fff; }
+.hmo-risk-badge--green  { background: #00a32a; color: #fff; }
+
+/* -------------------------------------------------------------------------
+   Event Detail — Summary Grid
+   ---------------------------------------------------------------------- */
+
+.hmo-section {
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	padding: 20px 24px;
+	margin-bottom: 20px;
+}
+
+.hmo-section h2 {
+	margin-top: 0;
+	padding-bottom: 8px;
+	border-bottom: 1px solid #dcdcde;
+	font-size: 1rem;
+}
+
+.hmo-summary-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+	gap: 12px 24px;
+	margin-bottom: 16px;
+}
+
+.hmo-summary-item {
+	display: flex;
+	flex-direction: column;
+}
+
+.hmo-summary-label {
+	font-size: 0.75rem;
+	color: #50575e;
+	text-transform: uppercase;
+	letter-spacing: .05em;
+}
+
+.hmo-summary-value {
+	font-size: 1rem;
+	font-weight: 600;
+	color: #1d2327;
+	margin-top: 2px;
+}
+
+.hmo-stage-update {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+.hmo-stage-select {
+	min-width: 180px;
+}
+
+/* -------------------------------------------------------------------------
+   Checklist Accordion
+   ---------------------------------------------------------------------- */
+
+.hmo-stage-accordion {
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	margin-bottom: 8px;
+	overflow: hidden;
+}
+
+.hmo-stage-accordion__header {
+	display: flex;
+	align-items: center;
+	padding: 12px 16px;
+	background: #f6f7f7;
+	cursor: pointer;
+	user-select: none;
+	border-bottom: 1px solid transparent;
+}
+
+.hmo-stage-accordion--open .hmo-stage-accordion__header {
+	border-bottom-color: #dcdcde;
+	background: #fff;
+}
+
+.hmo-stage-accordion__title {
+	font-weight: 600;
+	flex: 1;
+}
+
+.hmo-stage-accordion__meta {
+	color: #50575e;
+	font-size: 0.85rem;
+	margin-right: 12px;
+}
+
+.hmo-stage-accordion__toggle {
+	color: #50575e;
+}
+
+.hmo-stage-accordion__body {
+	display: none;
+	padding: 0;
+}
+
+.hmo-stage-accordion--open .hmo-stage-accordion__body {
+	display: block;
+}
+
+/* -------------------------------------------------------------------------
+   Task Table
+   ---------------------------------------------------------------------- */
+
+.hmo-task-table {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.hmo-task-table th {
+	padding: 8px 12px;
+	border-bottom: 1px solid #dcdcde;
+	font-size: 0.8rem;
+	color: #50575e;
+	text-align: left;
+	font-weight: 600;
+}
+
+.hmo-task-row td {
+	padding: 8px 12px;
+	border-bottom: 1px solid #f0f0f1;
+	vertical-align: top;
+}
+
+.hmo-task-row:last-child td {
+	border-bottom: none;
+}
+
+.hmo-task-row--complete .hmo-task-label {
+	text-decoration: line-through;
+	color: #8c8f94;
+}
+
+.hmo-task-check {
+	width: 30px;
+	text-align: center;
+}
+
+.hmo-task-label {
+	font-weight: 500;
+}
+
+.hmo-task-desc {
+	font-size: 0.82rem;
+	color: #50575e;
+	margin-top: 3px;
+}
+
+.hmo-task-note-input {
+	width: 100%;
+	min-width: 180px;
+	font-size: 0.82rem;
+	padding: 4px 6px;
+	border: 1px solid #dcdcde;
+	border-radius: 3px;
+	resize: vertical;
+}
+
+/* -------------------------------------------------------------------------
+   Inline status messages
+   ---------------------------------------------------------------------- */
+
+.hmo-inline-status,
+.hmo-note-status,
+.hmo-lists-status {
+	display: none;
+	font-size: 0.82rem;
+	margin-left: 8px;
+}
+
+.hmo-status--ok    { color: #007017; }
+.hmo-status--error { color: #d63638; }
+
+/* -------------------------------------------------------------------------
+   Activity list
+   ---------------------------------------------------------------------- */
+
+.hmo-activity-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.hmo-activity-list li {
+	display: flex;
+	gap: 12px;
+	padding: 6px 0;
+	border-bottom: 1px solid #f0f0f1;
+	font-size: 0.85rem;
+}
+
+.hmo-activity-list li:last-child {
+	border-bottom: none;
+}
+
+.hmo-activity-time {
+	color: #8c8f94;
+	white-space: nowrap;
+	min-width: 130px;
+}
+
+.hmo-activity-user {
+	font-weight: 600;
+	white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------------
+   Host contacts
+   ---------------------------------------------------------------------- */
+
+.hmo-host-contact {
+	margin-bottom: 4px;
+}
+
+/* -------------------------------------------------------------------------
+   Misc
+   ---------------------------------------------------------------------- */
+
+.hmo-empty {
+	color: #8c8f94;
+	font-style: italic;
+	padding: 8px 0;
+}
