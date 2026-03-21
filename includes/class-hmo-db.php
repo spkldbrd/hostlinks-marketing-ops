@@ -45,6 +45,7 @@ class HMO_DB {
 		// -------------------------------------------------------------------------
 		$sql = "CREATE TABLE {$wpdb->prefix}hmo_checklist_templates (
 			id bigint(20) NOT NULL AUTO_INCREMENT,
+			parent_id bigint(20) NOT NULL DEFAULT 0,
 			stage_key varchar(50) NOT NULL DEFAULT '',
 			stage_label varchar(255) NOT NULL DEFAULT '',
 			task_key varchar(100) NOT NULL DEFAULT '',
@@ -55,7 +56,8 @@ class HMO_DB {
 			timing_offset_days int(11) NOT NULL DEFAULT 0,
 			is_active tinyint(1) NOT NULL DEFAULT 1,
 			PRIMARY KEY  (id),
-			KEY stage_key (stage_key)
+			KEY stage_key (stage_key),
+			KEY parent_id (parent_id)
 		) $charset_collate;";
 		dbDelta( $sql );
 

@@ -24,8 +24,9 @@ class HMO_Bootstrap {
 		$rest = new HMO_REST( $checklist_svc, $dashboard_svc, $access );
 		add_action( 'rest_api_init', array( $rest, 'register_routes' ) );
 
-		// AJAX (user search for settings page).
+		// AJAX (user search for settings page + task editor CRUD).
 		HMO_Access_Service::register_ajax();
+		HMO_Checklist_Templates::register_ajax();
 
 		// Front-end shortcodes.
 		$shortcodes = new HMO_Shortcodes( $access, $dashboard_svc, $checklist_svc, $countdown_svc, $bridge );

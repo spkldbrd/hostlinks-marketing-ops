@@ -71,7 +71,8 @@ if ( isset( $_POST['hmo_save_page_urls'] ) ) {
 	HMO_Page_URLs::save_overrides(
 		sanitize_text_field( $_POST['hmo_url_dashboard']    ?? '' ),
 		sanitize_text_field( $_POST['hmo_url_my_classes']   ?? '' ),
-		sanitize_text_field( $_POST['hmo_url_event_detail'] ?? '' )
+		sanitize_text_field( $_POST['hmo_url_event_detail'] ?? '' ),
+		sanitize_text_field( $_POST['hmo_url_task_editor']  ?? '' )
 	);
 	$notice = '<div class="notice notice-success is-dismissible"><p>Page links saved.</p></div>';
 }
@@ -104,14 +105,34 @@ if ( isset( $_POST['hmo_clone_viewers'] ) ) {
 	$notice = '<div class="notice notice-success is-dismissible"><p>' . sprintf( 'Cloned approved viewers from Hostlinks. %d user(s) added.', $added ) . '</p></div>';
 }
 
+// Task editors save
+if ( isset( $_POST['hmo_save_task_editors'] ) ) {
+	check_admin_referer( 'hmo_user_access' );
+	$access_svc  = new HMO_Access_Service();
+	$raw_ids     = sanitize_text_field( $_POST['hmo_task_editor_ids'] ?? '' );
+	$ids         = $raw_ids !== '' ? explode( ',', $raw_ids ) : array();
+	$access_svc->save_task_editors( $ids );
+	$notice = '<div class="notice notice-success is-dismissible"><p>Task editor settings saved.</p></div>';
+}
+
 // ── Current state ─────────────────────────────────────────────────────────────
 
-$access_svc     = new HMO_Access_Service();
-$approved_ids   = $access_svc->get_approved_viewers();
-$denial_message = get_option( HMO_Access_Service::OPT_MESSAGE, HMO_Access_Service::DEFAULT_MESSAGE );
-$page_status    = HMO_Page_URLs::detection_status();
-$url_overrides  = HMO_Page_URLs::get_overrides();
-$saved_modes    = get_option( HMO_Access_Service::OPT_MODES, array() );
+$access_svc      = new HMO_Access_Service();
+$approved_ids    = $access_svc->get_approved_viewers();
+$task_editor_ids = $access_svc->get_task_editors();
+$denial_message  = get_option( HMO_Access_Service::OPT_MESSAGE, HMO_Access_Service::DEFAULT_MESSAGE );
+$page_status     = HMO_Page_URLs::detection_status();
+$url_overrides   = HMO_Page_URLs::get_overrides();
+$saved_modes     = get_option( HMO_Access_Service::OPT_MODES, array() );
+
+$task_editor_users = array();
+if ( ! empty( $task_editor_ids ) ) {
+	$task_editor_users = get_users( array(
+		'include' => $task_editor_ids,
+		'fields'  => array( 'ID', 'display_name', 'user_email' ),
+		'orderby' => 'display_name',
+	) );
+}
 
 $approved_users = array();
 if ( ! empty( $approved_ids ) ) {
@@ -355,9 +376,10 @@ $tabs = array(
 	<table class="form-table">
 		<?php
 		$page_defs = array(
-			'dashboard'    => array( 'label' => 'Dashboard',    'shortcode' => '[hmo_dashboard]',    'field' => 'hmo_url_dashboard' ),
-			'my_classes'   => array( 'label' => 'My Classes',   'shortcode' => '[hmo_my_classes]',   'field' => 'hmo_url_my_classes' ),
-			'event_detail' => array( 'label' => 'Event Detail', 'shortcode' => '[hmo_event_detail]', 'field' => 'hmo_url_event_detail' ),
+			'dashboard'    => array( 'label' => 'Dashboard',          'shortcode' => '[hmo_dashboard]',    'field' => 'hmo_url_dashboard' ),
+			'my_classes'   => array( 'label' => 'My Classes',         'shortcode' => '[hmo_my_classes]',   'field' => 'hmo_url_my_classes' ),
+			'event_detail' => array( 'label' => 'Event Detail',       'shortcode' => '[hmo_event_detail]', 'field' => 'hmo_url_event_detail' ),
+			'task_editor'  => array( 'label' => 'Task Template Editor','shortcode' => '[hmo_task_editor]',  'field' => 'hmo_url_task_editor' ),
 		);
 		$source_labels = array(
 			'override' => '<span style="color:#007017;">&#10003; Manual override</span>',
@@ -504,6 +526,133 @@ $tabs = array(
 		<button type="submit" name="hmo_save_user_access" class="button button-primary">Save User Access Settings</button>
 	</p>
 </form>
+
+<!-- ── Task Editor Users ─────────────────────────────────────────────────── -->
+<hr style="margin:32px 0;">
+<h2>Task Template Editor — Allowed Users</h2>
+<p>
+	Users listed here can access the <code>[hmo_task_editor]</code> shortcode to add, edit, and remove checklist tasks.
+	Administrators always have access regardless of this list.
+</p>
+
+<form method="post" action="" id="hmo-te-users-form">
+	<?php wp_nonce_field( 'hmo_user_access' ); ?>
+	<input type="hidden" id="hmo_task_editor_ids" name="hmo_task_editor_ids"
+		value="<?php echo esc_attr( implode( ',', $task_editor_ids ) ); ?>">
+
+	<!-- User search / add -->
+	<div style="max-width:560px;margin-bottom:8px;">
+		<label for="hmo-te-user-search" style="display:block;font-weight:600;margin-bottom:6px;">Search users to add</label>
+		<div style="display:flex;gap:8px;">
+			<input type="text" id="hmo-te-user-search" placeholder="Type a name or email…"
+				class="regular-text" autocomplete="off" style="flex:1;">
+			<span id="hmo-te-search-spinner" style="display:none;line-height:30px;color:#888;">Searching…</span>
+		</div>
+		<ul id="hmo-te-search-results" style="
+			list-style:none;margin:0;padding:0;max-width:560px;
+			border:1px solid #ddd;border-top:none;display:none;
+			background:#fff;position:relative;z-index:100;"></ul>
+	</div>
+
+	<table class="widefat striped" style="max-width:560px;margin-bottom:24px;" id="hmo-te-users-table">
+		<thead>
+			<tr><th>Name</th><th>Email</th><th style="width:80px;"></th></tr>
+		</thead>
+		<tbody id="hmo-te-users-tbody">
+		<?php if ( empty( $task_editor_users ) ) : ?>
+			<tr id="hmo-te-users-empty"><td colspan="3" style="color:#888;font-style:italic;">No task editor users yet.</td></tr>
+		<?php else : ?>
+			<?php foreach ( $task_editor_users as $u ) : ?>
+			<tr id="hmo-te-user-row-<?php echo (int) $u->ID; ?>">
+				<td><?php echo esc_html( $u->display_name ); ?></td>
+				<td><?php echo esc_html( $u->user_email ); ?></td>
+				<td>
+					<button type="button" class="button button-small hmo-te-remove-user"
+						data-id="<?php echo (int) $u->ID; ?>">Remove</button>
+				</td>
+			</tr>
+			<?php endforeach; ?>
+		<?php endif; ?>
+		</tbody>
+	</table>
+
+	<p class="submit">
+		<button type="submit" name="hmo_save_task_editors" class="button button-primary">Save Task Editor Users</button>
+	</p>
+</form>
+
+<script>
+(function() {
+	var ajaxUrl   = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+	var nonce     = <?php echo wp_json_encode( wp_create_nonce( 'hmo_user_access' ) ); ?>;
+	var teUserIds = <?php echo wp_json_encode( array_map( 'intval', $task_editor_ids ) ); ?>;
+
+	function syncTeIdsField() {
+		document.getElementById('hmo_task_editor_ids').value = teUserIds.join(',');
+	}
+
+	// Search
+	var teTimer;
+	document.getElementById('hmo-te-user-search').addEventListener('input', function() {
+		clearTimeout( teTimer );
+		var q = this.value.trim();
+		var $results = document.getElementById('hmo-te-search-results');
+		if ( q.length < 2 ) { $results.style.display = 'none'; return; }
+		document.getElementById('hmo-te-search-spinner').style.display = 'inline';
+		teTimer = setTimeout( function() {
+			var fd = new FormData();
+			fd.append('action','hmo_search_users');
+			fd.append('q', q);
+			fd.append('_ajax_nonce', nonce);
+			fetch(ajaxUrl, { method:'POST', body: fd })
+				.then(function(r){ return r.json(); })
+				.then(function(res) {
+					document.getElementById('hmo-te-search-spinner').style.display = 'none';
+					$results.innerHTML = '';
+					if ( ! res.success || ! res.data.length ) { $results.style.display = 'none'; return; }
+					res.data.forEach(function(u) {
+						if ( teUserIds.indexOf(u.id) !== -1 ) { return; }
+						var li = document.createElement('li');
+						li.style.cssText = 'padding:8px 12px;cursor:pointer;border-bottom:1px solid #eee;';
+						li.textContent = u.name + ' (' + u.email + ')';
+						li.addEventListener('click', function() {
+							teUserIds.push(u.id);
+							syncTeIdsField();
+							var emptyRow = document.getElementById('hmo-te-users-empty');
+							if (emptyRow) emptyRow.remove();
+							var tbody = document.getElementById('hmo-te-users-tbody');
+							var tr = document.createElement('tr');
+							tr.id = 'hmo-te-user-row-' + u.id;
+							tr.innerHTML = '<td>' + u.name + '</td><td>' + u.email + '</td>' +
+								'<td><button type="button" class="button button-small hmo-te-remove-user" data-id="' + u.id + '">Remove</button></td>';
+							tbody.appendChild(tr);
+							$results.style.display = 'none';
+							document.getElementById('hmo-te-user-search').value = '';
+						});
+						$results.appendChild(li);
+					});
+					$results.style.display = $results.children.length ? 'block' : 'none';
+				});
+		}, 300 );
+	});
+
+	// Remove user
+	document.addEventListener('click', function(e) {
+		if ( ! e.target.classList.contains('hmo-te-remove-user') ) { return; }
+		var id = parseInt( e.target.getAttribute('data-id'), 10 );
+		teUserIds = teUserIds.filter(function(i){ return i !== id; });
+		syncTeIdsField();
+		var row = document.getElementById('hmo-te-user-row-' + id);
+		if (row) row.remove();
+		if ( ! document.getElementById('hmo-te-users-tbody').children.length ) {
+			var tr = document.createElement('tr');
+			tr.id = 'hmo-te-users-empty';
+			tr.innerHTML = '<td colspan="3" style="color:#888;font-style:italic;">No task editor users yet.</td>';
+			document.getElementById('hmo-te-users-tbody').appendChild(tr);
+		}
+	});
+})();
+</script>
 
 <script>
 (function() {

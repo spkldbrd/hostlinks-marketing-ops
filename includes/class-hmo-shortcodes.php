@@ -39,6 +39,7 @@ class HMO_Shortcodes {
 		add_shortcode( 'hmo_dashboard',    array( $this, 'render_dashboard' ) );
 		add_shortcode( 'hmo_my_classes',   array( $this, 'render_my_classes' ) );
 		add_shortcode( 'hmo_event_detail', array( $this, 'render_event_detail' ) );
+		add_shortcode( 'hmo_task_editor',  array( $this, 'render_task_editor' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -76,6 +77,31 @@ class HMO_Shortcodes {
 
 		ob_start();
 		include HMO_PLUGIN_DIR . 'shortcode/views/dashboard.php';
+		return ob_get_clean();
+	}
+
+	// -------------------------------------------------------------------------
+	// [hmo_task_editor] — manage task templates (for Task Editor users + admins)
+	// -------------------------------------------------------------------------
+
+	public function render_task_editor( $atts ): string {
+		if ( ! HMO_Access_Service::current_user_can_edit_tasks() ) {
+			return $this->access->get_denial_message_html();
+		}
+
+		$templates = new HMO_Checklist_Templates();
+		$stages    = $templates->get_all_stages();
+		$stage_tasks = array();
+		foreach ( $stages as $stage ) {
+			$tasks = $templates->get_tasks_for_stage( $stage['stage_key'] );
+			foreach ( $tasks as $task ) {
+				$task->subtasks = $templates->get_subtasks( (int) $task->id );
+			}
+			$stage_tasks[ $stage['stage_key'] ] = $tasks;
+		}
+
+		ob_start();
+		include HMO_PLUGIN_DIR . 'shortcode/views/task-editor.php';
 		return ob_get_clean();
 	}
 

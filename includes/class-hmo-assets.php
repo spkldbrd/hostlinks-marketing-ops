@@ -98,12 +98,15 @@ class HMO_Assets {
 		return array(
 			'restBase' => esc_url_raw( rest_url( 'hmo/v1' ) ),
 			'nonce'    => wp_create_nonce( 'wp_rest' ),
+			'ajaxUrl'  => admin_url( 'admin-ajax.php' ),
+			'teNonce'  => wp_create_nonce( 'hmo_task_editor' ),
 			'strings'  => array(
 				'saving'         => __( 'Saving…', 'hmo' ),
 				'saved'          => __( 'Saved', 'hmo' ),
 				'error'          => __( 'Error — please try again', 'hmo' ),
 				'markComplete'   => __( 'Mark complete', 'hmo' ),
 				'markIncomplete' => __( 'Mark incomplete', 'hmo' ),
+				'confirmDelete'  => __( 'Delete this item? This cannot be undone.', 'hmo' ),
 			),
 		);
 	}

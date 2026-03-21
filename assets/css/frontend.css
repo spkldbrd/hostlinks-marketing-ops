@@ -487,6 +487,227 @@
 }
 
 /* ============================================================
+   Task Template Editor
+   ============================================================ */
+
+.hmo-te-intro {
+	color: hsl(215 15% 50%);
+	font-size: 0.875rem;
+	margin: 0 0 1.25rem;
+}
+
+.hmo-te-stage {
+	margin-bottom: 1.5rem;
+}
+
+.hmo-te-stage__title {
+	margin-bottom: 0.75rem;
+}
+
+/* Task list */
+.hmo-te-task-list,
+.hmo-te-subtask-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.hmo-te-task {
+	border: 1px solid hsl(215 15% 88%);
+	border-radius: 0.5rem;
+	margin-bottom: 0.5rem;
+	background: #fff;
+	overflow: hidden;
+}
+
+.hmo-te-subtask-list {
+	margin: 0 0 0.5rem 1.5rem;
+}
+
+.hmo-te-subtask {
+	border: 1px solid hsl(215 15% 91%);
+	border-radius: 0.4rem;
+	margin-bottom: 0.4rem;
+	background: hsl(215 20% 98%);
+}
+
+/* Task row */
+.hmo-te-task__row,
+.hmo-te-subtask__row {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.75rem;
+	padding: 0.65rem 0.85rem;
+}
+
+.hmo-te-drag-handle {
+	cursor: grab;
+	color: hsl(215 15% 65%);
+	font-size: 1rem;
+	flex-shrink: 0;
+	padding-top: 2px;
+	user-select: none;
+}
+
+.hmo-te-task__info {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.hmo-te-task__label {
+	font-size: 0.92rem;
+	font-weight: 600;
+	color: hsl(215 25% 15%);
+}
+
+.hmo-te-task__desc {
+	font-size: 0.8rem;
+	color: hsl(215 15% 50%);
+}
+
+.hmo-te-task__actions {
+	display: flex;
+	gap: 0.4rem;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+/* Edit form */
+.hmo-te-task__edit,
+.hmo-te-add-task-form,
+.hmo-te-add-subtask-form {
+	padding: 0.75rem 0.85rem;
+	background: hsl(215 20% 98%);
+	border-top: 1px solid hsl(215 15% 90%);
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.hmo-te-input {
+	width: 100%;
+	padding: 6px 10px;
+	border: 1px solid hsl(215 15% 80%);
+	border-radius: 5px;
+	font-size: 0.88rem;
+	font-family: inherit;
+	box-sizing: border-box;
+	background: #fff;
+	color: hsl(215 25% 15%);
+}
+
+.hmo-te-textarea {
+	width: 100%;
+	padding: 6px 10px;
+	border: 1px solid hsl(215 15% 80%);
+	border-radius: 5px;
+	font-size: 0.85rem;
+	font-family: inherit;
+	resize: vertical;
+	min-height: 56px;
+	box-sizing: border-box;
+	background: #fff;
+	color: hsl(215 25% 15%);
+}
+
+.hmo-te-edit-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+/* Stage footer */
+.hmo-te-stage__footer {
+	margin-top: 0.5rem;
+}
+
+/* Buttons */
+.hmo-te-btn {
+	font-size: 0.78rem;
+	font-weight: 600;
+	padding: 4px 11px;
+	border-radius: 4px;
+	border: 1px solid transparent;
+	cursor: pointer;
+	line-height: 1.5;
+	font-family: inherit;
+	transition: background 0.15s, color 0.15s;
+}
+
+.hmo-te-btn--edit {
+	background: hsl(215 20% 96%);
+	border-color: hsl(215 15% 80%);
+	color: hsl(215 25% 30%);
+}
+
+.hmo-te-btn--edit:hover {
+	background: hsl(215 20% 90%);
+	border-color: hsl(215 15% 70%);
+}
+
+.hmo-te-btn--save {
+	background: hsl(199 89% 48%);
+	border-color: hsl(199 89% 48%);
+	color: #fff;
+}
+
+.hmo-te-btn--save:hover {
+	background: hsl(199 89% 40%);
+	border-color: hsl(199 89% 40%);
+}
+
+.hmo-te-btn--cancel {
+	background: transparent;
+	border-color: hsl(215 15% 80%);
+	color: hsl(215 15% 50%);
+}
+
+.hmo-te-btn--cancel:hover {
+	background: hsl(215 20% 95%);
+}
+
+.hmo-te-btn--delete {
+	background: hsl(0 72% 97%);
+	border-color: hsl(0 60% 80%);
+	color: hsl(0 72% 40%);
+}
+
+.hmo-te-btn--delete:hover {
+	background: hsl(0 72% 90%);
+	border-color: hsl(0 72% 65%);
+}
+
+.hmo-te-btn--subtask {
+	background: hsl(142 55% 96%);
+	border-color: hsl(142 40% 75%);
+	color: hsl(142 60% 28%);
+}
+
+.hmo-te-btn--subtask:hover {
+	background: hsl(142 55% 90%);
+}
+
+.hmo-te-btn--add {
+	background: transparent;
+	border-color: hsl(199 89% 48%);
+	color: hsl(199 89% 40%);
+	padding: 6px 14px;
+	font-size: 0.82rem;
+}
+
+.hmo-te-btn--add:hover {
+	background: hsl(199 89% 95%);
+}
+
+/* Inline status */
+.hmo-te-status {
+	font-size: 0.78rem;
+}
+
+/* ============================================================
    Dark mode — matches .wp-dark-mode-active pattern from
    hostlinks-calendar.css
    ============================================================ */
@@ -638,3 +859,47 @@
 .wp-dark-mode-active .hmo-days-left--red    { background: hsl(0 60% 18%);   color: hsl(0 72% 70%); }
 .wp-dark-mode-active .hmo-days-left--yellow { background: hsl(38 60% 18%);  color: hsl(38 80% 70%); }
 .wp-dark-mode-active .hmo-days-left--green  { background: hsl(142 40% 14%); color: hsl(142 55% 60%); }
+
+/* Task editor dark mode */
+.wp-dark-mode-active .hmo-te-task {
+	background: hsl(215 25% 13%);
+	border-color: hsl(215 20% 20%);
+}
+
+.wp-dark-mode-active .hmo-te-subtask {
+	background: hsl(215 20% 16%);
+	border-color: hsl(215 20% 22%);
+}
+
+.wp-dark-mode-active .hmo-te-task__edit,
+.wp-dark-mode-active .hmo-te-add-task-form,
+.wp-dark-mode-active .hmo-te-add-subtask-form {
+	background: hsl(215 20% 16%);
+	border-top-color: hsl(215 20% 22%);
+}
+
+.wp-dark-mode-active .hmo-te-input,
+.wp-dark-mode-active .hmo-te-textarea {
+	background: hsl(215 20% 18%);
+	border-color: hsl(215 20% 28%);
+	color: hsl(210 25% 88%);
+}
+
+.wp-dark-mode-active .hmo-te-task__label {
+	color: hsl(210 25% 90%);
+}
+
+.wp-dark-mode-active .hmo-te-task__desc {
+	color: hsl(215 15% 55%);
+}
+
+.wp-dark-mode-active .hmo-te-btn--edit {
+	background: hsl(215 20% 20%);
+	border-color: hsl(215 20% 28%);
+	color: hsl(210 25% 80%);
+}
+
+.wp-dark-mode-active .hmo-te-btn--cancel {
+	border-color: hsl(215 20% 30%);
+	color: hsl(215 15% 60%);
+}

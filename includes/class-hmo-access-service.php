@@ -21,15 +21,17 @@ class HMO_Access_Service {
 		'hmo_dashboard'    => 'Marketing Ops Dashboard',
 		'hmo_my_classes'   => 'My Classes',
 		'hmo_event_detail' => 'Event Detail',
+		'hmo_task_editor'  => 'Task Template Editor',
 	);
 
 	const MODES = array( 'public', 'logged_in', 'approved_viewers' );
 
 	// ── wp_options keys ───────────────────────────────────────────────────────
 
-	const OPT_MODES   = 'hmo_shortcode_access_modes';
-	const OPT_VIEWERS = 'hmo_approved_viewers';
-	const OPT_MESSAGE = 'hmo_denial_message';
+	const OPT_MODES        = 'hmo_shortcode_access_modes';
+	const OPT_VIEWERS      = 'hmo_approved_viewers';
+	const OPT_MESSAGE      = 'hmo_denial_message';
+	const OPT_TASK_EDITORS = 'hmo_task_editors';
 
 	// ── Marketer mapping user meta keys ───────────────────────────────────────
 
@@ -135,6 +137,30 @@ class HMO_Access_Service {
 		$added = count( $merged ) - count( $hmo_viewers );
 		$this->save_approved_viewers( array_values( $merged ) );
 		return max( 0, $added );
+	}
+
+	// ── Task editor access ────────────────────────────────────────────────────
+
+	public static function current_user_can_edit_tasks(): bool {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+		$uid     = get_current_user_id();
+		$editors = array_map( 'intval', (array) get_option( self::OPT_TASK_EDITORS, array() ) );
+		return $uid > 0 && in_array( $uid, $editors, true );
+	}
+
+	public function get_task_editors(): array {
+		$raw = get_option( self::OPT_TASK_EDITORS, array() );
+		return array_map( 'intval', (array) $raw );
+	}
+
+	public function save_task_editors( array $ids ): void {
+		$clean = array_values( array_unique( array_filter(
+			array_map( 'intval', $ids ),
+			fn( $id ) => $id > 0
+		) ) );
+		update_option( self::OPT_TASK_EDITORS, $clean );
 	}
 
 	// =========================================================================

@@ -62,9 +62,21 @@ class HMO_Checklist_Templates {
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM {$wpdb->prefix}hmo_checklist_templates
-				 WHERE stage_key = %s AND is_active = 1
+				 WHERE stage_key = %s AND parent_id = 0 AND is_active = 1
 				 ORDER BY sort_order ASC",
 				$stage_key
+			)
+		);
+	}
+
+	public function get_subtasks( int $parent_id ): array {
+		global $wpdb;
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$wpdb->prefix}hmo_checklist_templates
+				 WHERE parent_id = %d AND is_active = 1
+				 ORDER BY sort_order ASC",
+				$parent_id
 			)
 		);
 	}
@@ -73,9 +85,170 @@ class HMO_Checklist_Templates {
 		global $wpdb;
 		return $wpdb->get_results(
 			"SELECT * FROM {$wpdb->prefix}hmo_checklist_templates
-			 WHERE is_active = 1
+			 WHERE parent_id = 0 AND is_active = 1
 			 ORDER BY sort_order ASC"
 		);
+	}
+
+	public function get_task( int $id ) {
+		global $wpdb;
+		return $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM {$wpdb->prefix}hmo_checklist_templates WHERE id = %d",
+				$id
+			)
+		);
+	}
+
+	// -------------------------------------------------------------------------
+	// Write (CRUD for the template editor)
+	// -------------------------------------------------------------------------
+
+	public function create_task( string $stage_key, string $label, string $description, int $parent_id = 0 ): int {
+		global $wpdb;
+		$table = $wpdb->prefix . 'hmo_checklist_templates';
+
+		// Sort order = max + 10 within same stage/parent bucket.
+		$max = (int) $wpdb->get_var( $wpdb->prepare(
+			"SELECT MAX(sort_order) FROM {$table} WHERE stage_key = %s AND parent_id = %d",
+			$stage_key, $parent_id
+		) );
+
+		$stage_label = self::$stage_labels[ $stage_key ] ?? '';
+		$task_key    = sanitize_key( $label ) . '_' . time();
+
+		$wpdb->insert( $table, array(
+			'parent_id'        => $parent_id,
+			'stage_key'        => $stage_key,
+			'stage_label'      => $stage_label,
+			'task_key'         => $task_key,
+			'task_label'       => sanitize_text_field( $label ),
+			'task_description' => sanitize_textarea_field( $description ),
+			'sort_order'       => $max + 10,
+			'is_active'        => 1,
+		) );
+
+		return (int) $wpdb->insert_id;
+	}
+
+	public function update_task( int $id, string $label, string $description ): bool {
+		global $wpdb;
+		$rows = $wpdb->update(
+			$wpdb->prefix . 'hmo_checklist_templates',
+			array(
+				'task_label'       => sanitize_text_field( $label ),
+				'task_description' => sanitize_textarea_field( $description ),
+			),
+			array( 'id' => $id )
+		);
+		return $rows !== false;
+	}
+
+	public function delete_task( int $id ): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'hmo_checklist_templates';
+		// Hard delete: also remove sub-tasks.
+		$wpdb->delete( $table, array( 'parent_id' => $id ) );
+		$wpdb->delete( $table, array( 'id'        => $id ) );
+	}
+
+	public function reorder_tasks( array $ordered_ids ): void {
+		global $wpdb;
+		$table = $wpdb->prefix . 'hmo_checklist_templates';
+		foreach ( $ordered_ids as $pos => $id ) {
+			$wpdb->update( $table, array( 'sort_order' => (int) $pos * 10 ), array( 'id' => (int) $id ) );
+		}
+	}
+
+	// -------------------------------------------------------------------------
+	// AJAX handlers
+	// -------------------------------------------------------------------------
+
+	public static function register_ajax(): void {
+		add_action( 'wp_ajax_hmo_te_add_task',    array( __CLASS__, 'ajax_add_task' ) );
+		add_action( 'wp_ajax_hmo_te_update_task', array( __CLASS__, 'ajax_update_task' ) );
+		add_action( 'wp_ajax_hmo_te_delete_task', array( __CLASS__, 'ajax_delete_task' ) );
+		add_action( 'wp_ajax_hmo_te_reorder',     array( __CLASS__, 'ajax_reorder' ) );
+	}
+
+	private static function check_task_editor_cap(): void {
+		if ( ! HMO_Access_Service::current_user_can_edit_tasks() ) {
+			wp_send_json_error( array( 'message' => 'Unauthorized' ), 403 );
+		}
+	}
+
+	public static function ajax_add_task(): void {
+		check_ajax_referer( 'hmo_task_editor', 'nonce' );
+		self::check_task_editor_cap();
+
+		$stage_key   = sanitize_key( $_POST['stage_key']   ?? '' );
+		$label       = sanitize_text_field( $_POST['label'] ?? '' );
+		$description = sanitize_textarea_field( $_POST['description'] ?? '' );
+		$parent_id   = (int) ( $_POST['parent_id'] ?? 0 );
+
+		if ( ! $stage_key || ! $label ) {
+			wp_send_json_error( array( 'message' => 'Stage and label are required.' ) );
+		}
+
+		$tmpl = new self();
+		$id   = $tmpl->create_task( $stage_key, $label, $description, $parent_id );
+
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => 'Could not create task.' ) );
+		}
+
+		$row = $tmpl->get_task( $id );
+		wp_send_json_success( array( 'task' => $row ) );
+	}
+
+	public static function ajax_update_task(): void {
+		check_ajax_referer( 'hmo_task_editor', 'nonce' );
+		self::check_task_editor_cap();
+
+		$id          = (int) ( $_POST['id'] ?? 0 );
+		$label       = sanitize_text_field( $_POST['label'] ?? '' );
+		$description = sanitize_textarea_field( $_POST['description'] ?? '' );
+
+		if ( ! $id || ! $label ) {
+			wp_send_json_error( array( 'message' => 'ID and label are required.' ) );
+		}
+
+		$tmpl = new self();
+		$ok   = $tmpl->update_task( $id, $label, $description );
+
+		if ( $ok ) {
+			wp_send_json_success( array( 'task' => $tmpl->get_task( $id ) ) );
+		} else {
+			wp_send_json_error( array( 'message' => 'Update failed.' ) );
+		}
+	}
+
+	public static function ajax_delete_task(): void {
+		check_ajax_referer( 'hmo_task_editor', 'nonce' );
+		self::check_task_editor_cap();
+
+		$id = (int) ( $_POST['id'] ?? 0 );
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => 'ID required.' ) );
+		}
+
+		( new self() )->delete_task( $id );
+		wp_send_json_success();
+	}
+
+	public static function ajax_reorder(): void {
+		check_ajax_referer( 'hmo_task_editor', 'nonce' );
+		self::check_task_editor_cap();
+
+		$ids = isset( $_POST['ids'] ) && is_array( $_POST['ids'] )
+			? array_map( 'intval', $_POST['ids'] ) : array();
+
+		if ( empty( $ids ) ) {
+			wp_send_json_error( array( 'message' => 'No IDs provided.' ) );
+		}
+
+		( new self() )->reorder_tasks( $ids );
+		wp_send_json_success();
 	}
 
 	public function get_stage_sort_index( string $stage_key ): int {
