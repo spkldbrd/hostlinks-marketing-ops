@@ -24,6 +24,47 @@ if ( isset( $_POST['hmo_save_general'] ) ) {
 	$notice = '<div class="notice notice-success is-dismissible"><p>General settings saved.</p></div>';
 }
 
+// Marketer user mappings
+if ( isset( $_POST['hmo_save_mappings'] ) ) {
+	check_admin_referer( 'hmo_save_general' );
+
+	$access_svc = new HMO_Access_Service();
+	$mappings   = isset( $_POST['hmo_mapping'] ) && is_array( $_POST['hmo_mapping'] )
+		? $_POST['hmo_mapping'] : array();
+
+	// Build a lookup of all existing mapped user IDs so we can clear removed ones.
+	$all_users = get_users( array( 'number' => -1, 'fields' => array( 'ID' ) ) );
+	foreach ( $all_users as $u ) {
+		$existing_mid = (int) get_user_meta( $u->ID, HMO_Access_Service::META_MARKETER_ID, true );
+		if ( $existing_mid ) {
+			// Will be overwritten below if still present; cleared if not.
+			$access_svc->remove_user_marketer_mapping( (int) $u->ID );
+		}
+	}
+
+	// Save new mappings: keyed by marketer_id => wp_user_id.
+	$bridge    = new HMO_Hostlinks_Bridge();
+	$marketers = $bridge->get_marketers();
+	$mkt_index = array();
+	foreach ( $marketers as $m ) {
+		$mkt_index[ (int) $m->event_marketer_id ] = $m->event_marketer_name;
+	}
+
+	foreach ( $mappings as $marketer_id => $wp_user_id ) {
+		$marketer_id = (int) $marketer_id;
+		$wp_user_id  = (int) $wp_user_id;
+		if ( $wp_user_id && isset( $mkt_index[ $marketer_id ] ) ) {
+			$access_svc->set_user_marketer_mapping(
+				$wp_user_id,
+				$marketer_id,
+				$mkt_index[ $marketer_id ]
+			);
+		}
+	}
+
+	$notice = '<div class="notice notice-success is-dismissible"><p>Marketer mappings saved.</p></div>';
+}
+
 // Page links
 if ( isset( $_POST['hmo_save_page_urls'] ) ) {
 	check_admin_referer( 'hmo_save_page_urls' );
@@ -171,32 +212,132 @@ $tabs = array(
 	</table>
 
 	<h2>Marketer User Mapping</h2>
-	<p class="description">
-		Assign a Hostlinks marketer record to a WordPress user via the
-		<code>hmo_marketer_id</code> and <code>hmo_marketer_name</code> user meta keys.
-		A mapping UI will be added in Phase 2.
+	<p>
+		Assign each Hostlinks marketer to a WordPress user account.
+		Mapped users will only see their own assigned classes in the My Classes view.
+		Administrators always see all classes regardless of mapping.
 	</p>
-	<table class="wp-list-table widefat fixed striped" style="max-width:700px;">
+
+	<?php
+	$bridge_for_mapping = new HMO_Hostlinks_Bridge();
+	$all_marketers      = $bridge_for_mapping->get_marketers();
+	$all_wp_users       = get_users( array(
+		'number'  => -1,
+		'orderby' => 'display_name',
+		'order'   => 'ASC',
+		'fields'  => array( 'ID', 'display_name', 'user_email' ),
+	) );
+
+	// Build reverse index: marketer_id => wp_user_id currently mapped.
+	$mapping_by_marketer = array();
+	foreach ( $all_wp_users as $u ) {
+		$mid = (int) get_user_meta( $u->ID, HMO_Access_Service::META_MARKETER_ID, true );
+		if ( $mid ) {
+			$mapping_by_marketer[ $mid ] = (int) $u->ID;
+		}
+	}
+	?>
+
+	<?php if ( empty( $all_marketers ) ) : ?>
+		<div class="notice notice-warning inline"><p>No active marketers found in Hostlinks. Add marketers in Hostlinks first.</p></div>
+	<?php else : ?>
+	<table class="wp-list-table widefat fixed striped" style="max-width:760px;">
 		<thead>
-			<tr><th>WordPress User</th><th>Mapped Marketer</th><th>Marketer ID</th></tr>
+			<tr>
+				<th style="width:35%;">Hostlinks Marketer</th>
+				<th>Mapped WordPress User</th>
+				<th style="width:90px;text-align:center;">Status</th>
+			</tr>
 		</thead>
 		<tbody>
-			<?php
-			$users = get_users( array( 'number' => 100, 'fields' => array( 'ID', 'display_name', 'user_email' ) ) );
-			foreach ( $users as $user ) :
-				$mid   = (int) get_user_meta( $user->ID, HMO_Access_Service::META_MARKETER_ID,   true );
-				$mname = (string) get_user_meta( $user->ID, HMO_Access_Service::META_MARKETER_NAME, true );
-			?>
+		<?php foreach ( $all_marketers as $mkt ) :
+			$mkt_id      = (int) $mkt->event_marketer_id;
+			$mapped_uid  = $mapping_by_marketer[ $mkt_id ] ?? 0;
+		?>
 			<tr>
-				<td><?php echo esc_html( $user->display_name ); ?> <small>(<?php echo esc_html( $user->user_email ); ?>)</small></td>
-				<td><?php echo $mname ? esc_html( $mname ) : '<em>—</em>'; ?></td>
-				<td><?php echo $mid ? (int) $mid : '<em>—</em>'; ?></td>
+				<td>
+					<strong><?php echo esc_html( $mkt->event_marketer_name ); ?></strong>
+					<br><small style="color:#8c8f94;">ID: <?php echo (int) $mkt_id; ?></small>
+				</td>
+				<td>
+					<select name="hmo_mapping[<?php echo (int) $mkt_id; ?>]"
+						class="hmo-mapping-select"
+						style="width:100%;max-width:340px;">
+						<option value="0">— No mapping —</option>
+						<?php foreach ( $all_wp_users as $u ) : ?>
+							<option value="<?php echo (int) $u->ID; ?>" <?php selected( $mapped_uid, (int) $u->ID ); ?>>
+								<?php echo esc_html( $u->display_name ); ?> (<?php echo esc_html( $u->user_email ); ?>)
+							</option>
+						<?php endforeach; ?>
+					</select>
+				</td>
+				<td style="text-align:center;">
+					<?php if ( $mapped_uid ) : ?>
+						<span style="display:inline-block;padding:2px 8px;border-radius:3px;background:hsl(142 55% 90%);color:hsl(142 60% 28%);font-size:11px;font-weight:600;">Mapped</span>
+					<?php else : ?>
+						<span style="display:inline-block;padding:2px 8px;border-radius:3px;background:#f0f0f1;color:#8c8f94;font-size:11px;font-weight:600;">None</span>
+					<?php endif; ?>
+				</td>
 			</tr>
-			<?php endforeach; ?>
+		<?php endforeach; ?>
 		</tbody>
 	</table>
+	<p style="margin-top:12px;">
+		<button type="submit" name="hmo_save_mappings" class="button button-primary">Save Marketer Mappings</button>
+	</p>
+	<?php endif; ?>
 
+	<hr style="margin:24px 0;">
 	<?php submit_button( 'Save General Settings', 'primary', 'hmo_save_general' ); ?>
+
+<script>
+(function() {
+	var ajaxUrl  = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+	var nonce    = <?php echo wp_json_encode( wp_create_nonce( 'hmo_save_mapping' ) ); ?>;
+
+	// Collect marketer names from the table rows for the AJAX call.
+	var marketerNames = {};
+	<?php foreach ( $all_marketers as $mkt ) : ?>
+	marketerNames[<?php echo (int) $mkt->event_marketer_id; ?>] = <?php echo wp_json_encode( $mkt->event_marketer_name ); ?>;
+	<?php endforeach; ?>
+
+	document.querySelectorAll('.hmo-mapping-select').forEach(function(sel) {
+		sel.addEventListener('change', function() {
+			var row        = sel.closest('tr');
+			var statusCell = row.querySelector('td:last-child');
+			var marketerId = parseInt(sel.name.match(/\[(\d+)\]/)[1], 10);
+			var wpUserId   = parseInt(sel.value, 10);
+			var mktName    = marketerNames[marketerId] || '';
+
+			statusCell.innerHTML = '<span style="color:#888;font-size:11px;">Saving…</span>';
+
+			var data = new FormData();
+			data.append('action',        'hmo_save_single_mapping');
+			data.append('_ajax_nonce',   nonce);
+			data.append('marketer_id',   marketerId);
+			data.append('wp_user_id',    wpUserId);
+			data.append('marketer_name', mktName);
+
+			fetch(ajaxUrl, { method: 'POST', body: data })
+				.then(function(r) { return r.json(); })
+				.then(function(resp) {
+					if (resp.success) {
+						if (resp.data.status === 'mapped') {
+							statusCell.innerHTML = '<span style="display:inline-block;padding:2px 8px;border-radius:3px;background:hsl(142 55% 90%);color:hsl(142 60% 28%);font-size:11px;font-weight:600;">Mapped</span>';
+						} else {
+							statusCell.innerHTML = '<span style="display:inline-block;padding:2px 8px;border-radius:3px;background:#f0f0f1;color:#8c8f94;font-size:11px;font-weight:600;">None</span>';
+						}
+					} else {
+						statusCell.innerHTML = '<span style="color:#d63638;font-size:11px;">Error</span>';
+					}
+				})
+				.catch(function() {
+					statusCell.innerHTML = '<span style="color:#d63638;font-size:11px;">Error</span>';
+				});
+		});
+	});
+})();
+</script>
 </form>
 
 <!-- ======================================================================

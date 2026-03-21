@@ -41,8 +41,9 @@ class HMO_Access_Service {
 	// ── Bootstrap ─────────────────────────────────────────────────────────────
 
 	public static function register_ajax(): void {
-		add_action( 'wp_ajax_hmo_search_users', array( __CLASS__, 'ajax_search_users' ) );
-		add_action( 'wp_ajax_nopriv_hmo_search_users', array( __CLASS__, 'ajax_search_users_denied' ) );
+		add_action( 'wp_ajax_hmo_search_users',       array( __CLASS__, 'ajax_search_users' ) );
+		add_action( 'wp_ajax_nopriv_hmo_search_users',array( __CLASS__, 'ajax_search_users_denied' ) );
+		add_action( 'wp_ajax_hmo_save_single_mapping',array( __CLASS__, 'ajax_save_single_mapping' ) );
 	}
 
 	// =========================================================================
@@ -239,5 +240,46 @@ class HMO_Access_Service {
 
 	public static function ajax_search_users_denied(): void {
 		wp_send_json_error( 'Unauthorized', 403 );
+	}
+
+	/**
+	 * Save a single marketer → WP user mapping via AJAX.
+	 * Expects POST: marketer_id (int), wp_user_id (int), marketer_name (string), _ajax_nonce
+	 */
+	public static function ajax_save_single_mapping(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Unauthorized', 403 );
+		}
+		check_ajax_referer( 'hmo_save_mapping' );
+
+		$marketer_id   = (int) ( $_POST['marketer_id']   ?? 0 );
+		$wp_user_id    = (int) ( $_POST['wp_user_id']    ?? 0 );
+		$marketer_name = sanitize_text_field( $_POST['marketer_name'] ?? '' );
+
+		if ( ! $marketer_id ) {
+			wp_send_json_error( 'Invalid marketer ID', 400 );
+		}
+
+		$self = new self();
+
+		// If a different user was previously mapped to this marketer, clear them first.
+		global $wpdb;
+		$old_user_ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value = %s",
+				self::META_MARKETER_ID,
+				$marketer_id
+			)
+		);
+		foreach ( $old_user_ids as $old_uid ) {
+			$self->remove_user_marketer_mapping( (int) $old_uid );
+		}
+
+		if ( $wp_user_id ) {
+			$self->set_user_marketer_mapping( $wp_user_id, $marketer_id, $marketer_name );
+			wp_send_json_success( array( 'status' => 'mapped', 'user_id' => $wp_user_id ) );
+		} else {
+			wp_send_json_success( array( 'status' => 'cleared' ) );
+		}
 	}
 }
