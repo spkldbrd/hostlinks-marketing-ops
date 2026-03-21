@@ -646,6 +646,77 @@
 	padding: 0.65rem 0.85rem;
 }
 
+/* Toggle button */
+.hmo-te-toggle {
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	flex-shrink: 0;
+	width: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-top: 1px;
+}
+
+.hmo-te-arrow {
+	display: inline-block;
+	font-size: 0.6rem;
+	color: hsl(215 15% 55%);
+	transition: transform 0.2s ease;
+	line-height: 1;
+}
+
+.hmo-te-task--open .hmo-te-arrow {
+	transform: rotate(90deg);
+	color: hsl(199 89% 45%);
+}
+
+/* Toggle zone on the info area makes the whole label clickable */
+.hmo-te-task__toggle-zone {
+	cursor: pointer;
+}
+
+.hmo-te-task__toggle-zone:hover .hmo-te-task__label {
+	color: hsl(199 89% 40%);
+}
+
+/* Sub-task count badge */
+.hmo-te-sub-badge {
+	flex-shrink: 0;
+	font-size: 0.72rem;
+	font-weight: 600;
+	padding: 2px 8px;
+	border-radius: 10px;
+	background: hsl(142 55% 93%);
+	color: hsl(142 60% 28%);
+	white-space: nowrap;
+	align-self: center;
+	transition: opacity 0.15s;
+}
+
+.hmo-te-task--open .hmo-te-sub-badge--collapsed {
+	opacity: 0;
+	pointer-events: none;
+}
+
+/* Collapsible body */
+.hmo-te-task__body {
+	display: none;
+	border-top: 1px solid hsl(215 15% 90%);
+}
+
+.hmo-te-task--open .hmo-te-task__body {
+	display: block;
+}
+
+/* Open task header highlight */
+.hmo-te-task--open > .hmo-te-task__row {
+	background: hsl(199 89% 97%);
+	border-left: 3px solid hsl(199 89% 48%);
+}
+
 .hmo-te-drag-handle {
 	cursor: grab;
 	color: hsl(215 15% 65%);
@@ -967,6 +1038,20 @@
 .wp-dark-mode-active .hmo-days-left--green  { background: hsl(142 40% 14%); color: hsl(142 55% 60%); }
 
 /* Task editor dark mode */
+.wp-dark-mode-active .hmo-te-task--open > .hmo-te-task__row {
+	background: hsl(199 89% 10%);
+	border-left-color: hsl(199 89% 40%);
+}
+
+.wp-dark-mode-active .hmo-te-task__body {
+	border-top-color: hsl(215 20% 22%);
+}
+
+.wp-dark-mode-active .hmo-te-sub-badge {
+	background: hsl(142 40% 14%);
+	color: hsl(142 55% 60%);
+}
+
 .wp-dark-mode-active .hmo-te-task {
 	background: hsl(215 25% 13%);
 	border-color: hsl(215 20% 20%);

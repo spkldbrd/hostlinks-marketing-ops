@@ -212,6 +212,27 @@
 		setTimeout( function () { $el.fadeOut( 400 ); }, 2500 );
 	}
 
+	// ── Toggle task open / closed ─────────────────────────────────────────────
+
+	function openTask( $task ) {
+		$task.addClass( 'hmo-te-task--open' );
+		$task.find( '.hmo-te-toggle' ).first().attr( 'aria-expanded', 'true' );
+	}
+
+	function closeTask( $task ) {
+		$task.removeClass( 'hmo-te-task--open' );
+		$task.find( '.hmo-te-toggle' ).first().attr( 'aria-expanded', 'false' );
+	}
+
+	$( document ).on( 'click', '[data-action="toggle-task"]', function ( e ) {
+		// Don't fire if a button inside the actions area was the actual click target.
+		if ( $( e.target ).is( 'button, a' ) || $( e.target ).closest( '.hmo-te-task__actions' ).length ) {
+			return;
+		}
+		var $task = $( this ).closest( '.hmo-te-task' );
+		$task.hasClass( 'hmo-te-task--open' ) ? closeTask( $task ) : openTask( $task );
+	} );
+
 	// ── Show/hide add-task form ────────────────────────────────────────────────
 
 	$( document ).on( 'click', '[data-action="show-add-task"]', function () {
@@ -243,8 +264,7 @@
 		teAjax( 'hmo_te_add_task', { stage_key: stage, label: label, description: desc, parent_id: 0 },
 			function ( data ) {
 				$btn.text( 'Add Task' ).prop( 'disabled', false );
-				var t = data.task;
-				var html = buildTaskHtml( t );
+				var html = buildTaskHtml( data.task );
 				$( '#hmo-te-list-' + stage ).append( html );
 				$form.find( '.hmo-te-new-label' ).val( '' );
 				$form.find( '.hmo-te-new-desc' ).val( '' );
@@ -257,10 +277,11 @@
 		);
 	} );
 
-	// ── Show/hide add-subtask form ────────────────────────────────────────────
+	// ── Show/hide add-subtask form — auto-opens parent task ──────────────────
 
 	$( document ).on( 'click', '[data-action="show-add-subtask"]', function () {
 		var $task = $( this ).closest( '.hmo-te-task' );
+		openTask( $task );
 		$task.find( '.hmo-te-add-subtask-form' ).first().slideToggle( 150 );
 	} );
 
@@ -289,9 +310,10 @@
 		teAjax( 'hmo_te_add_task', { stage_key: stage, label: label, description: desc, parent_id: parentId },
 			function ( data ) {
 				$btn.text( 'Add Sub-task' ).prop( 'disabled', false );
-				var t    = data.task;
-				var html = buildSubtaskHtml( t );
-				$form.closest( '.hmo-te-task' ).find( '.hmo-te-subtask-list' ).first().append( html );
+				var $task = $form.closest( '.hmo-te-task' );
+				$task.find( '.hmo-te-subtask-list' ).first().append( buildSubtaskHtml( data.task ) );
+				// Update or add the sub-task count badge.
+				updateSubBadge( $task );
 				$form.find( '.hmo-te-new-label' ).val( '' );
 				$form.find( '.hmo-te-new-desc' ).val( '' );
 				$form.slideUp( 150 );
@@ -303,11 +325,15 @@
 		);
 	} );
 
-	// ── Edit task / sub-task ──────────────────────────────────────────────────
+	// ── Edit task — auto-opens parent ─────────────────────────────────────────
 
 	$( document ).on( 'click', '[data-action="edit-task"]', function () {
-		var $row = $( this ).closest( '.hmo-te-task__view, .hmo-te-subtask__row' );
-		var $li  = $row.closest( '.hmo-te-task, .hmo-te-subtask' );
+		var $btn  = $( this );
+		var $task = $btn.closest( '.hmo-te-task' );
+		// Open the parent task if this is a top-level edit button.
+		if ( $task.length ) { openTask( $task ); }
+		var $row = $btn.closest( '.hmo-te-task__view, .hmo-te-subtask__row' );
+		var $li  = $btn.closest( '.hmo-te-task, .hmo-te-subtask' );
 		$row.hide();
 		$li.find( '.hmo-te-task__edit' ).first().show();
 	} );
@@ -349,16 +375,44 @@
 	// ── Delete task / sub-task ────────────────────────────────────────────────
 
 	$( document ).on( 'click', '[data-action="delete-task"]', function () {
-		var id   = $( this ).data( 'id' );
-		var $li  = $( this ).closest( '.hmo-te-task, .hmo-te-subtask' );
+		var id    = $( this ).data( 'id' );
+		var $li   = $( this ).closest( '.hmo-te-task, .hmo-te-subtask' );
+		var $task = $( this ).closest( '.hmo-te-task' );
 
 		if ( ! window.confirm( str.confirmDelete ) ) { return; }
 
 		teAjax( 'hmo_te_delete_task', { id: id },
-			function () { $li.fadeOut( 250, function () { $( this ).remove(); } ); },
+			function () {
+				$li.fadeOut( 250, function () {
+					$( this ).remove();
+					// Refresh badge if a subtask was removed.
+					if ( $task.length && ! $li.hasClass( 'hmo-te-task' ) ) {
+						updateSubBadge( $task );
+					}
+				} );
+			},
 			function ( msg ) { alert( msg ); }
 		);
 	} );
+
+	// ── Sub-task count badge helper ───────────────────────────────────────────
+
+	function updateSubBadge( $task ) {
+		var count = $task.find( '.hmo-te-subtask-list' ).first().children( '.hmo-te-subtask' ).length;
+		var $badge = $task.find( '.hmo-te-sub-badge' ).first();
+		if ( count > 0 ) {
+			var label = count + ' sub-task' + ( count !== 1 ? 's' : '' );
+			if ( $badge.length ) {
+				$badge.text( label );
+			} else {
+				$task.find( '.hmo-te-task__actions' ).first().before(
+					'<span class="hmo-te-sub-badge hmo-te-sub-badge--collapsed">' + label + '</span>'
+				);
+			}
+		} else {
+			$badge.remove();
+		}
+	}
 
 	// ── HTML builders ─────────────────────────────────────────────────────────
 
@@ -367,8 +421,11 @@
 		var stage = t.stage_key;
 		return '<li class="hmo-te-task" data-id="' + id + '">' +
 			'<div class="hmo-te-task__row hmo-te-task__view">' +
-				'<span class="hmo-te-drag-handle">&#9783;</span>' +
-				'<div class="hmo-te-task__info">' +
+				'<button type="button" class="hmo-te-toggle" data-action="toggle-task" aria-expanded="false" title="Expand / collapse">' +
+					'<span class="hmo-te-arrow">&#9654;</span>' +
+				'</button>' +
+				'<span class="hmo-te-drag-handle" title="Drag to reorder">&#9783;</span>' +
+				'<div class="hmo-te-task__info hmo-te-task__toggle-zone" data-action="toggle-task">' +
 					'<strong class="hmo-te-task__label">' + escHtml( t.task_label ) + '</strong>' +
 					( t.task_description ? '<span class="hmo-te-task__desc">' + escHtml( t.task_description ) + '</span>' : '' ) +
 				'</div>' +
@@ -378,23 +435,25 @@
 					'<button type="button" class="hmo-te-btn hmo-te-btn--delete" data-action="delete-task" data-id="' + id + '">Delete</button>' +
 				'</div>' +
 			'</div>' +
-			'<div class="hmo-te-task__edit" style="display:none;">' +
-				'<input type="text" class="hmo-te-input hmo-te-edit-label" value="' + escAttr( t.task_label ) + '" placeholder="Task label">' +
-				'<textarea class="hmo-te-textarea hmo-te-edit-desc" placeholder="Description (optional)">' + escHtml( t.task_description ) + '</textarea>' +
-				'<div class="hmo-te-edit-actions">' +
-					'<button type="button" class="hmo-te-btn hmo-te-btn--save" data-action="save-task-edit" data-id="' + id + '">Save</button>' +
-					'<button type="button" class="hmo-te-btn hmo-te-btn--cancel" data-action="cancel-edit">Cancel</button>' +
-					'<span class="hmo-te-status" style="display:none;"></span>' +
+			'<div class="hmo-te-task__body">' +
+				'<div class="hmo-te-task__edit" style="display:none;">' +
+					'<input type="text" class="hmo-te-input hmo-te-edit-label" value="' + escAttr( t.task_label ) + '" placeholder="Task label">' +
+					'<textarea class="hmo-te-textarea hmo-te-edit-desc" placeholder="Description (optional)">' + escHtml( t.task_description ) + '</textarea>' +
+					'<div class="hmo-te-edit-actions">' +
+						'<button type="button" class="hmo-te-btn hmo-te-btn--save" data-action="save-task-edit" data-id="' + id + '">Save</button>' +
+						'<button type="button" class="hmo-te-btn hmo-te-btn--cancel" data-action="cancel-edit">Cancel</button>' +
+						'<span class="hmo-te-status" style="display:none;"></span>' +
+					'</div>' +
 				'</div>' +
-			'</div>' +
-			'<ul class="hmo-te-subtask-list" data-parent="' + id + '"></ul>' +
-			'<div class="hmo-te-add-subtask-form" data-parent="' + id + '" data-stage="' + escAttr( stage ) + '" style="display:none;">' +
-				'<input type="text" class="hmo-te-input hmo-te-new-label" placeholder="Sub-task label *">' +
-				'<textarea class="hmo-te-textarea hmo-te-new-desc" placeholder="Description (optional)"></textarea>' +
-				'<div class="hmo-te-edit-actions">' +
-					'<button type="button" class="hmo-te-btn hmo-te-btn--save" data-action="save-new-subtask">Add Sub-task</button>' +
-					'<button type="button" class="hmo-te-btn hmo-te-btn--cancel" data-action="cancel-add-subtask">Cancel</button>' +
-					'<span class="hmo-te-status" style="display:none;"></span>' +
+				'<ul class="hmo-te-subtask-list" data-parent="' + id + '"></ul>' +
+				'<div class="hmo-te-add-subtask-form" data-parent="' + id + '" data-stage="' + escAttr( stage ) + '" style="display:none;">' +
+					'<input type="text" class="hmo-te-input hmo-te-new-label" placeholder="Sub-task label *">' +
+					'<textarea class="hmo-te-textarea hmo-te-new-desc" placeholder="Description (optional)"></textarea>' +
+					'<div class="hmo-te-edit-actions">' +
+						'<button type="button" class="hmo-te-btn hmo-te-btn--save" data-action="save-new-subtask">Add Sub-task</button>' +
+						'<button type="button" class="hmo-te-btn hmo-te-btn--cancel" data-action="cancel-add-subtask">Cancel</button>' +
+						'<span class="hmo-te-status" style="display:none;"></span>' +
+					'</div>' +
 				'</div>' +
 			'</div>' +
 		'</li>';
