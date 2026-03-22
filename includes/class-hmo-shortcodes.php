@@ -223,9 +223,11 @@ class HMO_Shortcodes {
 		$event_id = isset( $_GET['event_id'] ) ? (int) $_GET['event_id'] : 0;
 
 		// Build event list for the selector dropdown.
-		// Admins see all active events; non-admins see only their bucket events.
-		$is_admin = $this->access->current_user_can_see_all_events();
-		if ( $is_admin ) {
+		// WP admins and report viewers see all active events; bucket-only users see their bucket events.
+		$is_admin        = $this->access->current_user_can_see_all_events();
+		$is_report_viewer = HMO_Access_Service::current_user_can_view_reports();
+
+		if ( $is_admin || $is_report_viewer ) {
 			$events = $wpdb->get_results(
 				"SELECT eve_id AS id, eve_name AS name, eve_start AS event_date
 				 FROM {$wpdb->prefix}event_details_list
@@ -255,7 +257,7 @@ class HMO_Shortcodes {
 		$user_cache     = array();
 
 		if ( $event_id ) {
-			if ( ! $is_admin && ! $this->access->can_view_event( $event_id ) ) {
+			if ( ! $is_admin && ! $is_report_viewer && ! $this->access->can_view_event( $event_id ) ) {
 				return $this->access->get_denial_message_html();
 			}
 
