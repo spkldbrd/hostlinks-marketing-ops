@@ -31,12 +31,9 @@ function hmo_clear_filter_url( $remove_key ): string {
 	<!-- Header -->
 	<div class="hmo-dashboard-header">
 		<span class="hmo-dashboard-header__title">Marketing Ops</span>
-		<span class="hmo-dashboard-header__stats">
-			<span><?php echo (int) $cards['my_classes']; ?> Classes</span>
-			<span><?php echo (int) $cards['red_risk']; ?> Red Risk</span>
-			<span><?php echo (int) $cards['behind_schedule']; ?> Behind</span>
-			<span><?php echo (int) $cards['next_30_days']; ?> Next 30 Days</span>
-		</span>
+		<a href="<?php echo esc_url( Hostlinks_Page_URLs::get_upcoming() ); ?>" class="hostlinks-btn hmo-return-btn">
+			&larr; Return to Hostlinks
+		</a>
 	</div>
 
 	<!-- Summary Cards -->
