@@ -918,6 +918,14 @@
 			} );
 		}
 
+		function hmoKanbanSetDragCursor( active ) {
+			if ( ! kanbanEl ) { return; }
+			kanbanEl.classList.toggle( 'hmo-kanban--drag-active', !! active );
+			try {
+				document.documentElement.style.cursor = active ? 'grabbing' : '';
+			} catch ( err ) {}
+		}
+
 		zones.forEach( function ( zone ) {
 			var stage = zone.getAttribute( 'data-stage-drop' );
 			var inst = Sortable.create( zone, {
@@ -929,7 +937,9 @@
 				delay:               120,
 				delayOnTouchOnly:    true,
 				emptyInsertThreshold: 48,
-				ghostClass:          'hmo-dragging',
+				// Ghost = drop placeholder in lists; dragClass = in-list source hidden while body clone follows pointer.
+				ghostClass:          'hmo-kanban__ghost-slot',
+				dragClass:           'hmo-kanban__drag-source',
 				// Native drag breaks when ancestors use overflow hidden/auto; fallback uses body-attached clone.
 				forceFallback:       true,
 				fallbackOnBody:      true,
@@ -938,9 +948,11 @@
 					hmoKanbanDbg( 'onChoose', { stage: stage, eventId: evt.item.getAttribute( 'data-event-id' ) } );
 				},
 				onUnchoose: function () {
+					hmoKanbanSetDragCursor( false );
 					hmoKanbanDbg( 'onUnchoose', { stage: stage } );
 				},
 				onStart: function ( evt ) {
+					hmoKanbanSetDragCursor( true );
 					hmoKanbanDbg( 'onStart (drag began)', { stage: stage, eventId: evt.item.getAttribute( 'data-event-id' ) } );
 				},
 
@@ -951,6 +963,7 @@
 				},
 
 				onEnd: function ( evt ) {
+					hmoKanbanSetDragCursor( false );
 					hmoKanbanDbg( 'onEnd', {
 						oldStage: evt.from.getAttribute( 'data-stage-drop' ),
 						newStage: evt.to.getAttribute( 'data-stage-drop' ),

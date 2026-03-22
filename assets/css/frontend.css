@@ -2027,10 +2027,43 @@
 
 /* -- Kanban drag-and-drop -------------------------------------------------- */
 
-.hmo-kanban__card.hmo-dragging {
-	opacity: 0.45;
+/* forceFallback + fallbackOnBody: hide the real card in the list; user follows the body clone only */
+.hmo-kanban .hmo-kanban__card.hmo-kanban__drag-source {
+	opacity: 0 !important;
+	visibility: hidden;
+	pointer-events: none;
+}
+
+/* Drop placeholder in columns ? slim dashed slot, not a second full card */
+.hmo-kanban .hmo-kanban__card.hmo-kanban__ghost-slot {
+	opacity: 0.35;
+	background: hsl(215 40% 94%) !important;
+	box-shadow: none !important;
 	outline: 2px dashed hsl(215 50% 55%);
-	cursor: grabbing;
+	outline-offset: 1px;
+	transform: none !important;
+	min-height: 2.75rem;
+}
+
+.wp-dark-mode-active .hmo-kanban .hmo-kanban__card.hmo-kanban__ghost-slot {
+	background: hsl(215 22% 22%) !important;
+	outline-color: hsl(215 45% 48%);
+}
+
+/* Body-attached Sortable fallback clone (default class from library) */
+.sortable-fallback {
+	cursor: grabbing !important;
+	z-index: 100000;
+	box-shadow: 0 10px 28px rgba(0, 0, 0, 0.16);
+	border-radius: 8px;
+}
+
+.hmo-kanban--drag-active {
+	cursor: grabbing !important;
+}
+
+.hmo-kanban--drag-active .hmo-kanban__card {
+	cursor: grabbing !important;
 }
 
 .hmo-kanban__cards.hmo-drop-target {

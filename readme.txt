@@ -41,6 +41,9 @@ Requires the Hostlinks plugin to be installed and active.
 
 == Changelog ==
 
+= 1.4.8 =
+* Kanban: hide in-list drag source + restyle ghost slot; grabbing cursor during drag (less double-card + cursor flash).
+
 = 1.4.7 =
 * Kanban: Sortable forceFallback + fallbackOnBody so drags escape .hmo-kanban overflow (cross-column drops).
 
