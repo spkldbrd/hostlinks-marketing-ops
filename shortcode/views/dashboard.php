@@ -1,9 +1,13 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
-// Variables: $rows (array), $cards (array), $access (HMO_Access_Service), $pagination (array)
+// Variables: $rows (array), $cards (array), $access (HMO_Access_Service), $pagination (array), $view (string)
 
-$detail_base = HMO_Page_URLs::get_event_detail();
-$is_admin    = $access->current_user_can_see_all_events();
+$detail_base  = HMO_Page_URLs::get_event_detail();
+$is_admin     = $access->current_user_can_see_all_events();
+$view         = $view ?? 'upcoming';
+$base_no_page = remove_query_arg( 'hmo_page' );
+$upcoming_url = add_query_arg( 'hmo_view', 'upcoming', remove_query_arg( array( 'hmo_view', 'hmo_page' ) ) );
+$past_url     = add_query_arg( 'hmo_view', 'past',     remove_query_arg( array( 'hmo_view', 'hmo_page' ) ) );
 ?>
 <div class="hostlinks-page hmo-frontend">
 
@@ -15,6 +19,14 @@ $is_admin    = $access->current_user_can_see_all_events();
 			<span><?php echo (int) $cards['red_risk']; ?> Red Risk</span>
 			<span><?php echo (int) $cards['next_30_days']; ?> Next 30 Days</span>
 		</span>
+	</div>
+
+	<!-- View filter bar -->
+	<div class="hmo-view-bar">
+		<a class="hmo-view-bar__btn<?php echo $view === 'upcoming' ? ' hmo-view-bar__btn--active' : ''; ?>"
+			href="<?php echo esc_url( $upcoming_url ); ?>">Upcoming</a>
+		<a class="hmo-view-bar__btn<?php echo $view === 'past' ? ' hmo-view-bar__btn--active' : ''; ?>"
+			href="<?php echo esc_url( $past_url ); ?>">Past Events</a>
 	</div>
 
 	<!-- Summary Cards -->
@@ -43,7 +55,9 @@ $is_admin    = $access->current_user_can_see_all_events();
 
 	<!-- Events Table -->
 	<?php if ( empty( $rows ) ) : ?>
-		<div class="hmo-notice">No events found.</div>
+		<div class="hmo-notice">
+			<?php echo $view === 'past' ? 'No past events found.' : 'No upcoming events found.'; ?>
+		</div>
 	<?php else : ?>
 	<div class="hmo-fe-table-wrap">
 		<table class="hmo-fe-table">

@@ -51,7 +51,8 @@ class HMO_Shortcodes {
 			return $this->access->get_denial_message_html();
 		}
 
-		$all_rows = $this->dashboard->get_dashboard_rows();
+		$view     = $this->get_view_param();
+		$all_rows = $this->dashboard->get_dashboard_rows( array( 'view' => $view ) );
 		$cards    = $this->dashboard->get_summary_cards();
 		$access   = $this->access;
 
@@ -71,8 +72,10 @@ class HMO_Shortcodes {
 			return $this->access->get_denial_message_html();
 		}
 
+		$view        = $this->get_view_param();
 		$marketer_id = $this->access->get_current_user_marketer_id();
 		$filters     = $marketer_id ? array( 'marketer_id' => $marketer_id ) : array();
+		$filters['view'] = $view;
 		$all_rows    = $this->dashboard->get_dashboard_rows( $filters );
 		$cards       = $this->dashboard->get_summary_cards();
 		$access      = $this->access;
@@ -94,6 +97,11 @@ class HMO_Shortcodes {
 	 * @param array $all_rows
 	 * @return array  [ sliced_rows[], pagination_meta[] ]
 	 */
+	private function get_view_param(): string {
+		$v = $_GET['hmo_view'] ?? 'upcoming';
+		return $v === 'past' ? 'past' : 'upcoming';
+	}
+
 	private function paginate_rows( array $all_rows ): array {
 		$per_page    = 30;
 		$total       = count( $all_rows );
@@ -102,6 +110,7 @@ class HMO_Shortcodes {
 		$offset      = ( $page - 1 ) * $per_page;
 		$rows        = array_slice( $all_rows, $offset, $per_page );
 
+		// Base URL preserves hmo_view but resets hmo_page.
 		$base = remove_query_arg( 'hmo_page' );
 
 		$pagination = array(

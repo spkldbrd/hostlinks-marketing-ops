@@ -146,6 +146,15 @@ class HMO_Dashboard_Service {
 
 		set_transient( $cache_key, $rows, self::CACHE_TTL );
 
+		// Apply upcoming / past view filter (not cached — cheap array_filter).
+		$view = $filters['view'] ?? 'upcoming';
+		if ( $view === 'past' ) {
+			$rows = array_values( array_filter( $rows, fn( $r ) => $r->days_left !== null && $r->days_left < 0 ) );
+		} else {
+			// upcoming: future events + no-date events.
+			$rows = array_values( array_filter( $rows, fn( $r ) => $r->days_left === null || $r->days_left >= 0 ) );
+		}
+
 		return $rows;
 	}
 
