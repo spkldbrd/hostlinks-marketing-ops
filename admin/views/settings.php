@@ -87,12 +87,23 @@ if ( isset( $_POST['hmo_save_report_viewers'] ) ) {
 	$notice = '<div class="notice notice-success is-dismissible"><p>Report viewer settings saved.</p></div>';
 }
 
+// Marketing admins save
+if ( isset( $_POST['hmo_save_marketing_admins'] ) ) {
+	check_admin_referer( 'hmo_user_access' );
+	$access_svc  = new HMO_Access_Service();
+	$raw_ids     = sanitize_text_field( $_POST['hmo_marketing_admin_ids'] ?? '' );
+	$ids         = $raw_ids !== '' ? explode( ',', $raw_ids ) : array();
+	$access_svc->save_marketing_admins( $ids );
+	$notice = '<div class="notice notice-success is-dismissible"><p>Marketing admin settings saved.</p></div>';
+}
+
 // ── Current state ─────────────────────────────────────────────────────────────
 
-$access_svc        = new HMO_Access_Service();
-$approved_ids      = $access_svc->get_approved_viewers();
-$task_editor_ids   = $access_svc->get_task_editors();
-$report_viewer_ids = $access_svc->get_report_viewers();
+$access_svc           = new HMO_Access_Service();
+$approved_ids         = $access_svc->get_approved_viewers();
+$task_editor_ids      = $access_svc->get_task_editors();
+$report_viewer_ids    = $access_svc->get_report_viewers();
+$marketing_admin_ids  = $access_svc->get_marketing_admins();
 $denial_message    = get_option( HMO_Access_Service::OPT_MESSAGE, HMO_Access_Service::DEFAULT_MESSAGE );
 $page_status     = HMO_Page_URLs::detection_status();
 $url_overrides   = HMO_Page_URLs::get_overrides();
@@ -111,6 +122,15 @@ $report_viewer_users = array();
 if ( ! empty( $report_viewer_ids ) ) {
 	$report_viewer_users = get_users( array(
 		'include' => $report_viewer_ids,
+		'fields'  => array( 'ID', 'display_name', 'user_email' ),
+		'orderby' => 'display_name',
+	) );
+}
+
+$marketing_admin_users = array();
+if ( ! empty( $marketing_admin_ids ) ) {
+	$marketing_admin_users = get_users( array(
+		'include' => $marketing_admin_ids,
 		'fields'  => array( 'ID', 'display_name', 'user_email' ),
 		'orderby' => 'display_name',
 	) );
@@ -966,6 +986,130 @@ $tabs = array(
 			tr.id = 'hmo-rv-users-empty';
 			tr.innerHTML = '<td colspan="3" style="color:#888;font-style:italic;">No report viewer users yet.</td>';
 			document.getElementById('hmo-rv-users-tbody').appendChild(tr);
+		}
+	});
+})();
+</script>
+
+<!-- ── Marketing Admin Users ──────────────────────────────────────────────── -->
+<hr style="margin:32px 0;">
+<h2>Marketing Admins — Dashboard Access</h2>
+<p>
+	Users listed here will see the full <strong>Marketing Ops Dashboard</strong> when visiting the <code>[hmo_dashboard_selector]</code> page.
+	Everyone else will see <strong>My Classes</strong>. WordPress administrators always have dashboard access regardless of this list.
+</p>
+
+<form method="post" action="" id="hmo-ma-users-form">
+	<?php wp_nonce_field( 'hmo_user_access' ); ?>
+	<input type="hidden" id="hmo_marketing_admin_ids" name="hmo_marketing_admin_ids"
+		value="<?php echo esc_attr( implode( ',', $marketing_admin_ids ) ); ?>">
+
+	<div style="max-width:560px;margin-bottom:8px;">
+		<label for="hmo-ma-user-search" style="display:block;font-weight:600;margin-bottom:6px;">Search users to add</label>
+		<div style="display:flex;gap:8px;">
+			<input type="text" id="hmo-ma-user-search" placeholder="Type a name or email…"
+				class="regular-text" autocomplete="off" style="flex:1;">
+			<span id="hmo-ma-search-spinner" style="display:none;line-height:30px;color:#888;">Searching…</span>
+		</div>
+		<ul id="hmo-ma-search-results" style="
+			list-style:none;margin:0;padding:0;max-width:560px;
+			border:1px solid #ddd;border-top:none;display:none;
+			background:#fff;position:relative;z-index:100;"></ul>
+	</div>
+
+	<table class="widefat striped" style="max-width:560px;margin-bottom:24px;" id="hmo-ma-users-table">
+		<thead>
+			<tr><th>Name</th><th>Email</th><th style="width:80px;"></th></tr>
+		</thead>
+		<tbody id="hmo-ma-users-tbody">
+		<?php if ( empty( $marketing_admin_users ) ) : ?>
+			<tr id="hmo-ma-users-empty"><td colspan="3" style="color:#888;font-style:italic;">No marketing admin users yet.</td></tr>
+		<?php else : ?>
+			<?php foreach ( $marketing_admin_users as $u ) : ?>
+			<tr id="hmo-ma-user-row-<?php echo (int) $u->ID; ?>">
+				<td><?php echo esc_html( $u->display_name ); ?></td>
+				<td><?php echo esc_html( $u->user_email ); ?></td>
+				<td>
+					<button type="button" class="button button-small hmo-ma-remove-user"
+						data-id="<?php echo (int) $u->ID; ?>">Remove</button>
+				</td>
+			</tr>
+			<?php endforeach; ?>
+		<?php endif; ?>
+		</tbody>
+	</table>
+
+	<p class="submit">
+		<button type="submit" name="hmo_save_marketing_admins" class="button button-primary">Save Marketing Admin Users</button>
+	</p>
+</form>
+
+<script>
+(function() {
+	var ajaxUrl = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+	var nonce   = <?php echo wp_json_encode( wp_create_nonce( 'hmo_user_access' ) ); ?>;
+	var maIds   = <?php echo wp_json_encode( array_map( 'intval', $marketing_admin_ids ) ); ?>;
+
+	function syncMaIdsField() {
+		document.getElementById('hmo_marketing_admin_ids').value = maIds.join(',');
+	}
+
+	var maTimer;
+	document.getElementById('hmo-ma-user-search').addEventListener('input', function() {
+		clearTimeout( maTimer );
+		var q = this.value.trim();
+		var $results = document.getElementById('hmo-ma-search-results');
+		if ( q.length < 2 ) { $results.style.display = 'none'; return; }
+		document.getElementById('hmo-ma-search-spinner').style.display = 'inline';
+		maTimer = setTimeout( function() {
+			var fd = new FormData();
+			fd.append('action','hmo_search_users');
+			fd.append('q', q);
+			fd.append('_ajax_nonce', nonce);
+			fetch(ajaxUrl, { method:'POST', body: fd })
+				.then(function(r){ return r.json(); })
+				.then(function(res) {
+					document.getElementById('hmo-ma-search-spinner').style.display = 'none';
+					$results.innerHTML = '';
+					if ( ! res.success || ! res.data.length ) { $results.style.display = 'none'; return; }
+					res.data.forEach(function(u) {
+						if ( maIds.indexOf(u.id) !== -1 ) { return; }
+						var li = document.createElement('li');
+						li.style.cssText = 'padding:8px 12px;cursor:pointer;border-bottom:1px solid #eee;';
+						li.textContent = u.name + ' (' + u.email + ')';
+						li.addEventListener('click', function() {
+							maIds.push(u.id);
+							syncMaIdsField();
+							var emptyRow = document.getElementById('hmo-ma-users-empty');
+							if (emptyRow) emptyRow.remove();
+							var tbody = document.getElementById('hmo-ma-users-tbody');
+							var tr = document.createElement('tr');
+							tr.id = 'hmo-ma-user-row-' + u.id;
+							tr.innerHTML = '<td>' + u.name + '</td><td>' + u.email + '</td>' +
+								'<td><button type="button" class="button button-small hmo-ma-remove-user" data-id="' + u.id + '">Remove</button></td>';
+							tbody.appendChild(tr);
+							$results.style.display = 'none';
+							document.getElementById('hmo-ma-user-search').value = '';
+						});
+						$results.appendChild(li);
+					});
+					$results.style.display = $results.children.length ? 'block' : 'none';
+				});
+		}, 300 );
+	});
+
+	document.addEventListener('click', function(e) {
+		if ( ! e.target.classList.contains('hmo-ma-remove-user') ) { return; }
+		var id = parseInt( e.target.getAttribute('data-id'), 10 );
+		maIds = maIds.filter(function(i){ return i !== id; });
+		syncMaIdsField();
+		var row = document.getElementById('hmo-ma-user-row-' + id);
+		if (row) row.remove();
+		if ( ! document.getElementById('hmo-ma-users-tbody').children.length ) {
+			var tr = document.createElement('tr');
+			tr.id = 'hmo-ma-users-empty';
+			tr.innerHTML = '<td colspan="3" style="color:#888;font-style:italic;">No marketing admin users yet.</td>';
+			document.getElementById('hmo-ma-users-tbody').appendChild(tr);
 		}
 	});
 })();

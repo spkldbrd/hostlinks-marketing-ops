@@ -19,22 +19,24 @@ class HMO_Access_Service {
 	// ── Shortcode registry ────────────────────────────────────────────────────
 
 	const SHORTCODES = array(
-		'hmo_dashboard'    => 'Marketing Ops Dashboard',
-		'hmo_my_classes'   => 'My Classes',
-		'hmo_event_detail' => 'Event Detail',
-		'hmo_task_editor'  => 'Task Template Editor',
-		'hmo_event_report' => 'Event Journey Report',
+		'hmo_dashboard_selector' => 'Marketing Ops Selector',
+		'hmo_dashboard'          => 'Marketing Ops Dashboard',
+		'hmo_my_classes'         => 'My Classes',
+		'hmo_event_detail'       => 'Event Detail',
+		'hmo_task_editor'        => 'Task Template Editor',
+		'hmo_event_report'       => 'Event Journey Report',
 	);
 
 	const MODES = array( 'public', 'logged_in', 'approved_viewers' );
 
 	// ── wp_options keys ───────────────────────────────────────────────────────
 
-	const OPT_MODES           = 'hmo_shortcode_access_modes';
-	const OPT_VIEWERS         = 'hmo_approved_viewers';
-	const OPT_MESSAGE         = 'hmo_denial_message';
-	const OPT_TASK_EDITORS    = 'hmo_task_editors';
-	const OPT_REPORT_VIEWERS  = 'hmo_report_viewers';
+	const OPT_MODES             = 'hmo_shortcode_access_modes';
+	const OPT_VIEWERS           = 'hmo_approved_viewers';
+	const OPT_MESSAGE           = 'hmo_denial_message';
+	const OPT_TASK_EDITORS      = 'hmo_task_editors';
+	const OPT_REPORT_VIEWERS    = 'hmo_report_viewers';
+	const OPT_MARKETING_ADMINS  = 'hmo_marketing_admins';
 
 	// ── Legacy marketer meta (read-only for backward compat) ─────────────────
 
@@ -178,6 +180,30 @@ class HMO_Access_Service {
 			fn( $id ) => $id > 0
 		) ) );
 		update_option( self::OPT_REPORT_VIEWERS, $clean );
+	}
+
+	// ── Marketing admin access ────────────────────────────────────────────────
+
+	public static function current_user_is_marketing_admin(): bool {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+		$uid    = get_current_user_id();
+		$admins = array_map( 'intval', (array) get_option( self::OPT_MARKETING_ADMINS, array() ) );
+		return $uid > 0 && in_array( $uid, $admins, true );
+	}
+
+	public function get_marketing_admins(): array {
+		$raw = get_option( self::OPT_MARKETING_ADMINS, array() );
+		return array_map( 'intval', (array) $raw );
+	}
+
+	public function save_marketing_admins( array $ids ): void {
+		$clean = array_values( array_unique( array_filter(
+			array_map( 'intval', $ids ),
+			fn( $id ) => $id > 0
+		) ) );
+		update_option( self::OPT_MARKETING_ADMINS, $clean );
 	}
 
 	// =========================================================================

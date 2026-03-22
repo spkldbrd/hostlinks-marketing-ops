@@ -41,11 +41,28 @@ class HMO_Shortcodes {
 	}
 
 	public function register(): void {
-		add_shortcode( 'hmo_dashboard',    array( $this, 'render_dashboard' ) );
-		add_shortcode( 'hmo_my_classes',   array( $this, 'render_my_classes' ) );
-		add_shortcode( 'hmo_event_detail', array( $this, 'render_event_detail' ) );
-		add_shortcode( 'hmo_task_editor',  array( $this, 'render_task_editor' ) );
-		add_shortcode( 'hmo_event_report', array( $this, 'render_event_report' ) );
+		add_shortcode( 'hmo_dashboard_selector', array( $this, 'render_dashboard_selector' ) );
+		add_shortcode( 'hmo_dashboard',          array( $this, 'render_dashboard' ) );
+		add_shortcode( 'hmo_my_classes',         array( $this, 'render_my_classes' ) );
+		add_shortcode( 'hmo_event_detail',       array( $this, 'render_event_detail' ) );
+		add_shortcode( 'hmo_task_editor',        array( $this, 'render_task_editor' ) );
+		add_shortcode( 'hmo_event_report',       array( $this, 'render_event_report' ) );
+	}
+
+	// -------------------------------------------------------------------------
+	// [hmo_dashboard_selector] — routes to Dashboard or My Classes based on role
+	// -------------------------------------------------------------------------
+
+	public function render_dashboard_selector( $atts ): string {
+		if ( ! $this->access->can_view_shortcode( 'hmo_dashboard_selector' ) ) {
+			return $this->access->get_denial_message_html();
+		}
+
+		if ( HMO_Access_Service::current_user_is_marketing_admin() ) {
+			return $this->render_dashboard( $atts );
+		}
+
+		return $this->render_my_classes( $atts );
 	}
 
 	// -------------------------------------------------------------------------
