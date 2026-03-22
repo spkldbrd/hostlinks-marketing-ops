@@ -18,6 +18,10 @@ class HMO_Page_URLs {
 
 	// ── Public getters ─────────────────────────────────────────────────────────
 
+	public static function get_dashboard_selector(): string {
+		return self::resolve( 'dashboard_selector', 'hmo_dashboard_selector', '' );
+	}
+
 	public static function get_dashboard(): string {
 		return self::resolve( 'dashboard', 'hmo_dashboard', '' );
 	}
@@ -42,21 +46,23 @@ class HMO_Page_URLs {
 
 	public static function get_overrides(): array {
 		return wp_parse_args( get_option( self::OPTION_KEY, array() ), array(
-			'dashboard'    => '',
-			'my_classes'   => '',
-			'event_detail' => '',
-			'task_editor'  => '',
-			'event_report' => '',
+			'dashboard_selector' => '',
+			'dashboard'          => '',
+			'my_classes'         => '',
+			'event_detail'       => '',
+			'task_editor'        => '',
+			'event_report'       => '',
 		) );
 	}
 
-	public static function save_overrides( string $dashboard, string $my_classes, string $event_detail, string $task_editor = '', string $event_report = '' ): void {
+	public static function save_overrides( string $dashboard_selector = '', string $dashboard = '', string $my_classes = '', string $event_detail = '', string $task_editor = '', string $event_report = '' ): void {
 		update_option( self::OPTION_KEY, array(
-			'dashboard'    => esc_url_raw( trim( $dashboard ) ),
-			'my_classes'   => esc_url_raw( trim( $my_classes ) ),
-			'event_detail' => esc_url_raw( trim( $event_detail ) ),
-			'task_editor'  => esc_url_raw( trim( $task_editor ) ),
-			'event_report' => esc_url_raw( trim( $event_report ) ),
+			'dashboard_selector' => esc_url_raw( trim( $dashboard_selector ) ),
+			'dashboard'          => esc_url_raw( trim( $dashboard ) ),
+			'my_classes'         => esc_url_raw( trim( $my_classes ) ),
+			'event_detail'       => esc_url_raw( trim( $event_detail ) ),
+			'task_editor'        => esc_url_raw( trim( $task_editor ) ),
+			'event_report'       => esc_url_raw( trim( $event_report ) ),
 		) );
 		self::clear_cache();
 	}
@@ -64,6 +70,7 @@ class HMO_Page_URLs {
 	// ── Cache management ───────────────────────────────────────────────────────
 
 	public static function clear_cache(): void {
+		delete_transient( 'hmo_page_url_dashboard_selector' );
 		delete_transient( 'hmo_page_url_dashboard' );
 		delete_transient( 'hmo_page_url_my_classes' );
 		delete_transient( 'hmo_page_url_event_detail' );
@@ -79,11 +86,12 @@ class HMO_Page_URLs {
 	public static function detection_status(): array {
 		$overrides = self::get_overrides();
 		$map       = array(
-			'dashboard'    => 'hmo_dashboard',
-			'my_classes'   => 'hmo_my_classes',
-			'event_detail' => 'hmo_event_detail',
-			'task_editor'  => 'hmo_task_editor',
-			'event_report' => 'hmo_event_report',
+			'dashboard_selector' => 'hmo_dashboard_selector',
+			'dashboard'          => 'hmo_dashboard',
+			'my_classes'         => 'hmo_my_classes',
+			'event_detail'       => 'hmo_event_detail',
+			'task_editor'        => 'hmo_task_editor',
+			'event_report'       => 'hmo_event_report',
 		);
 
 		$status = array();

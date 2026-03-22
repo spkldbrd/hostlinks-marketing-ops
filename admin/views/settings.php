@@ -30,11 +30,12 @@ if ( isset( $_POST['hmo_save_general'] ) ) {
 if ( isset( $_POST['hmo_save_page_urls'] ) ) {
 	check_admin_referer( 'hmo_save_page_urls' );
 	HMO_Page_URLs::save_overrides(
-		sanitize_text_field( $_POST['hmo_url_dashboard']    ?? '' ),
-		sanitize_text_field( $_POST['hmo_url_my_classes']   ?? '' ),
-		sanitize_text_field( $_POST['hmo_url_event_detail'] ?? '' ),
-		sanitize_text_field( $_POST['hmo_url_task_editor']  ?? '' ),
-		sanitize_text_field( $_POST['hmo_url_event_report'] ?? '' )
+		sanitize_text_field( $_POST['hmo_url_dashboard_selector'] ?? '' ),
+		sanitize_text_field( $_POST['hmo_url_dashboard']          ?? '' ),
+		sanitize_text_field( $_POST['hmo_url_my_classes']         ?? '' ),
+		sanitize_text_field( $_POST['hmo_url_event_detail']       ?? '' ),
+		sanitize_text_field( $_POST['hmo_url_task_editor']        ?? '' ),
+		sanitize_text_field( $_POST['hmo_url_event_report']       ?? '' )
 	);
 	$notice = '<div class="notice notice-success is-dismissible"><p>Page links saved.</p></div>';
 }
@@ -661,11 +662,12 @@ $tabs = array(
 	<table class="form-table">
 		<?php
 		$page_defs = array(
-			'dashboard'    => array( 'label' => 'Dashboard',            'shortcode' => '[hmo_dashboard]',    'field' => 'hmo_url_dashboard' ),
-			'my_classes'   => array( 'label' => 'My Classes',           'shortcode' => '[hmo_my_classes]',   'field' => 'hmo_url_my_classes' ),
-			'event_detail' => array( 'label' => 'Event Detail',         'shortcode' => '[hmo_event_detail]', 'field' => 'hmo_url_event_detail' ),
-			'task_editor'  => array( 'label' => 'Task Template Editor', 'shortcode' => '[hmo_task_editor]',  'field' => 'hmo_url_task_editor' ),
-			'event_report' => array( 'label' => 'Event Journey Report', 'shortcode' => '[hmo_event_report]', 'field' => 'hmo_url_event_report' ),
+			'dashboard_selector' => array( 'label' => 'Marketing Ops Selector', 'shortcode' => '[hmo_dashboard_selector]', 'field' => 'hmo_url_dashboard_selector' ),
+			'dashboard'          => array( 'label' => 'Dashboard',              'shortcode' => '[hmo_dashboard]',          'field' => 'hmo_url_dashboard' ),
+			'my_classes'         => array( 'label' => 'My Classes',             'shortcode' => '[hmo_my_classes]',         'field' => 'hmo_url_my_classes' ),
+			'event_detail'       => array( 'label' => 'Event Detail',           'shortcode' => '[hmo_event_detail]',       'field' => 'hmo_url_event_detail' ),
+			'task_editor'        => array( 'label' => 'Task Template Editor',   'shortcode' => '[hmo_task_editor]',        'field' => 'hmo_url_task_editor' ),
+			'event_report'       => array( 'label' => 'Event Journey Report',   'shortcode' => '[hmo_event_report]',       'field' => 'hmo_url_event_report' ),
 		);
 		$source_labels = array(
 			'override' => '<span style="color:#007017;">&#10003; Manual override</span>',
