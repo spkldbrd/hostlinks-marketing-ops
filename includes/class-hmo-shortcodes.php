@@ -194,14 +194,15 @@ class HMO_Shortcodes {
 			return $this->access->get_denial_message_html();
 		}
 
-		$event      = $this->bridge->get_event( $event_id );
-		$ops        = HMO_DB::get_event_ops( $event_id );
-		$checklist  = $this->checklist->get_event_checklist( $event_id );
-		$countdown  = $this->countdown;
-		$days_left  = $this->countdown->get_days_left( $event_id );
-		$days_label = $this->countdown->format_days_left( $days_left );
-		$reg_count  = $this->bridge->get_event_registration_count( $event_id );
-		$access     = $this->access;
+		$event          = $this->bridge->get_event( $event_id );
+		$ops            = HMO_DB::get_event_ops( $event_id );
+		$checklist      = $this->checklist->get_event_checklist( $event_id );
+		$countdown      = $this->countdown;
+		$days_left      = $this->countdown->get_days_left( $event_id );
+		$days_label     = $this->countdown->format_days_left( $days_left );
+		$reg_count      = $this->bridge->get_event_registration_count( $event_id );
+		$marketer_name  = $this->bridge->get_event_marketer_name( $event_id );
+		$access         = $this->access;
 
 		ob_start();
 		include HMO_PLUGIN_DIR . 'shortcode/views/event-detail.php';

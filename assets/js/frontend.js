@@ -846,12 +846,15 @@
 		}
 
 		kanbanEl.querySelectorAll( '.hmo-kanban__cards' ).forEach( function ( zone ) {
-		Sortable.create( zone, {
-			group:         'kanban',
-			animation:     150,
-			delay:         150,
-			delayOnTouchOnly: false,
-			ghostClass:    'hmo-dragging',
+			Sortable.create( zone, {
+				group:               'kanban',
+				animation:           150,
+				draggable:           '.hmo-kanban__card',
+				handle:              '.hmo-kanban__card-handle',
+				delay:               120,
+				delayOnTouchOnly:    true,
+				emptyInsertThreshold: 48,
+				ghostClass:          'hmo-dragging',
 
 				onAdd: function ( evt ) {
 					// Remove "No events" placeholder when a card arrives.
@@ -874,6 +877,12 @@
 					for ( var i = 0; i < stages.length; i++ ) {
 						if ( stages[ i ].key === oldStage ) { oldIdx = i; }
 						if ( stages[ i ].key === newStage  ) { newIdx = i; }
+					}
+
+					if ( oldIdx < 0 || newIdx < 0 ) {
+						fromZone.appendChild( card );
+						window.console && console.warn( 'HMO kanban: unknown stage key', oldStage, newStage );
+						return;
 					}
 
 					// Only allow forward progression — revert DOM on backward drag.

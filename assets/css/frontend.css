@@ -1929,11 +1929,35 @@
 .hmo-kanban__cards { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .hmo-kanban__card {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.35rem;
 	background: #fff;
 	border-radius: 8px;
 	padding: 0.65rem 0.75rem;
 	box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
 	transition: box-shadow 0.15s, transform 0.1s;
+}
+
+.hmo-kanban__card-body {
+	flex: 1;
+	min-width: 0;
+}
+
+.hmo-kanban__card-handle {
+	flex-shrink: 0;
+	width: 1.1rem;
+	margin-top: 0.05rem;
+	line-height: 1;
+	font-size: 0.95rem;
+	color: hsl(215 15% 62%);
+	cursor: grab;
+	user-select: none;
+	touch-action: none;
+}
+
+.hmo-kanban__card-handle:active {
+	cursor: grabbing;
 }
 
 .hmo-kanban__card:hover {
@@ -2006,9 +2030,6 @@
 }
 
 /* -- Kanban drag-and-drop -------------------------------------------------- */
-
-.hmo-kanban__card { cursor: grab; }
-.hmo-kanban__card:active { cursor: grabbing; }
 
 .hmo-kanban__card.hmo-dragging {
 	opacity: 0.45;
@@ -2102,6 +2123,8 @@
 }
 
 .wp-dark-mode-active .hmo-kanban__card-name { color: hsl(210 25% 85%); }
+
+.wp-dark-mode-active .hmo-kanban__card-handle { color: hsl(215 15% 50%); }
 
 .wp-dark-mode-active .hmo-kanban__progress { background: hsl(215 20% 25%); }
 

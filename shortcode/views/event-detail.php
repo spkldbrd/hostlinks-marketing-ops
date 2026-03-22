@@ -36,7 +36,7 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 			<?php if ( $is_admin ) : ?>
 			<div class="hmo-detail-stat">
 				<span class="hmo-detail-stat__label">Marketer</span>
-				<span class="hmo-detail-stat__value"><?php echo esc_html( $ops ? $ops->assigned_marketer_name : '—' ); ?></span>
+				<span class="hmo-detail-stat__value"><?php echo esc_html( $marketer_name ?: ( $ops ? $ops->assigned_marketer_name : '' ) ?: '—' ); ?></span>
 			</div>
 			<?php endif; ?>
 			<div class="hmo-detail-stat">
