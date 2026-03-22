@@ -136,6 +136,103 @@ class HMO_DB {
 		dbDelta( $sql );
 	}
 
+	// =========================================================================
+	// Admin migration notice
+	// =========================================================================
+
+	/**
+	 * Register all hooks needed for the migration notice UI.
+	 * Call this from the main plugin file on plugins_loaded.
+	 */
+	public static function register_migration_hooks(): void {
+		add_action( 'admin_notices',              array( __CLASS__, 'render_migration_notice' ) );
+		add_action( 'admin_post_hmo_run_migration', array( __CLASS__, 'handle_migration_post' ) );
+	}
+
+	/**
+	 * Show a dismissible admin notice when the stored DB version is behind
+	 * the plugin's required version. Only visible to site administrators.
+	 */
+	public static function render_migration_notice(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$installed = get_option( 'hmo_db_version', '0' );
+		if ( ! version_compare( $installed, HMO_DB_VERSION, '<' ) ) {
+			return;
+		}
+
+		$action_url = wp_nonce_url(
+			admin_url( 'admin-post.php?action=hmo_run_migration' ),
+			'hmo_run_migration'
+		);
+
+		echo '<div class="notice notice-warning">'
+			. '<p><strong>Hostlinks Marketing Ops</strong> — A database migration is required to finish updating from v'
+			. esc_html( $installed ) . ' to v' . esc_html( HMO_DB_VERSION ) . '. '
+			. '<a href="' . esc_url( $action_url ) . '" style="font-weight:600;">Run migration now &rarr;</a></p>'
+			. '</div>';
+	}
+
+	/**
+	 * Handle the admin-post action: run the migration, then redirect back
+	 * with a success or error flag so the result notice can be shown.
+	 */
+	public static function handle_migration_post(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Permission denied.', 'hmo' ) );
+		}
+
+		check_admin_referer( 'hmo_run_migration' );
+
+		$redirect = wp_get_referer() ?: admin_url();
+
+		// Run the full upgrade sequence.
+		$before = get_option( 'hmo_db_version', '0' );
+		self::maybe_upgrade();
+		$after = get_option( 'hmo_db_version', '0' );
+
+		$status = ( $after === HMO_DB_VERSION ) ? 'success' : 'error';
+
+		wp_safe_redirect( add_query_arg( array(
+			'hmo_migrated'      => $status,
+			'hmo_version_from'  => $before,
+			'hmo_version_to'    => $after,
+		), $redirect ) );
+		exit;
+	}
+
+	/**
+	 * Show the result notice after a migration redirect.
+	 * Hook: admin_notices (registered alongside render_migration_notice).
+	 */
+	public static function render_migration_result_notice(): void {
+		if ( empty( $_GET['hmo_migrated'] ) || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$status = sanitize_key( $_GET['hmo_migrated'] );
+		$from   = isset( $_GET['hmo_version_from'] ) ? sanitize_text_field( $_GET['hmo_version_from'] ) : '';
+		$to     = isset( $_GET['hmo_version_to'] )   ? sanitize_text_field( $_GET['hmo_version_to'] )   : '';
+
+		if ( $status === 'success' ) {
+			echo '<div class="notice notice-success is-dismissible">'
+				. '<p><strong>Hostlinks Marketing Ops</strong> — Database migration completed successfully'
+				. ( $from ? " (v{$from} &rarr; v{$to})" : '' ) . '.</p>'
+				. '</div>';
+		} else {
+			echo '<div class="notice notice-error is-dismissible">'
+				. '<p><strong>Hostlinks Marketing Ops</strong> — Migration could not be completed. '
+				. 'Please check your server error log and try again.</p>'
+				. '</div>';
+		}
+	}
+
+	// =========================================================================
+	// DB upgrade
+	// =========================================================================
+
 	public static function maybe_upgrade() {
 		global $wpdb;
 		$installed = get_option( 'hmo_db_version', '0' );
