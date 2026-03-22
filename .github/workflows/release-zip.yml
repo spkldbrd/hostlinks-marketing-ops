@@ -35,6 +35,7 @@ jobs:
           rsync -a \
             --exclude='.git' \
             --exclude='.github' \
+            --exclude='.cursor' \
             --exclude='build' \
             --exclude='hostlinks-marketing-ops.zip' \
             ./ build/hostlinks-marketing-ops/
