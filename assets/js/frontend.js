@@ -254,6 +254,13 @@
 		if ( mode === 'kanban' ) {
 			$tableView.hide();
 			$kanbanView.show();
+			// Initialise SortableJS the first time the kanban becomes visible.
+			// Must happen after show() so elements have dimensions.
+			if ( ! $kanbanView.data( 'sortable-init' ) ) {
+				var kanbanEl = $kanbanView[0];
+				if ( kanbanEl ) { initKanbanSortable( kanbanEl ); }
+				$kanbanView.data( 'sortable-init', true );
+			}
 			$viewToggle.data( 'mode', 'kanban' )
 				.html( '<span class="hmo-icon-cols"><i></i><i></i><i></i></span>' )
 				.attr( 'title', 'Switch to Table view' )
@@ -835,10 +842,12 @@
 		if ( ! kanbanEl || typeof Sortable === 'undefined' ) { return; }
 
 		kanbanEl.querySelectorAll( '.hmo-kanban__cards' ).forEach( function ( zone ) {
-			Sortable.create( zone, {
-				group:      'kanban',
-				animation:  150,
-				ghostClass: 'hmo-dragging',
+		Sortable.create( zone, {
+			group:         'kanban',
+			animation:     150,
+			delay:         150,
+			delayOnTouchOnly: false,
+			ghostClass:    'hmo-dragging',
 
 				onAdd: function ( evt ) {
 					// Remove "No events" placeholder when a card arrives.
@@ -907,7 +916,8 @@
 		} );
 	}
 
-	document.querySelectorAll( '.hmo-kanban' ).forEach( function ( el ) { initKanbanSortable( el ); } );
+	// SortableJS is initialised lazily inside setViewMode() when kanban first becomes visible.
+	// (Initialising on a display:none element causes zero-dimension measurements.)
 
 	function updateKanbanCount( kanbanEl, stageKey ) {
 		var zone  = kanbanEl.querySelector( '.hmo-kanban__cards[data-stage-drop="' + stageKey + '"]' );
