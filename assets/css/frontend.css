@@ -1943,7 +1943,7 @@
 	border-radius: 8px;
 	padding: 0.65rem 0.75rem;
 	box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
-	transition: box-shadow 0.15s, transform 0.1s;
+	transition: box-shadow 0.15s;
 	cursor: grab;
 }
 
@@ -1954,6 +1954,12 @@
 .hmo-kanban__card:hover {
 	box-shadow: 0 3px 10px rgba(0,0,0,0.12);
 	transform: translateY(-1px);
+}
+
+/* Avoid transform + cursor glitches while a drag is active */
+.hmo-kanban--drag-active .hmo-kanban__card:hover {
+	transform: none;
+	box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
 }
 
 .hmo-kanban__card--red    { border-left: 3px solid hsl(0 72% 55%); }
@@ -2027,11 +2033,17 @@
 
 /* -- Kanban drag-and-drop -------------------------------------------------- */
 
-/* forceFallback + fallbackOnBody: hide the real card in the list; user follows the body clone only */
-.hmo-kanban .hmo-kanban__card.hmo-kanban__drag-source {
+/* Cross-column: Sortable moves a clone through lists ? hide it; user follows .sortable-fallback on body only */
+.hmo-kanban .hmo-kanban__card.sortable-drag {
 	opacity: 0 !important;
-	visibility: hidden;
+	visibility: hidden !important;
 	pointer-events: none;
+}
+
+/* Source card stays in column while cross-column clone drags */
+.hmo-kanban .hmo-kanban__card.hmo-kanban__chosen:not(.sortable-drag) {
+	opacity: 0.5;
+	box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 /* Drop placeholder in columns ? slim dashed slot, not a second full card */

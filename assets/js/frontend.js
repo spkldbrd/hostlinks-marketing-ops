@@ -921,15 +921,19 @@
 		function hmoKanbanSetDragCursor( active ) {
 			if ( ! kanbanEl ) { return; }
 			kanbanEl.classList.toggle( 'hmo-kanban--drag-active', !! active );
-			try {
-				document.documentElement.style.cursor = active ? 'grabbing' : '';
-			} catch ( err ) {}
 		}
 
 		zones.forEach( function ( zone ) {
 			var stage = zone.getAttribute( 'data-stage-drop' );
 			var inst = Sortable.create( zone, {
-				group:               'kanban',
+				// Same column: move the real card. Different column: clone so the source card stays put until API succeeds.
+				group:               {
+					name: 'kanban',
+					put:  true,
+					pull: function ( to, from /* , dragEl, evt */ ) {
+						return from.el === to.el ? true : 'clone';
+					}
+				},
 				animation:           150,
 				draggable:           '.hmo-kanban__card',
 				filter:              '.hmo-kanban__card-name',
@@ -937,9 +941,8 @@
 				delay:               120,
 				delayOnTouchOnly:    true,
 				emptyInsertThreshold: 48,
-				// Ghost = drop placeholder in lists; dragClass = in-list source hidden while body clone follows pointer.
 				ghostClass:          'hmo-kanban__ghost-slot',
-				dragClass:           'hmo-kanban__drag-source',
+				chosenClass:         'hmo-kanban__chosen',
 				// Native drag breaks when ancestors use overflow hidden/auto; fallback uses body-attached clone.
 				forceFallback:       true,
 				fallbackOnBody:      true,
@@ -964,20 +967,25 @@
 
 				onEnd: function ( evt ) {
 					hmoKanbanSetDragCursor( false );
-					hmoKanbanDbg( 'onEnd', {
-						oldStage: evt.from.getAttribute( 'data-stage-drop' ),
-						newStage: evt.to.getAttribute( 'data-stage-drop' ),
-						oldIndex: evt.oldIndex,
-						newIndex: evt.newIndex,
-						eventId: evt.item.getAttribute( 'data-event-id' )
-					} );
 
 					var card     = evt.item;
 					var fromZone = evt.from;
 					var toZone   = evt.to;
 					var newStage = toZone.getAttribute( 'data-stage-drop' );
 					var oldStage = fromZone.getAttribute( 'data-stage-drop' );
-					var eventId  = parseInt( card.getAttribute( 'data-event-id' ), 10 );
+					var eidAttr  = card.getAttribute( 'data-event-id' );
+					var eventId  = parseInt( eidAttr, 10 );
+					var originalStillInFrom = fromZone.querySelector( '.hmo-kanban__card[data-event-id="' + eidAttr + '"]' );
+					var isCrossClone        = fromZone !== toZone && originalStillInFrom && originalStillInFrom !== card;
+
+					hmoKanbanDbg( 'onEnd', {
+						oldStage: oldStage,
+						newStage: newStage,
+						oldIndex: evt.oldIndex,
+						newIndex: evt.newIndex,
+						eventId: eidAttr,
+						isCrossClone: isCrossClone
+					} );
 
 					if ( ! newStage || newStage === oldStage ) { return; }
 
@@ -989,14 +997,22 @@
 					}
 
 					if ( oldIdx < 0 || newIdx < 0 ) {
-						fromZone.appendChild( card );
+						if ( isCrossClone ) {
+							card.remove();
+						} else {
+							fromZone.appendChild( card );
+						}
 						window.console && console.warn( 'HMO kanban: unknown stage key', oldStage, newStage );
 						return;
 					}
 
 					// Only allow forward progression — revert DOM on backward drag.
 					if ( newIdx <= oldIdx ) {
-						fromZone.appendChild( card );
+						if ( isCrossClone ) {
+							card.remove();
+						} else {
+							fromZone.appendChild( card );
+						}
 						return;
 					}
 
@@ -1004,6 +1020,12 @@
 
 					apiPost( '/events/' + eventId + '/stage', { stage: newStage }, function () {
 						card.setAttribute( 'data-stage', newStage );
+						if ( isCrossClone ) {
+							var orig = fromZone.querySelector( '.hmo-kanban__card[data-event-id="' + eidAttr + '"]' );
+							if ( orig && orig !== card ) {
+								orig.remove();
+							}
+						}
 						updateKanbanCount( kanbanEl, oldStage );
 						updateKanbanCount( kanbanEl, newStage );
 
@@ -1030,7 +1052,11 @@
 						} );
 
 					}, function () {
-						fromZone.appendChild( card ); // revert card on API failure
+						if ( isCrossClone ) {
+							card.remove();
+						} else {
+							fromZone.appendChild( card );
+						}
 						window.alert( 'Could not update the event stage. Please try again.' );
 					} );
 				}

@@ -41,6 +41,9 @@ Requires the Hostlinks plugin to be installed and active.
 
 == Changelog ==
 
+= 1.4.9 =
+* Kanban: cross-column pull clone (source card stays put); hide in-list sortable-drag; calmer hover/cursor during drag.
+
 = 1.4.8 =
 * Kanban: hide in-list drag source + restyle ghost slot; grabbing cursor during drag (less double-card + cursor flash).
 
