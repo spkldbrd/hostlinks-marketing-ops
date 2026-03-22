@@ -86,6 +86,20 @@ class HMO_REST {
 			),
 		) );
 
+		// Bulk-complete all tasks in specified stages for a single event (used by Kanban DnD).
+		register_rest_route( $ns, '/events/(?P<id>\d+)/complete-stages', array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => array( $this, 'complete_stages' ),
+			'permission_callback' => array( $this, 'require_event_access' ),
+			'args'                => array(
+				'id'         => array( 'validate_callback' => 'is_numeric' ),
+				'stage_keys' => array(
+					'required'          => true,
+					'validate_callback' => fn( $v ) => is_array( $v ) && ! empty( $v ),
+				),
+			),
+		) );
+
 		// Mark task complete.
 		register_rest_route( $ns, '/tasks/(?P<id>\d+)/complete', array(
 			'methods'             => WP_REST_Server::CREATABLE,
@@ -179,6 +193,52 @@ class HMO_REST {
 		$success  = $this->dashboard->update_list_metadata( $event_id, $data );
 
 		return new WP_REST_Response( array( 'success' => $success ), $success ? 200 : 400 );
+	}
+
+	public function complete_stages( WP_REST_Request $request ): WP_REST_Response {
+		global $wpdb;
+
+		$event_id   = (int) $request->get_param( 'id' );
+		$raw_stages = (array) $request->get_param( 'stage_keys' );
+		$stage_keys = array_values( array_map( 'sanitize_key', $raw_stages ) );
+
+		if ( empty( $stage_keys ) ) {
+			return new WP_REST_Response( array( 'message' => 'No stage keys provided.' ), 400 );
+		}
+
+		$valid_stages = HMO_Checklist_Templates::get_stage_order();
+		$stage_keys   = array_values( array_filter( $stage_keys, fn( $s ) => in_array( $s, $valid_stages, true ) ) );
+
+		if ( empty( $stage_keys ) ) {
+			return new WP_REST_Response( array( 'message' => 'No valid stage keys.' ), 400 );
+		}
+
+		$user_id     = get_current_user_id();
+		$now         = current_time( 'mysql' );
+		$placeholders = implode( ', ', array_fill( 0, count( $stage_keys ), '%s' ) );
+
+		$updated = $wpdb->query(
+			$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"UPDATE {$wpdb->prefix}hmo_event_tasks
+				 SET status = 'complete',
+				     completed_at = %s,
+				     completed_by_user_id = %d,
+				     updated_at = %s
+				 WHERE hostlinks_event_id = %d
+				   AND stage_key IN ($placeholders)
+				   AND status = 'pending'",
+				array_merge( array( $now, $user_id, $now, $event_id ), $stage_keys )
+			)
+		);
+
+		if ( $updated > 0 ) {
+			$this->checklist->recalculate_open_task_count( $event_id );
+			$stage_label = implode( ' + ', array_map( fn( $s ) => ucwords( str_replace( '_', ' ', $s ) ), $stage_keys ) );
+			HMO_DB::log_activity( $event_id, 'stage_bulk_complete', sprintf( 'Kanban: bulk-completed tasks in: %s', $stage_label ) );
+			HMO_Dashboard_Service::flush_row_cache();
+		}
+
+		return new WP_REST_Response( array( 'success' => true, 'tasks_completed' => (int) $updated ), 200 );
 	}
 
 	public function task_complete( WP_REST_Request $request ): WP_REST_Response {

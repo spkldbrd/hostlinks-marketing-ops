@@ -45,6 +45,7 @@ class HMO_Shortcodes {
 		add_shortcode( 'hmo_my_classes',   array( $this, 'render_my_classes' ) );
 		add_shortcode( 'hmo_event_detail', array( $this, 'render_event_detail' ) );
 		add_shortcode( 'hmo_task_editor',  array( $this, 'render_task_editor' ) );
+		add_shortcode( 'hmo_event_report', array( $this, 'render_event_report' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -187,6 +188,118 @@ class HMO_Shortcodes {
 
 		ob_start();
 		include HMO_PLUGIN_DIR . 'shortcode/views/event-detail.php';
+		return ob_get_clean();
+	}
+
+	// -------------------------------------------------------------------------
+	// [hmo_event_report] — journey report for report viewers
+	// -------------------------------------------------------------------------
+
+	public function render_event_report( $atts ): string {
+		if ( ! HMO_Access_Service::current_user_can_view_reports() ) {
+			return $this->access->get_denial_message_html();
+		}
+
+		global $wpdb;
+
+		$event_id = isset( $_GET['event_id'] ) ? (int) $_GET['event_id'] : 0;
+
+		// Build event list for the selector dropdown.
+		// Admins see all active events; non-admins see only their bucket events.
+		$is_admin = $this->access->current_user_can_see_all_events();
+		if ( $is_admin ) {
+			$events = $wpdb->get_results(
+				"SELECT eve_id AS id, eve_name AS name, eve_start AS event_date
+				 FROM {$wpdb->prefix}event_details_list
+				 WHERE eve_status = 1
+				 ORDER BY eve_start DESC"
+			);
+		} else {
+			$allowed = $this->access->get_allowed_event_ids();
+			if ( empty( $allowed ) ) {
+				$events = array();
+			} else {
+				$ph     = implode( ',', array_fill( 0, count( $allowed ), '%d' ) );
+				$events = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					"SELECT eve_id AS id, eve_name AS name, eve_start AS event_date
+					 FROM {$wpdb->prefix}event_details_list
+					 WHERE eve_status = 1 AND eve_id IN ($ph)
+					 ORDER BY eve_start DESC",
+					$allowed
+				) );
+			}
+		}
+
+		// If an event is selected, verify access and load report data.
+		$report_event   = null;
+		$report_stages  = array();
+		$activity_log   = array();
+		$user_cache     = array();
+
+		if ( $event_id ) {
+			if ( ! $is_admin && ! $this->access->can_view_event( $event_id ) ) {
+				return $this->access->get_denial_message_html();
+			}
+
+			// Fetch event info.
+			$report_event = $this->bridge->get_event( $event_id );
+
+			// Load tasks grouped by stage.
+			$tasks = $wpdb->get_results( $wpdb->prepare(
+				"SELECT * FROM {$wpdb->prefix}hmo_event_tasks
+				 WHERE hostlinks_event_id = %d
+				 ORDER BY sort_order ASC",
+				$event_id
+			) );
+
+			// Get all stage definitions in order.
+			$stage_defs = HMO_Checklist_Templates::get_stages_option();
+			foreach ( $stage_defs as $s ) {
+				$report_stages[ $s['key'] ] = array(
+					'label' => $s['label'],
+					'tasks' => array(),
+				);
+			}
+
+			// Collect user IDs for name lookup.
+			$user_ids = array();
+			foreach ( $tasks as $task ) {
+				if ( (int) $task->completed_by_user_id > 0 ) {
+					$user_ids[] = (int) $task->completed_by_user_id;
+				}
+				$sk = $task->stage_key;
+				if ( ! isset( $report_stages[ $sk ] ) ) {
+					$report_stages[ $sk ] = array( 'label' => ucwords( str_replace( '_', ' ', $sk ) ), 'tasks' => array() );
+				}
+				$report_stages[ $sk ]['tasks'][] = $task;
+			}
+
+			// Activity log.
+			$activity_log = $wpdb->get_results( $wpdb->prepare(
+				"SELECT * FROM {$wpdb->prefix}hmo_event_activity
+				 WHERE hostlinks_event_id = %d
+				 ORDER BY created_at ASC",
+				$event_id
+			) );
+
+			foreach ( $activity_log as $entry ) {
+				if ( (int) $entry->user_id > 0 ) {
+					$user_ids[] = (int) $entry->user_id;
+				}
+			}
+
+			// Bulk-load user display names.
+			$user_ids = array_unique( array_filter( $user_ids ) );
+			if ( ! empty( $user_ids ) ) {
+				$user_objects = get_users( array( 'include' => $user_ids, 'fields' => array( 'ID', 'display_name' ) ) );
+				foreach ( $user_objects as $u ) {
+					$user_cache[ (int) $u->ID ] = $u->display_name;
+				}
+			}
+		}
+
+		ob_start();
+		include HMO_PLUGIN_DIR . 'shortcode/views/event-report.php';
 		return ob_get_clean();
 	}
 

@@ -1925,6 +1925,29 @@
 	padding: 1rem 0;
 }
 
+/* -- Kanban drag-and-drop -------------------------------------------------- */
+
+.hmo-kanban__card[draggable="true"] { cursor: grab; }
+.hmo-kanban__card[draggable="true"]:active { cursor: grabbing; }
+
+.hmo-kanban__card.hmo-dragging {
+	opacity: 0.45;
+	outline: 2px dashed hsl(215 50% 55%);
+}
+
+.hmo-kanban__cards.hmo-drop-target {
+	background: hsl(215 40% 96%);
+	outline: 2px dashed hsl(215 50% 55%);
+	outline-offset: -2px;
+	border-radius: 0.4rem;
+	min-height: 60px;
+}
+
+.wp-dark-mode-active .hmo-kanban__cards.hmo-drop-target {
+	background: hsl(215 25% 22%);
+	outline-color: hsl(215 50% 50%);
+}
+
 /* -- View toggle (Table / Kanban) ----------------------------------------- */
 
 .hmo-view-toggle { margin-left: 0.4rem; }
@@ -2017,3 +2040,241 @@
 .wp-dark-mode-active .hmo-reg-nums { color: hsl(215 15% 75%); }
 
 .wp-dark-mode-active .hmo-fe-table-wrap { box-shadow: 0 2px 10px rgba(0,0,0,0.3); }
+
+/* ==========================================================================
+   Event Journey Report
+   ========================================================================== */
+
+.hmo-report-wrap { max-width: 960px; }
+
+.hmo-report-header { margin-bottom: 1.25rem; }
+
+.hmo-report-title {
+	font-size: 1.4rem;
+	font-weight: 700;
+	color: hsl(215 35% 25%);
+	margin: 0 0 0.5rem;
+}
+
+.hmo-report-selector-form {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	margin-bottom: 1.5rem;
+	flex-wrap: wrap;
+}
+
+.hmo-report-selector-label { font-weight: 600; }
+
+.hmo-report-selector-select {
+	padding: 0.45rem 0.75rem;
+	border: 1px solid hsl(215 15% 75%);
+	border-radius: 0.4rem;
+	background: #fff;
+	font-size: 0.95rem;
+	min-width: 260px;
+}
+
+.hmo-report-empty {
+	color: hsl(215 15% 55%);
+	font-style: italic;
+	padding: 2rem 0;
+}
+
+/* Event summary bar */
+.hmo-report-event-bar {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
+	background: hsl(215 30% 97%);
+	border: 1px solid hsl(215 15% 88%);
+	border-radius: 0.5rem;
+	padding: 0.75rem 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.hmo-report-event-name {
+	font-weight: 700;
+	font-size: 1.05rem;
+	color: hsl(215 35% 25%);
+}
+
+.hmo-report-event-date {
+	color: hsl(215 20% 50%);
+	font-size: 0.9rem;
+}
+
+/* Stage sections */
+.hmo-report-stages { display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 2rem; }
+
+.hmo-report-stage {
+	border: 1px solid hsl(215 15% 85%);
+	border-radius: 0.5rem;
+	overflow: hidden;
+}
+
+.hmo-report-stage--complete { border-color: hsl(145 40% 75%); }
+
+.hmo-report-stage-header {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.6rem 1rem;
+	background: hsl(215 25% 97%);
+	border-bottom: 1px solid hsl(215 15% 88%);
+	flex-wrap: wrap;
+}
+
+.hmo-report-stage--complete .hmo-report-stage-header {
+	background: hsl(145 30% 96%);
+	border-bottom-color: hsl(145 30% 80%);
+}
+
+.hmo-report-stage-progress {
+	font-size: 0.82rem;
+	color: hsl(215 15% 55%);
+}
+
+.hmo-report-stage-badge {
+	font-size: 0.78rem;
+	font-weight: 600;
+	border-radius: 999px;
+	padding: 0.15rem 0.6rem;
+}
+
+.hmo-report-stage-badge--done {
+	background: hsl(145 50% 90%);
+	color: hsl(145 50% 30%);
+}
+
+/* Task tables */
+.hmo-report-task-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.9rem;
+}
+
+.hmo-report-task-table thead th {
+	background: hsl(215 20% 95%);
+	color: hsl(215 20% 40%);
+	font-weight: 600;
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	padding: 0.5rem 0.75rem;
+	text-align: left;
+	border-bottom: 1px solid hsl(215 15% 85%);
+}
+
+.hmo-report-task-row td {
+	padding: 0.55rem 0.75rem;
+	border-bottom: 1px solid hsl(215 15% 92%);
+	vertical-align: middle;
+}
+
+.hmo-report-task-row:last-child td { border-bottom: none; }
+
+.hmo-report-task-row--complete td { background: hsl(145 30% 98%); }
+
+.hmo-report-task-note {
+	display: block;
+	font-size: 0.8rem;
+	color: hsl(215 15% 55%);
+	font-style: italic;
+	margin-top: 0.2rem;
+}
+
+.hmo-report-status-badge {
+	font-size: 0.78rem;
+	font-weight: 600;
+	border-radius: 999px;
+	padding: 0.15rem 0.6rem;
+	white-space: nowrap;
+}
+
+.hmo-report-status-badge--complete {
+	background: hsl(145 50% 90%);
+	color: hsl(145 50% 28%);
+}
+
+.hmo-report-status-badge--pending {
+	background: hsl(215 15% 92%);
+	color: hsl(215 15% 45%);
+}
+
+.hmo-report-na { color: hsl(215 15% 65%); }
+
+.hmo-report-col-task  { width: 40%; }
+.hmo-report-col-status { width: 14%; }
+.hmo-report-col-who   { width: 23%; }
+.hmo-report-col-when  { width: 23%; }
+
+/* Activity log */
+.hmo-report-section-title {
+	font-size: 1.1rem;
+	font-weight: 700;
+	margin: 0 0 0.75rem;
+	color: hsl(215 30% 30%);
+}
+
+.hmo-report-activity { margin-top: 0.5rem; }
+
+.hmo-report-activity-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.88rem;
+	border: 1px solid hsl(215 15% 85%);
+	border-radius: 0.5rem;
+	overflow: hidden;
+}
+
+.hmo-report-activity-table thead th {
+	background: hsl(215 20% 95%);
+	color: hsl(215 20% 40%);
+	font-weight: 600;
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+	padding: 0.5rem 0.75rem;
+	text-align: left;
+	border-bottom: 1px solid hsl(215 15% 85%);
+}
+
+.hmo-report-activity-table tbody tr:nth-child(even) td { background: hsl(215 15% 98%); }
+.hmo-report-activity-table tbody td { padding: 0.5rem 0.75rem; border-bottom: 1px solid hsl(215 15% 92%); }
+.hmo-report-activity-table tbody tr:last-child td { border-bottom: none; }
+
+.hmo-report-act-date  { white-space: nowrap; color: hsl(215 15% 50%); }
+.hmo-report-act-type {
+	font-size: 0.78rem;
+	font-weight: 600;
+	background: hsl(215 20% 92%);
+	color: hsl(215 25% 35%);
+	border-radius: 999px;
+	padding: 0.1rem 0.55rem;
+	white-space: nowrap;
+}
+.hmo-report-act-type--task_complete   { background: hsl(145 40% 88%); color: hsl(145 45% 28%); }
+.hmo-report-act-type--stage_change    { background: hsl(210 50% 88%); color: hsl(210 50% 28%); }
+.hmo-report-act-type--stage_bulk_complete { background: hsl(270 30% 88%); color: hsl(270 35% 30%); }
+.hmo-report-act-type--bulk_complete   { background: hsl(270 30% 88%); color: hsl(270 35% 30%); }
+
+/* Dark mode */
+.wp-dark-mode-active .hmo-report-title { color: hsl(210 30% 85%); }
+.wp-dark-mode-active .hmo-report-selector-select { background: hsl(215 20% 16%); border-color: hsl(215 20% 28%); color: hsl(215 15% 80%); }
+.wp-dark-mode-active .hmo-report-event-bar { background: hsl(215 20% 16%); border-color: hsl(215 20% 25%); }
+.wp-dark-mode-active .hmo-report-event-name { color: hsl(210 25% 85%); }
+.wp-dark-mode-active .hmo-report-stage { border-color: hsl(215 20% 25%); }
+.wp-dark-mode-active .hmo-report-stage--complete { border-color: hsl(145 30% 25%); }
+.wp-dark-mode-active .hmo-report-stage-header { background: hsl(215 20% 14%); border-bottom-color: hsl(215 20% 22%); }
+.wp-dark-mode-active .hmo-report-stage--complete .hmo-report-stage-header { background: hsl(145 20% 12%); border-bottom-color: hsl(145 20% 22%); }
+.wp-dark-mode-active .hmo-report-task-table thead th { background: hsl(215 20% 16%); color: hsl(215 15% 60%); border-bottom-color: hsl(215 20% 25%); }
+.wp-dark-mode-active .hmo-report-task-row td { border-bottom-color: hsl(215 20% 22%); }
+.wp-dark-mode-active .hmo-report-task-row--complete td { background: hsl(145 15% 13%); }
+.wp-dark-mode-active .hmo-report-status-badge--complete { background: hsl(145 30% 18%); color: hsl(145 50% 65%); }
+.wp-dark-mode-active .hmo-report-status-badge--pending  { background: hsl(215 20% 22%); color: hsl(215 15% 65%); }
+.wp-dark-mode-active .hmo-report-activity-table { border-color: hsl(215 20% 25%); }
+.wp-dark-mode-active .hmo-report-activity-table thead th { background: hsl(215 20% 16%); color: hsl(215 15% 60%); border-bottom-color: hsl(215 20% 25%); }
+.wp-dark-mode-active .hmo-report-activity-table tbody tr:nth-child(even) td { background: hsl(215 20% 14%); }
+.wp-dark-mode-active .hmo-report-activity-table tbody td { border-bottom-color: hsl(215 20% 22%); }

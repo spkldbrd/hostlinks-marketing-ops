@@ -34,6 +34,10 @@ class HMO_Page_URLs {
 		return self::resolve( 'task_editor', 'hmo_task_editor', '' );
 	}
 
+	public static function get_event_report(): string {
+		return self::resolve( 'event_report', 'hmo_event_report', '' );
+	}
+
 	// ── Settings helpers ───────────────────────────────────────────────────────
 
 	public static function get_overrides(): array {
@@ -42,15 +46,17 @@ class HMO_Page_URLs {
 			'my_classes'   => '',
 			'event_detail' => '',
 			'task_editor'  => '',
+			'event_report' => '',
 		) );
 	}
 
-	public static function save_overrides( string $dashboard, string $my_classes, string $event_detail, string $task_editor = '' ): void {
+	public static function save_overrides( string $dashboard, string $my_classes, string $event_detail, string $task_editor = '', string $event_report = '' ): void {
 		update_option( self::OPTION_KEY, array(
 			'dashboard'    => esc_url_raw( trim( $dashboard ) ),
 			'my_classes'   => esc_url_raw( trim( $my_classes ) ),
 			'event_detail' => esc_url_raw( trim( $event_detail ) ),
 			'task_editor'  => esc_url_raw( trim( $task_editor ) ),
+			'event_report' => esc_url_raw( trim( $event_report ) ),
 		) );
 		self::clear_cache();
 	}
@@ -62,6 +68,7 @@ class HMO_Page_URLs {
 		delete_transient( 'hmo_page_url_my_classes' );
 		delete_transient( 'hmo_page_url_event_detail' );
 		delete_transient( 'hmo_page_url_task_editor' );
+		delete_transient( 'hmo_page_url_event_report' );
 	}
 
 	// ── Detection status (used by the settings UI) ─────────────────────────────
@@ -76,6 +83,7 @@ class HMO_Page_URLs {
 			'my_classes'   => 'hmo_my_classes',
 			'event_detail' => 'hmo_event_detail',
 			'task_editor'  => 'hmo_task_editor',
+			'event_report' => 'hmo_event_report',
 		);
 
 		$status = array();

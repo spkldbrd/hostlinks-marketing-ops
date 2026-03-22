@@ -33,7 +33,8 @@ if ( isset( $_POST['hmo_save_page_urls'] ) ) {
 		sanitize_text_field( $_POST['hmo_url_dashboard']    ?? '' ),
 		sanitize_text_field( $_POST['hmo_url_my_classes']   ?? '' ),
 		sanitize_text_field( $_POST['hmo_url_event_detail'] ?? '' ),
-		sanitize_text_field( $_POST['hmo_url_task_editor']  ?? '' )
+		sanitize_text_field( $_POST['hmo_url_task_editor']  ?? '' ),
+		sanitize_text_field( $_POST['hmo_url_event_report'] ?? '' )
 	);
 	$notice = '<div class="notice notice-success is-dismissible"><p>Page links saved.</p></div>';
 }
@@ -76,12 +77,23 @@ if ( isset( $_POST['hmo_save_task_editors'] ) ) {
 	$notice = '<div class="notice notice-success is-dismissible"><p>Task editor settings saved.</p></div>';
 }
 
+// Report viewers save
+if ( isset( $_POST['hmo_save_report_viewers'] ) ) {
+	check_admin_referer( 'hmo_user_access' );
+	$access_svc  = new HMO_Access_Service();
+	$raw_ids     = sanitize_text_field( $_POST['hmo_report_viewer_ids'] ?? '' );
+	$ids         = $raw_ids !== '' ? explode( ',', $raw_ids ) : array();
+	$access_svc->save_report_viewers( $ids );
+	$notice = '<div class="notice notice-success is-dismissible"><p>Report viewer settings saved.</p></div>';
+}
+
 // ── Current state ─────────────────────────────────────────────────────────────
 
-$access_svc      = new HMO_Access_Service();
-$approved_ids    = $access_svc->get_approved_viewers();
-$task_editor_ids = $access_svc->get_task_editors();
-$denial_message  = get_option( HMO_Access_Service::OPT_MESSAGE, HMO_Access_Service::DEFAULT_MESSAGE );
+$access_svc        = new HMO_Access_Service();
+$approved_ids      = $access_svc->get_approved_viewers();
+$task_editor_ids   = $access_svc->get_task_editors();
+$report_viewer_ids = $access_svc->get_report_viewers();
+$denial_message    = get_option( HMO_Access_Service::OPT_MESSAGE, HMO_Access_Service::DEFAULT_MESSAGE );
 $page_status     = HMO_Page_URLs::detection_status();
 $url_overrides   = HMO_Page_URLs::get_overrides();
 $saved_modes     = get_option( HMO_Access_Service::OPT_MODES, array() );
@@ -90,6 +102,15 @@ $task_editor_users = array();
 if ( ! empty( $task_editor_ids ) ) {
 	$task_editor_users = get_users( array(
 		'include' => $task_editor_ids,
+		'fields'  => array( 'ID', 'display_name', 'user_email' ),
+		'orderby' => 'display_name',
+	) );
+}
+
+$report_viewer_users = array();
+if ( ! empty( $report_viewer_ids ) ) {
+	$report_viewer_users = get_users( array(
+		'include' => $report_viewer_ids,
 		'fields'  => array( 'ID', 'display_name', 'user_email' ),
 		'orderby' => 'display_name',
 	) );
@@ -620,10 +641,11 @@ $tabs = array(
 	<table class="form-table">
 		<?php
 		$page_defs = array(
-			'dashboard'    => array( 'label' => 'Dashboard',          'shortcode' => '[hmo_dashboard]',    'field' => 'hmo_url_dashboard' ),
-			'my_classes'   => array( 'label' => 'My Classes',         'shortcode' => '[hmo_my_classes]',   'field' => 'hmo_url_my_classes' ),
-			'event_detail' => array( 'label' => 'Event Detail',       'shortcode' => '[hmo_event_detail]', 'field' => 'hmo_url_event_detail' ),
-			'task_editor'  => array( 'label' => 'Task Template Editor','shortcode' => '[hmo_task_editor]',  'field' => 'hmo_url_task_editor' ),
+			'dashboard'    => array( 'label' => 'Dashboard',            'shortcode' => '[hmo_dashboard]',    'field' => 'hmo_url_dashboard' ),
+			'my_classes'   => array( 'label' => 'My Classes',           'shortcode' => '[hmo_my_classes]',   'field' => 'hmo_url_my_classes' ),
+			'event_detail' => array( 'label' => 'Event Detail',         'shortcode' => '[hmo_event_detail]', 'field' => 'hmo_url_event_detail' ),
+			'task_editor'  => array( 'label' => 'Task Template Editor', 'shortcode' => '[hmo_task_editor]',  'field' => 'hmo_url_task_editor' ),
+			'event_report' => array( 'label' => 'Event Journey Report', 'shortcode' => '[hmo_event_report]', 'field' => 'hmo_url_event_report' ),
 		);
 		$source_labels = array(
 			'override' => '<span style="color:#007017;">&#10003; Manual override</span>',
@@ -824,6 +846,130 @@ $tabs = array(
 		<button type="submit" name="hmo_save_task_editors" class="button button-primary">Save Task Editor Users</button>
 	</p>
 </form>
+
+<!-- ── Report Viewer Users ────────────────────────────────────────────────── -->
+<hr style="margin:32px 0;">
+<h2>Event Journey Report — Allowed Viewers</h2>
+<p>
+	Users listed here can access the <code>[hmo_event_report]</code> shortcode to view event journey and task completion reports.
+	Administrators always have access regardless of this list.
+</p>
+
+<form method="post" action="" id="hmo-rv-users-form">
+	<?php wp_nonce_field( 'hmo_user_access' ); ?>
+	<input type="hidden" id="hmo_report_viewer_ids" name="hmo_report_viewer_ids"
+		value="<?php echo esc_attr( implode( ',', $report_viewer_ids ) ); ?>">
+
+	<div style="max-width:560px;margin-bottom:8px;">
+		<label for="hmo-rv-user-search" style="display:block;font-weight:600;margin-bottom:6px;">Search users to add</label>
+		<div style="display:flex;gap:8px;">
+			<input type="text" id="hmo-rv-user-search" placeholder="Type a name or email…"
+				class="regular-text" autocomplete="off" style="flex:1;">
+			<span id="hmo-rv-search-spinner" style="display:none;line-height:30px;color:#888;">Searching…</span>
+		</div>
+		<ul id="hmo-rv-search-results" style="
+			list-style:none;margin:0;padding:0;max-width:560px;
+			border:1px solid #ddd;border-top:none;display:none;
+			background:#fff;position:relative;z-index:100;"></ul>
+	</div>
+
+	<table class="widefat striped" style="max-width:560px;margin-bottom:24px;" id="hmo-rv-users-table">
+		<thead>
+			<tr><th>Name</th><th>Email</th><th style="width:80px;"></th></tr>
+		</thead>
+		<tbody id="hmo-rv-users-tbody">
+		<?php if ( empty( $report_viewer_users ) ) : ?>
+			<tr id="hmo-rv-users-empty"><td colspan="3" style="color:#888;font-style:italic;">No report viewer users yet.</td></tr>
+		<?php else : ?>
+			<?php foreach ( $report_viewer_users as $u ) : ?>
+			<tr id="hmo-rv-user-row-<?php echo (int) $u->ID; ?>">
+				<td><?php echo esc_html( $u->display_name ); ?></td>
+				<td><?php echo esc_html( $u->user_email ); ?></td>
+				<td>
+					<button type="button" class="button button-small hmo-rv-remove-user"
+						data-id="<?php echo (int) $u->ID; ?>">Remove</button>
+				</td>
+			</tr>
+			<?php endforeach; ?>
+		<?php endif; ?>
+		</tbody>
+	</table>
+
+	<p class="submit">
+		<button type="submit" name="hmo_save_report_viewers" class="button button-primary">Save Report Viewer Users</button>
+	</p>
+</form>
+
+<script>
+(function() {
+	var ajaxUrl  = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+	var nonce    = <?php echo wp_json_encode( wp_create_nonce( 'hmo_user_access' ) ); ?>;
+	var rvIds    = <?php echo wp_json_encode( array_map( 'intval', $report_viewer_ids ) ); ?>;
+
+	function syncRvIdsField() {
+		document.getElementById('hmo_report_viewer_ids').value = rvIds.join(',');
+	}
+
+	var rvTimer;
+	document.getElementById('hmo-rv-user-search').addEventListener('input', function() {
+		clearTimeout( rvTimer );
+		var q = this.value.trim();
+		var $results = document.getElementById('hmo-rv-search-results');
+		if ( q.length < 2 ) { $results.style.display = 'none'; return; }
+		document.getElementById('hmo-rv-search-spinner').style.display = 'inline';
+		rvTimer = setTimeout( function() {
+			var fd = new FormData();
+			fd.append('action','hmo_search_users');
+			fd.append('q', q);
+			fd.append('_ajax_nonce', nonce);
+			fetch(ajaxUrl, { method:'POST', body: fd })
+				.then(function(r){ return r.json(); })
+				.then(function(res) {
+					document.getElementById('hmo-rv-search-spinner').style.display = 'none';
+					$results.innerHTML = '';
+					if ( ! res.success || ! res.data.length ) { $results.style.display = 'none'; return; }
+					res.data.forEach(function(u) {
+						if ( rvIds.indexOf(u.id) !== -1 ) { return; }
+						var li = document.createElement('li');
+						li.style.cssText = 'padding:8px 12px;cursor:pointer;border-bottom:1px solid #eee;';
+						li.textContent = u.name + ' (' + u.email + ')';
+						li.addEventListener('click', function() {
+							rvIds.push(u.id);
+							syncRvIdsField();
+							var emptyRow = document.getElementById('hmo-rv-users-empty');
+							if (emptyRow) emptyRow.remove();
+							var tbody = document.getElementById('hmo-rv-users-tbody');
+							var tr = document.createElement('tr');
+							tr.id = 'hmo-rv-user-row-' + u.id;
+							tr.innerHTML = '<td>' + u.name + '</td><td>' + u.email + '</td>' +
+								'<td><button type="button" class="button button-small hmo-rv-remove-user" data-id="' + u.id + '">Remove</button></td>';
+							tbody.appendChild(tr);
+							$results.style.display = 'none';
+							document.getElementById('hmo-rv-user-search').value = '';
+						});
+						$results.appendChild(li);
+					});
+					$results.style.display = $results.children.length ? 'block' : 'none';
+				});
+		}, 300 );
+	});
+
+	document.addEventListener('click', function(e) {
+		if ( ! e.target.classList.contains('hmo-rv-remove-user') ) { return; }
+		var id = parseInt( e.target.getAttribute('data-id'), 10 );
+		rvIds = rvIds.filter(function(i){ return i !== id; });
+		syncRvIdsField();
+		var row = document.getElementById('hmo-rv-user-row-' + id);
+		if (row) row.remove();
+		if ( ! document.getElementById('hmo-rv-users-tbody').children.length ) {
+			var tr = document.createElement('tr');
+			tr.id = 'hmo-rv-users-empty';
+			tr.innerHTML = '<td colspan="3" style="color:#888;font-style:italic;">No report viewer users yet.</td>';
+			document.getElementById('hmo-rv-users-tbody').appendChild(tr);
+		}
+	});
+})();
+</script>
 
 <script>
 (function() {

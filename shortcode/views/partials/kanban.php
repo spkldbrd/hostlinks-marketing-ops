@@ -4,6 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $stages = HMO_Checklist_Templates::get_stages_option();
 
+// Build ordered stage list for JS drag-and-drop.
+$stage_order_for_js = array();
+foreach ( $stages as $s ) {
+	$stage_order_for_js[] = array( 'key' => $s['key'], 'label' => $s['label'] );
+}
+
 // Group rows by stage.
 $by_stage = array();
 foreach ( $stages as $s ) {
@@ -17,23 +23,31 @@ foreach ( $all_rows as $row ) {
 	$by_stage[ $key ]['rows'][] = $row;
 }
 ?>
+<script>
+window.hmoKanbanStages = <?php echo wp_json_encode( $stage_order_for_js ); ?>;
+</script>
 <div class="hmo-kanban" id="hmo-kanban" style="display:none;" aria-label="Kanban view">
 	<?php foreach ( $by_stage as $stage_key => $stage ) : ?>
-	<div class="hmo-kanban__col">
+	<div class="hmo-kanban__col"
+		data-stage-key="<?php echo esc_attr( $stage_key ); ?>"
+		data-stage-label="<?php echo esc_attr( $stage['label'] ); ?>">
 		<div class="hmo-kanban__col-header">
 			<span class="hmo-stage-pill hmo-stage-pill--<?php echo esc_attr( $stage_key ); ?>">
 				<?php echo esc_html( $stage['label'] ); ?>
 			</span>
-			<span class="hmo-kanban__count"><?php echo count( $stage['rows'] ); ?></span>
+			<span class="hmo-kanban__count" data-stage-count="<?php echo esc_attr( $stage_key ); ?>"><?php echo count( $stage['rows'] ); ?></span>
 		</div>
-		<div class="hmo-kanban__cards">
+		<div class="hmo-kanban__cards" data-stage-drop="<?php echo esc_attr( $stage_key ); ?>">
 			<?php foreach ( $stage['rows'] as $row ) :
 				$url = $detail_base ? add_query_arg( 'event_id', $row->event_id, $detail_base ) : '';
 				$pct = $row->registration_goal > 0
 					? min( 100, round( $row->registration_count / $row->registration_goal * 100 ) )
 					: 0;
 			?>
-			<div class="hmo-kanban__card hmo-kanban__card--<?php echo esc_attr( $row->risk_level ); ?>">
+			<div class="hmo-kanban__card hmo-kanban__card--<?php echo esc_attr( $row->risk_level ); ?>"
+				draggable="true"
+				data-event-id="<?php echo (int) $row->event_id; ?>"
+				data-stage="<?php echo esc_attr( $row->stage ?? 'event_setup' ); ?>">
 				<div class="hmo-kanban__card-name">
 					<?php if ( $url ) : ?>
 						<a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $row->event_name ); ?></a>
