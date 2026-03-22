@@ -828,161 +828,86 @@
 	function escAttr( s ) { return escHtml( s ); }
 
 	// -------------------------------------------------------------------------
-	// Kanban drag-and-drop
+	// Kanban drag-and-drop (powered by SortableJS)
 	// -------------------------------------------------------------------------
-	// NOTE: dragover/drop use native addEventListener (not jQuery delegation)
-	// because jQuery delegation calls preventDefault after the event has bubbled
-	// to document — too late for the browser's DnD engine to accept a drop.
 
-	var _dragEventId  = null;
-	var _dragStageKey = null;
+	function initKanbanSortable( kanbanEl ) {
+		if ( ! kanbanEl || typeof Sortable === 'undefined' ) { return; }
 
-	// ── Fully native drag-and-drop (no jQuery delegation for any drag event) ──
-	// jQuery delegation wraps events and calls preventDefault too late for some
-	// browsers. Attaching native listeners directly to each element is the only
-	// guaranteed-reliable approach.
-
-	function bindKanbanDrop( kanbanEl ) {
-		if ( ! kanbanEl ) { return; }
-
-		// #region agent log H-A: init
-		var _zones = kanbanEl.querySelectorAll( '.hmo-kanban__cards' );
-		fetch('http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cbac62'},body:JSON.stringify({sessionId:'cbac62',hypothesisId:'H-A',location:'frontend.js:bindKanbanDrop-init',message:'bindKanbanDrop called',data:{kanbanId:kanbanEl.id,kanbanClass:kanbanEl.className,zonesFound:_zones.length},timestamp:Date.now()})}).catch(function(){});
-		// #endregion
-
-		// ── dragstart / dragend on the container (still delegation, but native) ──
-		// This way cards moved into new columns dynamically still work.
-		kanbanEl.addEventListener( 'dragstart', function ( e ) {
-			var card = e.target.closest( '.hmo-kanban__card' );
-			// #region agent log H-B: dragstart
-			fetch('http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cbac62'},body:JSON.stringify({sessionId:'cbac62',hypothesisId:'H-B',location:'frontend.js:dragstart',message:'dragstart fired',data:{targetTag:e.target.tagName,targetClass:e.target.className,cardFound:!!card,cardEventId:card?card.getAttribute('data-event-id'):null,cardStage:card?card.getAttribute('data-stage'):null},timestamp:Date.now()})}).catch(function(){});
-			// #endregion
-			if ( ! card ) { return; }
-			_dragEventId  = parseInt( card.getAttribute( 'data-event-id' ), 10 ) || null;
-			_dragStageKey = card.getAttribute( 'data-stage' ) || null;
-			card.classList.add( 'hmo-dragging' );
-			e.dataTransfer.effectAllowed = 'move';
-			e.dataTransfer.setData( 'text/plain', String( _dragEventId ) );
-		} );
-
-		kanbanEl.addEventListener( 'dragend', function ( e ) {
-			// #region agent log H-E: dragend timing
-			fetch('http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cbac62'},body:JSON.stringify({sessionId:'cbac62',hypothesisId:'H-E',location:'frontend.js:dragend',message:'dragend fired',data:{dragEventIdAtEnd:_dragEventId,dragStageAtEnd:_dragStageKey},timestamp:Date.now()})}).catch(function(){});
-			// #endregion
-			var card = e.target.closest( '.hmo-kanban__card' );
-			if ( card ) { card.classList.remove( 'hmo-dragging' ); }
-			kanbanEl.querySelectorAll( '.hmo-kanban__cards' ).forEach( function ( z ) {
-				z.classList.remove( 'hmo-drop-target' );
-			} );
-		} );
-
-		// ── dragover / dragleave / drop attached to each zone directly ──
-		// Calling preventDefault on the exact drop-zone element is the only way
-		// to reliably signal the browser that a drop is accepted.
 		kanbanEl.querySelectorAll( '.hmo-kanban__cards' ).forEach( function ( zone ) {
-			var _zoneStage = zone.getAttribute( 'data-stage-drop' );
-			var _dragoverCount = 0;
+			Sortable.create( zone, {
+				group:      'kanban',
+				animation:  150,
+				ghostClass: 'hmo-dragging',
 
-			zone.addEventListener( 'dragover', function ( e ) {
-				e.preventDefault();
-				e.dataTransfer.dropEffect = 'move';
-				zone.classList.add( 'hmo-drop-target' );
-				// #region agent log H-C: dragover (log only first hit per zone to avoid spam)
-				if ( _dragoverCount === 0 ) { fetch('http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cbac62'},body:JSON.stringify({sessionId:'cbac62',hypothesisId:'H-C',location:'frontend.js:dragover',message:'dragover fired on zone',data:{zoneStage:_zoneStage,currentDragId:_dragEventId},timestamp:Date.now()})}).catch(function(){}); }
-				_dragoverCount++;
-				// #endregion
-			} );
+				onAdd: function ( evt ) {
+					// Remove "No events" placeholder when a card arrives.
+					var empty = evt.to.querySelector( '.hmo-kanban__empty' );
+					if ( empty ) { empty.remove(); }
+				},
 
-			zone.addEventListener( 'dragleave', function ( e ) {
-				if ( ! zone.contains( e.relatedTarget ) ) {
-					zone.classList.remove( 'hmo-drop-target' );
-					_dragoverCount = 0;
-				}
-			} );
+				onEnd: function ( evt ) {
+					var card     = evt.item;
+					var fromZone = evt.from;
+					var toZone   = evt.to;
+					var newStage = toZone.getAttribute( 'data-stage-drop' );
+					var oldStage = fromZone.getAttribute( 'data-stage-drop' );
+					var eventId  = parseInt( card.getAttribute( 'data-event-id' ), 10 );
 
-			zone.addEventListener( 'drop', function ( e ) {
-				e.preventDefault();
-				zone.classList.remove( 'hmo-drop-target' );
+					if ( ! newStage || newStage === oldStage ) { return; }
 
-				// #region agent log H-D: drop entry
-				var newStage = zone.getAttribute( 'data-stage-drop' );
-				fetch('http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cbac62'},body:JSON.stringify({sessionId:'cbac62',hypothesisId:'H-D',location:'frontend.js:drop',message:'drop fired on zone',data:{zoneStage:newStage,dragEventId:_dragEventId,dragStageKey:_dragStageKey,stages:window.hmoKanbanStages},timestamp:Date.now()})}).catch(function(){});
-				// #endregion
+					var stages = window.hmoKanbanStages || [];
+					var oldIdx = -1, newIdx = -1;
+					for ( var i = 0; i < stages.length; i++ ) {
+						if ( stages[ i ].key === oldStage ) { oldIdx = i; }
+						if ( stages[ i ].key === newStage  ) { newIdx = i; }
+					}
 
-				if ( ! _dragEventId ) { return; }
+					// Only allow forward progression — revert DOM on backward drag.
+					if ( newIdx <= oldIdx ) {
+						fromZone.appendChild( card );
+						return;
+					}
 
-				if ( ! newStage || newStage === _dragStageKey ) {
-					_dragEventId = null; _dragStageKey = null;
-					return;
-				}
+					var priorStages = stages.slice( oldIdx, newIdx );
 
-				var stages   = window.hmoKanbanStages || [];
-				var oldIndex = -1, newIndex = -1;
-				for ( var i = 0; i < stages.length; i++ ) {
-					if ( stages[ i ].key === _dragStageKey ) { oldIndex = i; }
-					if ( stages[ i ].key === newStage )       { newIndex = i; }
-				}
-
-				// #region agent log H-D: index check
-				fetch('http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cbac62'},body:JSON.stringify({sessionId:'cbac62',hypothesisId:'H-D',location:'frontend.js:drop-index',message:'stage index check',data:{oldIndex:oldIndex,newIndex:newIndex,fromStage:_dragStageKey,toStage:newStage},timestamp:Date.now()})}).catch(function(){});
-				// #endregion
-
-				// Only allow forward progression.
-				if ( newIndex <= oldIndex ) {
-					_dragEventId = null; _dragStageKey = null;
-					return;
-				}
-
-				var priorStages = stages.slice( oldIndex, newIndex );
-				var eventId     = _dragEventId;
-				var fromStage   = _dragStageKey;
-				var card        = kanbanEl.querySelector( '.hmo-kanban__card[data-event-id="' + eventId + '"]' );
-
-				_dragEventId = null; _dragStageKey = null;
-
-				apiPost( '/events/' + eventId + '/stage', { stage: newStage }, function () {
-
-					if ( card ) {
+					apiPost( '/events/' + eventId + '/stage', { stage: newStage }, function () {
 						card.setAttribute( 'data-stage', newStage );
-						var emptyMsg = zone.querySelector( '.hmo-kanban__empty' );
-						if ( emptyMsg ) { emptyMsg.remove(); }
-						zone.appendChild( card );
-					}
+						updateKanbanCount( kanbanEl, oldStage );
+						updateKanbanCount( kanbanEl, newStage );
 
-					updateKanbanCount( kanbanEl, fromStage );
-					updateKanbanCount( kanbanEl, newStage );
-
-					var oldZone = kanbanEl.querySelector( '.hmo-kanban__cards[data-stage-drop="' + fromStage + '"]' );
-					if ( oldZone && oldZone.querySelectorAll( '.hmo-kanban__card' ).length === 0 ) {
-						oldZone.innerHTML = '<div class="hmo-kanban__empty">No events</div>';
-					}
-
-					if ( priorStages.length === 0 ) { return; }
-
-					var promptMsg = priorStages.length === 1
-						? 'Do you want to mark all tasks for "' + priorStages[ 0 ].label + '" as complete?'
-						: 'Do you want to mark all tasks for all prior stages complete?';
-
-					if ( ! window.confirm( promptMsg ) ) { return; }
-
-					var stageKeys = priorStages.map( function ( s ) { return s.key; } );
-					apiPost( '/events/' + eventId + '/complete-stages', { stage_keys: stageKeys }, function ( res ) {
-						if ( res && res.tasks_completed > 0 && card ) {
-							var badge   = card.querySelector( '.hmo-kanban__tasks' );
-							var current = badge ? ( parseInt( badge.textContent, 10 ) || 0 ) : 0;
-							if ( badge ) { badge.textContent = Math.max( 0, current - res.tasks_completed ) + ' open'; }
+						if ( fromZone.querySelectorAll( '.hmo-kanban__card' ).length === 0 ) {
+							fromZone.innerHTML = '<div class="hmo-kanban__empty">No events</div>';
 						}
-					} );
 
-				}, function () {
-					window.alert( 'Could not update the event stage. Please try again.' );
-				} );
+						if ( priorStages.length === 0 ) { return; }
+
+						var msg = priorStages.length === 1
+							? 'Do you want to mark all tasks for "' + priorStages[ 0 ].label + '" as complete?'
+							: 'Do you want to mark all tasks for all prior stages complete?';
+
+						if ( ! window.confirm( msg ) ) { return; }
+
+						var keys = priorStages.map( function ( s ) { return s.key; } );
+						apiPost( '/events/' + eventId + '/complete-stages', { stage_keys: keys }, function ( res ) {
+							if ( res && res.tasks_completed > 0 ) {
+								var badge = card.querySelector( '.hmo-kanban__tasks' );
+								if ( badge ) {
+									badge.textContent = Math.max( 0, ( parseInt( badge.textContent, 10 ) || 0 ) - res.tasks_completed ) + ' open';
+								}
+							}
+						} );
+
+					}, function () {
+						fromZone.appendChild( card ); // revert card on API failure
+						window.alert( 'Could not update the event stage. Please try again.' );
+					} );
+				}
 			} );
 		} );
 	}
 
-	// Bind to all kanban boards on the page.
-	document.querySelectorAll( '.hmo-kanban' ).forEach( function ( el ) { bindKanbanDrop( el ); } );
+	document.querySelectorAll( '.hmo-kanban' ).forEach( function ( el ) { initKanbanSortable( el ); } );
 
 	function updateKanbanCount( kanbanEl, stageKey ) {
 		var zone  = kanbanEl.querySelector( '.hmo-kanban__cards[data-stage-drop="' + stageKey + '"]' );

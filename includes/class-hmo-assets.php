@@ -81,10 +81,18 @@ class HMO_Assets {
 			HMO_VERSION
 		);
 
+		wp_register_script(
+			'sortablejs',
+			'https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js',
+			array(),
+			'1.15.6',
+			true
+		);
+
 		wp_enqueue_script(
 			'hmo-frontend',
 			HMO_PLUGIN_URL . 'assets/js/frontend.js',
-			array( 'jquery' ),
+			array( 'jquery', 'sortablejs' ),
 			HMO_VERSION,
 			true
 		);

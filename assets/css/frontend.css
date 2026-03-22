@@ -2007,11 +2007,8 @@
 
 /* -- Kanban drag-and-drop -------------------------------------------------- */
 
-.hmo-kanban__card[draggable="true"] { cursor: grab; }
-.hmo-kanban__card[draggable="true"]:active { cursor: grabbing; }
-/* Prevent child elements (links, text, images) from starting their own drag
-   and hijacking the card drag ? card's dragstart handles everything. */
-.hmo-kanban__card * { -webkit-user-drag: none; user-drag: none; }
+.hmo-kanban__card { cursor: grab; }
+.hmo-kanban__card:active { cursor: grabbing; }
 
 .hmo-kanban__card.hmo-dragging {
 	opacity: 0.45;
