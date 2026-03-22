@@ -41,6 +41,9 @@ Requires the Hostlinks plugin to be installed and active.
 
 == Changelog ==
 
+= 1.4.6 =
+* Kanban: opt-in debug logging (localStorage hmo_kanban_debug=1 or ?hmo_kanban_debug=1) for drag issues.
+
 = 1.4.5 =
 * Kanban: SortableJS drag-and-drop, drag anywhere except title row, full-column drop zones.
 

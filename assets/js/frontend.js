@@ -240,6 +240,32 @@
 	} );
 
 	// =========================================================================
+	// Kanban diagnostics (opt-in)
+	// Enable: localStorage.setItem('hmo_kanban_debug','1'); location.reload()
+	//    or:  add ?hmo_kanban_debug=1 to the page URL
+	// Disable: localStorage.removeItem('hmo_kanban_debug'); location.reload()
+	// =========================================================================
+
+	function hmoKanbanDebugEnabled() {
+		try {
+			if ( /[?&]hmo_kanban_debug=1(?:&|$)/.test( String( window.location.search || '' ) ) ) {
+				return true;
+			}
+			return window.localStorage.getItem( 'hmo_kanban_debug' ) === '1';
+		} catch ( err ) {
+			return false;
+		}
+	}
+
+	function hmoKanbanDbg() {
+		if ( hmoKanbanDebugEnabled() && window.console && console.log ) {
+			var a = Array.prototype.slice.call( arguments );
+			a.unshift( '[HMO Kanban]' );
+			console.log.apply( console, a );
+		}
+	}
+
+	// =========================================================================
 	// Table / Kanban single-button toggle
 	// =========================================================================
 	// ☰ (9776) = hamburger = currently showing TABLE
@@ -258,8 +284,14 @@
 			// Must happen after show() so elements have dimensions.
 			if ( ! $kanbanView.data( 'sortable-init' ) ) {
 				var kanbanEl = $kanbanView[0];
+				hmoKanbanDbg(
+					'setViewMode(kanban): first init',
+					{ hasKanbanEl: !! kanbanEl, sortableType: typeof Sortable }
+				);
 				if ( kanbanEl ) { initKanbanSortable( kanbanEl ); }
 				$kanbanView.data( 'sortable-init', true );
+			} else {
+				hmoKanbanDbg( 'setViewMode(kanban): Sortable already initialised (cached)' );
 			}
 			$viewToggle.data( 'mode', 'kanban' )
 				.html( '<span class="hmo-icon-cols"><i></i><i></i><i></i></span>' )
@@ -287,6 +319,18 @@
 				setViewMode( 'kanban' );
 			}
 		} catch(e){}
+	}
+
+	if ( hmoKanbanDebugEnabled() ) {
+		hmoKanbanDbg(
+			'DOM (table/kanban/toggle counts)',
+			{ hmoTableView: $tableView.length, hmoKanban: $kanbanView.length, hmoBtnToggle: $viewToggle.length }
+		);
+		if ( ! $tableView.length || ! $kanbanView.length || ! $viewToggle.length ) {
+			hmoKanbanDbg(
+				'WARNING: missing #hmo-table-view / #hmo-kanban / #hmo-btn-view-toggle — view toggle & lazy Sortable init will not run.'
+			);
+		}
 	}
 
 	// =========================================================================
@@ -845,8 +889,38 @@
 			return;
 		}
 
-		kanbanEl.querySelectorAll( '.hmo-kanban__cards' ).forEach( function ( zone ) {
-			Sortable.create( zone, {
+		var zones = kanbanEl.querySelectorAll( '.hmo-kanban__cards' );
+		hmoKanbanDbg(
+			'initKanbanSortable',
+			{
+				zones: zones.length,
+				stagesJs: ( window.hmoKanbanStages || [] ).length,
+				help: 'Drag must start OUTSIDE .hmo-kanban__card-name (use meta row, progress, or footer).'
+			}
+		);
+
+		if ( hmoKanbanDebugEnabled() && ! kanbanEl.getAttribute( 'data-hmo-kanban-dbg-pointer' ) ) {
+			kanbanEl.setAttribute( 'data-hmo-kanban-dbg-pointer', '1' );
+			[ 'pointerdown', 'mousedown' ].forEach( function ( evType ) {
+				kanbanEl.addEventListener( evType, function ( ev ) {
+					var el = ev.target;
+					var card = el.closest && el.closest( '.hmo-kanban__card' );
+					var inName = el.closest && el.closest( '.hmo-kanban__card-name' );
+					hmoKanbanDbg( evType + ' (capture)', {
+						tag: el.nodeName,
+						class: el.className,
+						insideCard: !! card,
+						insideFilteredTitle: !! inName,
+						button: ev.button,
+						pointerType: ev.pointerType || '(n/a)'
+					} );
+				}, true );
+			} );
+		}
+
+		zones.forEach( function ( zone ) {
+			var stage = zone.getAttribute( 'data-stage-drop' );
+			var inst = Sortable.create( zone, {
 				group:               'kanban',
 				animation:           150,
 				draggable:           '.hmo-kanban__card',
@@ -857,6 +931,16 @@
 				emptyInsertThreshold: 48,
 				ghostClass:          'hmo-dragging',
 
+				onChoose: function ( evt ) {
+					hmoKanbanDbg( 'onChoose', { stage: stage, eventId: evt.item.getAttribute( 'data-event-id' ) } );
+				},
+				onUnchoose: function () {
+					hmoKanbanDbg( 'onUnchoose', { stage: stage } );
+				},
+				onStart: function ( evt ) {
+					hmoKanbanDbg( 'onStart (drag began)', { stage: stage, eventId: evt.item.getAttribute( 'data-event-id' ) } );
+				},
+
 				onAdd: function ( evt ) {
 					// Remove "No events" placeholder when a card arrives.
 					var empty = evt.to.querySelector( '.hmo-kanban__empty' );
@@ -864,6 +948,14 @@
 				},
 
 				onEnd: function ( evt ) {
+					hmoKanbanDbg( 'onEnd', {
+						oldStage: evt.from.getAttribute( 'data-stage-drop' ),
+						newStage: evt.to.getAttribute( 'data-stage-drop' ),
+						oldIndex: evt.oldIndex,
+						newIndex: evt.newIndex,
+						eventId: evt.item.getAttribute( 'data-event-id' )
+					} );
+
 					var card     = evt.item;
 					var fromZone = evt.from;
 					var toZone   = evt.to;
@@ -927,6 +1019,7 @@
 					} );
 				}
 			} );
+			hmoKanbanDbg( 'Sortable.create OK', { stage: stage, cardCount: zone.querySelectorAll( '.hmo-kanban__card' ).length } );
 		} );
 	}
 
