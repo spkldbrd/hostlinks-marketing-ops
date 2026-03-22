@@ -307,4 +307,69 @@ class HMO_Checklist_Service {
 
 		return true;
 	}
+
+	// -------------------------------------------------------------------------
+	// Bulk provision (admin)
+	// -------------------------------------------------------------------------
+
+	public static function register_ajax(): void {
+		add_action( 'wp_ajax_hmo_bulk_provision', array( __CLASS__, 'ajax_bulk_provision' ) );
+	}
+
+	/**
+	 * Provision task rows for every future active event that doesn't have them yet.
+	 * Runs synchronously in one AJAX request — safe for up to several hundred events.
+	 */
+	public static function ajax_bulk_provision(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Unauthorized', 403 );
+		}
+		check_ajax_referer( 'hmo_bulk_provision' );
+
+		@set_time_limit( 120 );
+
+		global $wpdb;
+
+		// Fetch all active future events from Hostlinks.
+		$today  = current_time( 'Y-m-d' );
+		$events = $wpdb->get_col( $wpdb->prepare(
+			"SELECT eve_id FROM {$wpdb->prefix}event_details_list
+			 WHERE eve_status = 1 AND eve_start >= %s",
+			$today
+		) );
+
+		if ( empty( $events ) ) {
+			wp_send_json_success( array( 'provisioned' => 0, 'already_done' => 0, 'total' => 0 ) );
+		}
+
+		$templates     = new HMO_Checklist_Templates();
+		$checklist_svc = new self( $templates );
+		$provisioned   = 0;
+		$already_done  = 0;
+
+		foreach ( $events as $event_id ) {
+			$event_id = (int) $event_id;
+
+			$existing = (int) $wpdb->get_var( $wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->prefix}hmo_event_tasks WHERE hostlinks_event_id = %d",
+				$event_id
+			) );
+
+			if ( $existing > 0 ) {
+				$already_done++;
+				continue;
+			}
+
+			$checklist_svc->ensure_event_tasks_exist( $event_id );
+			$provisioned++;
+		}
+
+		HMO_Dashboard_Service::flush_row_cache();
+
+		wp_send_json_success( array(
+			'provisioned'  => $provisioned,
+			'already_done' => $already_done,
+			'total'        => count( $events ),
+		) );
+	}
 }

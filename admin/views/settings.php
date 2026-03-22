@@ -183,6 +183,64 @@ $tabs = array(
 	</table>
 
 	<hr style="margin:24px 0;">
+
+	<h2>Task Provisioning</h2>
+	<p>
+		Task checklists are created per-event the first time you open an event detail page.
+		Use this button to bulk-provision tasks for <strong>all future events</strong> at once,
+		so open-task counts are accurate on the dashboard immediately.
+	</p>
+	<p>
+		<button type="button" class="button button-secondary" id="hmo-bulk-provision-btn">
+			&#9654; Provision Tasks for Future Events
+		</button>
+		<span id="hmo-bulk-provision-status" style="margin-left:12px;font-size:13px;"></span>
+	</p>
+
+	<script>
+	(function() {
+		var ajaxUrl = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+		var nonce   = <?php echo wp_json_encode( wp_create_nonce( 'hmo_bulk_provision' ) ); ?>;
+		var btn     = document.getElementById('hmo-bulk-provision-btn');
+		var status  = document.getElementById('hmo-bulk-provision-status');
+
+		btn.addEventListener('click', function() {
+			btn.disabled = true;
+			btn.textContent = '⏳ Provisioning…';
+			status.style.color = '#888';
+			status.textContent = 'Running — this may take a moment for large event lists…';
+
+			var fd = new FormData();
+			fd.append('action',      'hmo_bulk_provision');
+			fd.append('_ajax_nonce', nonce);
+
+			fetch(ajaxUrl, { method: 'POST', body: fd })
+				.then(function(r) { return r.json(); })
+				.then(function(res) {
+					btn.disabled = false;
+					btn.textContent = '✓ Provision Tasks for Future Events';
+					if (res.success) {
+						var d = res.data;
+						status.style.color = '#007017';
+						status.textContent =
+							'Done! ' + d.total + ' future events scanned — ' +
+							d.provisioned + ' newly provisioned, ' +
+							d.already_done + ' already had tasks.';
+					} else {
+						status.style.color = '#d63638';
+						status.textContent = 'Error: ' + (res.data || 'Unknown error.');
+					}
+				})
+				.catch(function() {
+					btn.disabled = false;
+					btn.textContent = '✓ Provision Tasks for Future Events';
+					status.style.color = '#d63638';
+					status.textContent = 'Request failed. Please try again.';
+				});
+		});
+	})();
+	</script>
+
 	<?php submit_button( 'Save General Settings', 'primary', 'hmo_save_general' ); ?>
 </form>
 
