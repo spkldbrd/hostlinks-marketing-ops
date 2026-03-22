@@ -120,14 +120,28 @@ class HMO_Dashboard_Service {
 			);
 		}
 
-		// Sort: fewest days left first; null (no date set) floats to the bottom.
+		/*
+		 * Sort priority:
+		 *   1. Future events (days_left >= 0) — ascending, soonest first.
+		 *   2. No-date events (days_left === null) — middle.
+		 *   3. Past events (days_left < 0) — descending, most-recent past first.
+		 */
 		usort( $rows, function ( $a, $b ) {
 			$da = $a->days_left;
 			$db = $b->days_left;
-			if ( $da === null && $db === null ) { return 0; }
-			if ( $da === null ) { return 1; }
-			if ( $db === null ) { return -1; }
-			return $da <=> $db;
+
+			$groupA = $da === null ? 1 : ( $da >= 0 ? 0 : 2 );
+			$groupB = $db === null ? 1 : ( $db >= 0 ? 0 : 2 );
+
+			if ( $groupA !== $groupB ) { return $groupA <=> $groupB; }
+
+			// Within future group: fewest days first.
+			if ( $groupA === 0 ) { return $da <=> $db; }
+
+			// Within past group: most-recent past first (least negative first).
+			if ( $groupA === 2 ) { return $db <=> $da; }
+
+			return 0;
 		} );
 
 		set_transient( $cache_key, $rows, self::CACHE_TTL );
@@ -223,7 +237,7 @@ class HMO_Dashboard_Service {
 
 		HMO_DB::log_activity( $event_id, 'list_update', 'List metadata updated.', $clean );
 
-		delete_transient( self::TRANSIENT_ROWS . '_*' );
+		self::flush_row_cache();
 		delete_transient( self::TRANSIENT_CARDS . '_' . get_current_user_id() );
 
 		return true;
@@ -232,6 +246,15 @@ class HMO_Dashboard_Service {
 	// -------------------------------------------------------------------------
 	// Internal helpers
 	// -------------------------------------------------------------------------
+
+	/**
+	 * Delete all hmo_dashboard_rows_* transients (wildcard, via wpdb).
+	 */
+	public static function flush_row_cache(): void {
+		global $wpdb;
+		$like = $wpdb->esc_like( '_transient_' . self::TRANSIENT_ROWS . '_' ) . '%';
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $like ) );
+	}
 
 	/**
 	 * Bulk-fetch event_ops rows indexed by hostlinks_event_id.
