@@ -55,34 +55,30 @@ window.hmoKanbanStages = <?php echo wp_json_encode( $stage_order_for_js ); ?>;
 			<div class="hmo-kanban__card hmo-kanban__card--<?php echo esc_attr( $row->risk_level ); ?>"
 				data-event-id="<?php echo (int) $row->event_id; ?>"
 				data-stage="<?php echo esc_attr( $row->stage ?? 'event_setup' ); ?>">
-				<span class="hmo-kanban__card-handle" role="img" aria-label="<?php echo esc_attr__( 'Drag to change stage', 'hmo' ); ?>"
-					title="<?php echo esc_attr__( 'Drag to change stage', 'hmo' ); ?>">&#9783;</span>
-				<div class="hmo-kanban__card-body">
-					<div class="hmo-kanban__card-name">
-						<?php if ( $url ) : ?>
-							<a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $row->event_name ); ?></a>
-						<?php else : ?>
-							<?php echo esc_html( $row->event_name ); ?>
-						<?php endif; ?>
-					</div>
-					<div class="hmo-kanban__card-meta">
-						<span class="hmo-kanban__bucket"><?php echo esc_html( $row->marketer_name ); ?></span>
-						<span class="hmo-days-left hmo-days-left--<?php echo esc_attr( $row->risk_level ); ?>">
-							<?php echo esc_html( $row->days_left_label ); ?>
-						</span>
-					</div>
-					<div class="hmo-kanban__progress" title="<?php echo esc_attr( $row->registration_count . ' / ' . $row->registration_goal . ' registrations' ); ?>">
-						<div class="hmo-kanban__progress-bar" style="width:<?php echo (int) $pct; ?>%;"></div>
-					</div>
-					<div class="hmo-kanban__card-footer">
-						<span class="hmo-kanban__tasks"><?php echo (int) $row->open_task_count; ?> open</span>
-						<?php if ( $row->behind_schedule ) : ?>
-						<span class="hmo-kanban__behind" title="Behind schedule">⏰</span>
-						<?php endif; ?>
-						<span class="hmo-risk-pill hmo-risk-pill--<?php echo esc_attr( $row->risk_level ); ?>">
-							<?php echo esc_html( ucfirst( $row->risk_level ) ); ?>
-						</span>
-					</div>
+				<div class="hmo-kanban__card-name">
+					<?php if ( $url ) : ?>
+						<a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $row->event_name ); ?></a>
+					<?php else : ?>
+						<?php echo esc_html( $row->event_name ); ?>
+					<?php endif; ?>
+				</div>
+				<div class="hmo-kanban__card-meta">
+					<span class="hmo-kanban__bucket"><?php echo esc_html( $row->marketer_name ); ?></span>
+					<span class="hmo-days-left hmo-days-left--<?php echo esc_attr( $row->risk_level ); ?>">
+						<?php echo esc_html( $row->days_left_label ); ?>
+					</span>
+				</div>
+				<div class="hmo-kanban__progress" title="<?php echo esc_attr( $row->registration_count . ' / ' . $row->registration_goal . ' registrations' ); ?>">
+					<div class="hmo-kanban__progress-bar" style="width:<?php echo (int) $pct; ?>%;"></div>
+				</div>
+				<div class="hmo-kanban__card-footer">
+					<span class="hmo-kanban__tasks"><?php echo (int) $row->open_task_count; ?> open</span>
+					<?php if ( $row->behind_schedule ) : ?>
+					<span class="hmo-kanban__behind" title="Behind schedule">⏰</span>
+					<?php endif; ?>
+					<span class="hmo-risk-pill hmo-risk-pill--<?php echo esc_attr( $row->risk_level ); ?>">
+						<?php echo esc_html( ucfirst( $row->risk_level ) ); ?>
+					</span>
 				</div>
 			</div>
 			<?php endforeach; ?>
