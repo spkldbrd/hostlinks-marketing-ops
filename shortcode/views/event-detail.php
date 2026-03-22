@@ -41,7 +41,25 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 			<?php endif; ?>
 			<div class="hmo-detail-stat">
 				<span class="hmo-detail-stat__label">Event Date</span>
-				<span class="hmo-detail-stat__value"><?php echo esc_html( $event->eve_start ? date_i18n( 'M j, Y', strtotime( $event->eve_start ) ) : '—' ); ?></span>
+				<span class="hmo-detail-stat__value"><?php
+				if ( $event->eve_start ) {
+					$ts_start = strtotime( $event->eve_start );
+					$ts_end   = ( ! empty( $event->eve_end ) && $event->eve_end !== $event->eve_start )
+						? strtotime( $event->eve_end ) : null;
+					if ( $ts_end ) {
+						// Same month+year: "Mar 26-27, 2026". Different month: "Mar 31 – Apr 1, 2026".
+						if ( date( 'MY', $ts_start ) === date( 'MY', $ts_end ) ) {
+							echo esc_html( date_i18n( 'M j', $ts_start ) . '–' . date_i18n( 'j, Y', $ts_end ) );
+						} else {
+							echo esc_html( date_i18n( 'M j', $ts_start ) . ' – ' . date_i18n( 'M j, Y', $ts_end ) );
+						}
+					} else {
+						echo esc_html( date_i18n( 'M j, Y', $ts_start ) );
+					}
+				} else {
+					echo '—';
+				}
+				?></span>
 			</div>
 			<div class="hmo-detail-stat">
 				<span class="hmo-detail-stat__label">Registrations</span>
