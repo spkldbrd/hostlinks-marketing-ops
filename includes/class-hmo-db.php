@@ -137,11 +137,25 @@ class HMO_DB {
 	}
 
 	public static function maybe_upgrade() {
+		global $wpdb;
 		$installed = get_option( 'hmo_db_version', '0' );
 
 		if ( version_compare( $installed, HMO_DB_VERSION, '<' ) ) {
 			self::create_tables();
 			self::migrate_marketer_meta_to_buckets();
+
+			// v1.3: add task-completion tracking columns that dbDelta cannot add to existing tables.
+			$columns = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}hmo_event_tasks", 0 );
+			if ( ! in_array( 'completed_by_user_id', $columns, true ) ) {
+				$wpdb->query( "ALTER TABLE {$wpdb->prefix}hmo_event_tasks ADD COLUMN completed_by_user_id bigint(20) NOT NULL DEFAULT 0" );
+			}
+			if ( ! in_array( 'completed_at', $columns, true ) ) {
+				$wpdb->query( "ALTER TABLE {$wpdb->prefix}hmo_event_tasks ADD COLUMN completed_at datetime DEFAULT NULL" );
+			}
+			if ( ! in_array( 'completion_note', $columns, true ) ) {
+				$wpdb->query( "ALTER TABLE {$wpdb->prefix}hmo_event_tasks ADD COLUMN completion_note text NOT NULL DEFAULT ''" );
+			}
+
 			update_option( 'hmo_db_version', HMO_DB_VERSION );
 		}
 
