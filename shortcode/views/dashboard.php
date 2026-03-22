@@ -6,13 +6,15 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 $is_admin     = $access->current_user_can_see_all_events();
 $base_no_page = remove_query_arg( 'hmo_page' );
 $upcoming_url = add_query_arg( 'hmo_view', 'upcoming', remove_query_arg( array( 'hmo_view', 'hmo_page' ) ) );
-$past_url     = add_query_arg( 'hmo_view', 'past',     remove_query_arg( array( 'hmo_view', 'hmo_page' ) ) );
+// Past Events clears the Next 30 Days filter.
+$past_url     = add_query_arg( 'hmo_view', 'past', remove_query_arg( array( 'hmo_view', 'hmo_page', 'hmo_next30' ) ) );
 
 // Current quick filter values.
 $f_stage   = sanitize_key( $_GET['hmo_stage']   ?? '' );
 $f_risk    = sanitize_key( $_GET['hmo_risk']    ?? '' );
 $f_bucket  = (int) ( $_GET['hmo_bucket']  ?? 0 );
 $f_trouble = ! empty( $_GET['hmo_trouble'] );
+$f_next30  = ! empty( $_GET['hmo_next30'] );
 $f_missing = sanitize_key( $_GET['hmo_missing'] ?? '' );
 
 $stage_labels_map = array();
@@ -112,16 +114,22 @@ function hmo_clear_filter_url( $remove_key ): string {
 				<option value="<?php echo esc_url( add_query_arg( array( 'hmo_missing' => 'both', 'hmo_page' => false ), remove_query_arg( 'hmo_missing' ) ) ); ?>" <?php selected( $f_missing, 'both' ); ?>>Missing Either</option>
 			</select>
 
-			<!-- Trouble toggle -->
-			<a class="hmo-filter-toggle<?php echo $f_trouble ? ' hmo-filter-toggle--active' : ''; ?>"
+		</div>
+
+		<div class="hmo-toolbar__right">
+			<!-- Quick filter toggles -->
+			<a class="hmo-view-bar__btn hmo-view-bar__btn--filter<?php echo $f_trouble ? ' hmo-view-bar__btn--active' : ''; ?>"
 				href="<?php echo $f_trouble
 					? esc_url( hmo_clear_filter_url( 'hmo_trouble' ) )
 					: esc_url( add_query_arg( array( 'hmo_trouble' => '1', 'hmo_page' => false ) ) ); ?>">
 				⚠ Trouble Only
 			</a>
-		</div>
-
-		<div class="hmo-toolbar__right">
+			<a class="hmo-view-bar__btn hmo-view-bar__btn--filter<?php echo $f_next30 ? ' hmo-view-bar__btn--active' : ''; ?>"
+				href="<?php echo $f_next30
+					? esc_url( hmo_clear_filter_url( 'hmo_next30' ) )
+					: esc_url( add_query_arg( array( 'hmo_next30' => '1', 'hmo_page' => false ) ) ); ?>">
+				&#128197; Next 30 Days
+			</a>
 			<!-- Upcoming / Past toggle -->
 			<div class="hmo-view-bar">
 				<a class="hmo-view-bar__btn<?php echo $view === 'upcoming' ? ' hmo-view-bar__btn--active' : ''; ?>"
@@ -129,16 +137,14 @@ function hmo_clear_filter_url( $remove_key ): string {
 				<a class="hmo-view-bar__btn<?php echo $view === 'past' ? ' hmo-view-bar__btn--active' : ''; ?>"
 					href="<?php echo esc_url( $past_url ); ?>">Past Events</a>
 			</div>
-			<!-- Table / Kanban toggle -->
-			<div class="hmo-view-bar hmo-view-toggle" style="margin-left:0.5rem;">
-				<button class="hmo-view-bar__btn hmo-view-bar__btn--active" id="hmo-btn-table" data-action="show-table">&#9776; Table</button>
-				<button class="hmo-view-bar__btn" id="hmo-btn-kanban" data-action="show-kanban">&#9632; Kanban</button>
-			</div>
+			<!-- Single Table / Kanban toggle button -->
+			<button class="hmo-view-bar__btn hmo-view-bar__btn--icon-toggle" id="hmo-btn-view-toggle"
+				data-action="toggle-view" data-mode="table" title="Switch to Kanban view">&#9776;</button>
 		</div>
 	</div>
 
 	<!-- Active filter pills -->
-	<?php if ( $f_stage || $f_risk || $f_bucket || $f_trouble || $f_missing ) : ?>
+	<?php if ( $f_stage || $f_risk || $f_bucket || $f_trouble || $f_missing || $f_next30 ) : ?>
 	<div class="hmo-active-filters">
 		<span class="hmo-active-filters__label">Filters:</span>
 		<?php if ( $f_stage ) : ?>
@@ -162,6 +168,9 @@ function hmo_clear_filter_url( $remove_key ): string {
 		<?php endif; ?>
 		<?php if ( $f_trouble ) : ?>
 		<a class="hmo-active-filter-pill" href="<?php echo esc_url( hmo_clear_filter_url( 'hmo_trouble' ) ); ?>">Trouble Only &times;</a>
+		<?php endif; ?>
+		<?php if ( $f_next30 ) : ?>
+		<a class="hmo-active-filter-pill" href="<?php echo esc_url( hmo_clear_filter_url( 'hmo_next30' ) ); ?>">Next 30 Days &times;</a>
 		<?php endif; ?>
 		<?php if ( $f_missing ) : ?>
 		<a class="hmo-active-filter-pill" href="<?php echo esc_url( hmo_clear_filter_url( 'hmo_missing' ) ); ?>">

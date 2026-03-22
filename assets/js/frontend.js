@@ -213,38 +213,44 @@
 	} );
 
 	// =========================================================================
-	// Table / Kanban toggle
+	// Table / Kanban single-button toggle
 	// =========================================================================
+	// ☰ (9776) = hamburger = currently showing TABLE
+	// ⦀ (10624) = triple vertical bar = currently showing KANBAN
+	// Clicking the button switches between the two modes.
 
-	var $tableView  = $( '#hmo-table-view' );
-	var $kanbanView = $( '#hmo-kanban' );
-	var $btnTable   = $( '#hmo-btn-table' );
-	var $btnKanban  = $( '#hmo-btn-kanban' );
+	var $tableView   = $( '#hmo-table-view' );
+	var $kanbanView  = $( '#hmo-kanban' );
+	var $viewToggle  = $( '#hmo-btn-view-toggle' );
 
-	if ( $tableView.length && $kanbanView.length ) {
-		$( document ).on( 'click', '[data-action="show-table"]', function () {
-			$tableView.show();
-			$kanbanView.hide();
-			$btnTable.addClass( 'hmo-view-bar__btn--active' );
-			$btnKanban.removeClass( 'hmo-view-bar__btn--active' );
-			try { localStorage.setItem( 'hmo_view_mode', 'table' ); } catch(e){}
-		} );
-
-		$( document ).on( 'click', '[data-action="show-kanban"]', function () {
+	function setViewMode( mode ) {
+		if ( mode === 'kanban' ) {
 			$tableView.hide();
 			$kanbanView.show();
-			$btnKanban.addClass( 'hmo-view-bar__btn--active' );
-			$btnTable.removeClass( 'hmo-view-bar__btn--active' );
-			try { localStorage.setItem( 'hmo_view_mode', 'kanban' ); } catch(e){}
+			$viewToggle.data( 'mode', 'kanban' )
+				.html( '&#10624;' )
+				.attr( 'title', 'Switch to Table view' )
+				.addClass( 'hmo-view-bar__btn--icon-toggle--kanban' );
+		} else {
+			$tableView.show();
+			$kanbanView.hide();
+			$viewToggle.data( 'mode', 'table' )
+				.html( '&#9776;' )
+				.attr( 'title', 'Switch to Kanban view' )
+				.removeClass( 'hmo-view-bar__btn--icon-toggle--kanban' );
+		}
+		try { localStorage.setItem( 'hmo_view_mode', mode ); } catch(e){}
+	}
+
+	if ( $tableView.length && $kanbanView.length && $viewToggle.length ) {
+		$( document ).on( 'click', '[data-action="toggle-view"]', function () {
+			setViewMode( $( this ).data( 'mode' ) === 'table' ? 'kanban' : 'table' );
 		} );
 
-		// Restore last view preference.
+		// Restore last view preference on page load.
 		try {
 			if ( localStorage.getItem( 'hmo_view_mode' ) === 'kanban' ) {
-				$tableView.hide();
-				$kanbanView.show();
-				$btnKanban.addClass( 'hmo-view-bar__btn--active' );
-				$btnTable.removeClass( 'hmo-view-bar__btn--active' );
+				setViewMode( 'kanban' );
 			}
 		} catch(e){}
 	}

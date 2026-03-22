@@ -5,7 +5,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $is_admin     = $access->current_user_can_see_all_events();
 $upcoming_url = add_query_arg( 'hmo_view', 'upcoming', remove_query_arg( array( 'hmo_view', 'hmo_page' ) ) );
-$past_url     = add_query_arg( 'hmo_view', 'past',     remove_query_arg( array( 'hmo_view', 'hmo_page' ) ) );
+// Past Events clears the Next 30 Days filter.
+$past_url     = add_query_arg( 'hmo_view', 'past', remove_query_arg( array( 'hmo_view', 'hmo_page', 'hmo_next30' ) ) );
 $f_trouble    = ! empty( $_GET['hmo_trouble_only'] );
 $f_next30     = ! empty( $_GET['hmo_next30'] );
 
@@ -79,30 +80,37 @@ foreach ( HMO_Checklist_Templates::get_stages_option() as $s ) {
 	<!-- Toolbar -->
 	<div class="hmo-toolbar">
 		<div class="hmo-toolbar__filters">
-			<a class="hmo-filter-toggle<?php echo $f_trouble ? ' hmo-filter-toggle--active' : ''; ?>"
+			<!-- (bucket pills handled above; stage/risk dropdowns could go here if needed) -->
+		</div>
+		<div class="hmo-toolbar__right">
+			<!-- Quick filter toggles -->
+			<a class="hmo-view-bar__btn hmo-view-bar__btn--filter<?php echo $f_trouble ? ' hmo-view-bar__btn--active' : ''; ?>"
 				href="<?php echo $f_trouble
 					? esc_url( remove_query_arg( array( 'hmo_trouble_only', 'hmo_page' ) ) )
 					: esc_url( add_query_arg( array( 'hmo_trouble_only' => '1', 'hmo_page' => false ) ) ); ?>">
 				⚠ Trouble Only
 			</a>
-			<a class="hmo-filter-toggle<?php echo $f_next30 ? ' hmo-filter-toggle--active' : ''; ?>"
+			<a class="hmo-view-bar__btn hmo-view-bar__btn--filter<?php echo $f_next30 ? ' hmo-view-bar__btn--active' : ''; ?>"
 				href="<?php echo $f_next30
 					? esc_url( remove_query_arg( array( 'hmo_next30', 'hmo_page' ) ) )
 					: esc_url( add_query_arg( array( 'hmo_next30' => '1', 'hmo_page' => false ) ) ); ?>">
-				📅 Next 30 Days
+				&#128197; Next 30 Days
 			</a>
-		</div>
-		<div class="hmo-toolbar__right">
+			<!-- Upcoming / Past toggle -->
 			<div class="hmo-view-bar">
 				<a class="hmo-view-bar__btn<?php echo $view === 'upcoming' ? ' hmo-view-bar__btn--active' : ''; ?>"
 					href="<?php echo esc_url( $upcoming_url ); ?>">Upcoming</a>
 				<a class="hmo-view-bar__btn<?php echo $view === 'past' ? ' hmo-view-bar__btn--active' : ''; ?>"
 					href="<?php echo esc_url( $past_url ); ?>">Past Events</a>
 			</div>
+			<!-- Single Table / Kanban toggle button -->
+			<button class="hmo-view-bar__btn hmo-view-bar__btn--icon-toggle" id="hmo-btn-view-toggle"
+				data-action="toggle-view" data-mode="table" title="Switch to Kanban view">&#9776;</button>
 		</div>
 	</div>
 
 	<!-- Events Table -->
+	<div id="hmo-table-view">
 	<?php if ( empty( $rows ) ) : ?>
 		<div class="hmo-notice">
 			<?php echo $view === 'past' ? 'No past events found.' : 'No upcoming events found.'; ?>
@@ -215,5 +223,9 @@ foreach ( HMO_Checklist_Templates::get_stages_option() as $s ) {
 	</nav>
 	<?php endif; ?>
 	<?php endif; ?>
+	</div><!-- /#hmo-table-view -->
+
+	<!-- Kanban view -->
+	<?php include HMO_PLUGIN_DIR . 'shortcode/views/partials/kanban.php'; ?>
 
 </div>

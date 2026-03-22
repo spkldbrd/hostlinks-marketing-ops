@@ -630,6 +630,39 @@
 	pointer-events: none;
 }
 
+/* Filter toggle buttons (Trouble Only, Next 30 Days) ? keep pointer-events on */
+.hmo-view-bar__btn--filter {
+	pointer-events: auto;
+}
+
+.hmo-view-bar__btn--filter.hmo-view-bar__btn--active {
+	pointer-events: auto;
+	background: hsl(38 85% 48%);
+	border-color: hsl(38 85% 40%);
+	color: #fff;
+}
+
+.hmo-view-bar__btn--filter.hmo-view-bar__btn--active:hover {
+	background: hsl(38 85% 40%);
+	border-color: hsl(38 85% 32%);
+}
+
+/* Single icon toggle button (Table ? Kanban) */
+.hmo-view-bar__btn--icon-toggle {
+	font-size: 1rem;
+	padding: 0.28rem 0.65rem;
+	pointer-events: auto;
+	cursor: pointer;
+	line-height: 1;
+	font-family: inherit;
+}
+
+.hmo-view-bar__btn--icon-toggle--kanban {
+	background: hsl(199 89% 48%);
+	color: #fff;
+	border-color: hsl(199 89% 40%);
+}
+
 .wp-dark-mode-active .hmo-view-bar__btn {
 	color: hsl(210 25% 75%);
 	background: hsl(215 20% 20%);
@@ -646,6 +679,16 @@
 	background: hsl(199 89% 35%);
 	color: #fff;
 	border-color: hsl(199 89% 28%);
+}
+
+.wp-dark-mode-active .hmo-view-bar__btn--filter.hmo-view-bar__btn--active {
+	background: hsl(38 70% 35%);
+	border-color: hsl(38 70% 28%);
+}
+
+.wp-dark-mode-active .hmo-view-bar__btn--icon-toggle--kanban {
+	background: hsl(199 89% 28%);
+	border-color: hsl(199 89% 22%);
 }
 
 /* ============================================================

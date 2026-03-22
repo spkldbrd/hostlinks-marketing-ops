@@ -201,7 +201,7 @@ class HMO_Shortcodes {
 
 	private function get_dashboard_filter_params(): array {
 		$out = array();
-		$passthrough = array( 'hmo_stage', 'hmo_risk', 'hmo_bucket', 'hmo_trouble', 'hmo_missing' );
+		$passthrough = array( 'hmo_stage', 'hmo_risk', 'hmo_bucket', 'hmo_trouble', 'hmo_missing', 'hmo_next30' );
 		foreach ( $passthrough as $key ) {
 			if ( ! empty( $_GET[ $key ] ) ) {
 				$out[ $key ] = sanitize_text_field( $_GET[ $key ] );
