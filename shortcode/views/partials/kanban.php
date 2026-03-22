@@ -50,7 +50,7 @@ window.hmoKanbanStages = <?php echo wp_json_encode( $stage_order_for_js ); ?>;
 				data-stage="<?php echo esc_attr( $row->stage ?? 'event_setup' ); ?>">
 				<div class="hmo-kanban__card-name">
 					<?php if ( $url ) : ?>
-						<a href="<?php echo esc_url( $url ); ?>"><?php echo esc_html( $row->event_name ); ?></a>
+						<a href="<?php echo esc_url( $url ); ?>" draggable="false"><?php echo esc_html( $row->event_name ); ?></a>
 					<?php else : ?>
 						<?php echo esc_html( $row->event_name ); ?>
 					<?php endif; ?>

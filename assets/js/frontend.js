@@ -836,6 +836,9 @@
 		$( this ).addClass( 'hmo-dragging' );
 		if ( e.originalEvent && e.originalEvent.dataTransfer ) {
 			e.originalEvent.dataTransfer.effectAllowed = 'move';
+			// setData is required by Firefox — without it Firefox treats the
+			// drag as invalid and never fires the drop event on any target.
+			e.originalEvent.dataTransfer.setData( 'text/plain', String( _dragEventId ) );
 		}
 	} );
 
