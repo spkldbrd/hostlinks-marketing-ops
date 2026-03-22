@@ -316,8 +316,12 @@ class HMO_Dashboard_Service {
 
 	public static function flush_row_cache(): void {
 		global $wpdb;
-		$like = $wpdb->esc_like( '_transient_' . self::TRANSIENT_ROWS . '_' ) . '%';
-		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $like ) );
+		// Rows cache — keys are hmo_dashboard_rows_{md5}.
+		$like_rows = $wpdb->esc_like( '_transient_' . self::TRANSIENT_ROWS . '_' ) . '%';
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $like_rows ) );
+		// Summary cards cache — keys are hmo_summary_cards_{user_id}.
+		$like_cards = $wpdb->esc_like( '_transient_' . self::TRANSIENT_CARDS . '_' ) . '%';
+		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $like_cards ) );
 	}
 
 	// -------------------------------------------------------------------------

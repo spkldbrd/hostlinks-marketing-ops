@@ -277,8 +277,7 @@ class HMO_Checklist_Service {
 
 		HMO_DB::upsert_event_ops( $event_id, array( 'open_task_count' => $open_count ) );
 
-		delete_transient( 'hmo_dashboard_rows' );
-		delete_transient( 'hmo_summary_cards' );
+		HMO_Dashboard_Service::flush_row_cache();
 	}
 
 	// -------------------------------------------------------------------------
@@ -303,8 +302,7 @@ class HMO_Checklist_Service {
 			'last_status_change_at'=> current_time( 'mysql' ),
 		) );
 
-		delete_transient( 'hmo_dashboard_rows' );
-		delete_transient( 'hmo_summary_cards' );
+		HMO_Dashboard_Service::flush_row_cache();
 
 		HMO_DB::log_activity( $event_id, 'stage_change', sprintf( 'Stage updated to: %s', $stage_key ) );
 
