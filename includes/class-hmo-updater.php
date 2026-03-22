@@ -12,9 +12,9 @@
  *
  * To ship a new version:
  *  - Bump HMO_VERSION in hostlinks-marketing-ops.php
- *  - Commit and push to GitHub
- *  - Create a new Release with a tag matching the version (e.g. "1.0.1")
- *  - Attach a zip named hostlinks-marketing-ops.zip to the release asset
+ *  - Commit and push to main — GitHub Actions (.github/workflows/release-zip.yml) builds
+ *    hostlinks-marketing-ops.zip and creates or updates the Release whose tag matches HMO_VERSION.
+ *  - Manual releases are optional; the workflow is the default path.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

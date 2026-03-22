@@ -1,5 +1,6 @@
 # WordPress
 *.log
+hostlinks-marketing-ops.zip
 
 # OS
 .DS_Store
