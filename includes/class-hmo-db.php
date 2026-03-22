@@ -23,7 +23,7 @@ class HMO_DB {
 			assigned_marketer_id int(11) NOT NULL DEFAULT 0,
 			assigned_marketer_name varchar(255) NOT NULL DEFAULT '',
 			workflow_stage varchar(50) NOT NULL DEFAULT 'event_setup',
-			registration_goal int(11) NOT NULL DEFAULT 40,
+			registration_goal int(11) NOT NULL DEFAULT 0,
 			open_task_count int(11) NOT NULL DEFAULT 0,
 			data_list_status varchar(50) NOT NULL DEFAULT '',
 			call_list_status varchar(50) NOT NULL DEFAULT '',

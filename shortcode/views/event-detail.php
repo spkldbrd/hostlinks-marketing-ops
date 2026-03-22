@@ -2,10 +2,12 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 // Variables: $event, $ops, $checklist, $countdown, $days_left, $days_label, $reg_count, $access
 
-$goal         = $ops ? (int) $ops->registration_goal : (int) get_option( 'hmo_default_goal', 40 );
-$stage        = $ops ? $ops->workflow_stage : 'event_setup';
+$stored_goal   = $ops ? (int) $ops->registration_goal : 0;
+$goal          = $stored_goal > 0 ? $stored_goal : (int) get_option( 'hmo_default_goal', 25 );
+$stage         = $ops ? $ops->workflow_stage : 'event_setup';
 $dashboard_url = HMO_Page_URLs::get_dashboard();
-$is_admin     = $access->current_user_can_see_all_events();
+$is_admin      = $access->current_user_can_see_all_events();
+$is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime( current_time( 'Y-m-d' ) );
 ?>
 <div class="hostlinks-page hmo-frontend hmo-event-detail-page">
 	<div class="hostlinks-container">
@@ -47,7 +49,23 @@ $is_admin     = $access->current_user_can_see_all_events();
 			</div>
 			<div class="hmo-detail-stat">
 				<span class="hmo-detail-stat__label">Registrations</span>
-				<span class="hmo-detail-stat__value"><?php echo (int) $reg_count; ?> / <?php echo (int) $goal; ?></span>
+				<span class="hmo-detail-stat__value">
+					<?php echo (int) $reg_count; ?> /
+					<?php if ( $is_admin && ! $is_past_event ) : ?>
+						<span class="hmo-goal-wrap" data-event-id="<?php echo (int) $event->eve_id; ?>">
+							<input type="number" class="hmo-goal-input" min="1"
+								value="<?php echo (int) $goal; ?>"
+								style="width:64px;padding:2px 4px;font-size:inherit;text-align:center;">
+							<button class="hostlinks-btn hmo-goal-save" style="padding:2px 8px;font-size:12px;">Save</button>
+							<span class="hmo-goal-status" style="font-size:12px;margin-left:4px;"></span>
+						</span>
+					<?php else : ?>
+						<span><?php echo (int) $goal; ?></span>
+						<?php if ( $is_admin && $is_past_event ) : ?>
+							<small style="color:#888;font-size:11px;">(locked — past event)</small>
+						<?php endif; ?>
+					<?php endif; ?>
+				</span>
 			</div>
 			<div class="hmo-detail-stat">
 				<span class="hmo-detail-stat__label">Stage</span>

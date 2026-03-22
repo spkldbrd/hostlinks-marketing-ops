@@ -107,7 +107,8 @@ class HMO_Dashboard_Service {
 				: false;
 
 			$reg_count = $this->bridge->get_event_registration_count( $event_id );
-			$reg_goal  = $ops ? (int) $ops->registration_goal : (int) get_option( 'hmo_default_goal', 40 );
+			$stored_goal = $ops ? (int) $ops->registration_goal : 0;
+			$reg_goal    = $stored_goal > 0 ? $stored_goal : (int) get_option( 'hmo_default_goal', 25 );
 
 			$rows[] = (object) array(
 				'event_id'           => $event_id,
@@ -317,6 +318,41 @@ class HMO_Dashboard_Service {
 		global $wpdb;
 		$like = $wpdb->esc_like( '_transient_' . self::TRANSIENT_ROWS . '_' ) . '%';
 		$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $like ) );
+	}
+
+	// -------------------------------------------------------------------------
+	// Bulk goal reset (admin)
+	// -------------------------------------------------------------------------
+
+	public static function register_ajax(): void {
+		add_action( 'wp_ajax_hmo_reset_goals', array( __CLASS__, 'ajax_reset_goals' ) );
+	}
+
+	public static function ajax_reset_goals(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Unauthorized', 403 );
+		}
+		check_ajax_referer( 'hmo_reset_goals' );
+
+		global $wpdb;
+
+		$goal  = max( 1, (int) get_option( 'hmo_default_goal', 25 ) );
+		$today = current_time( 'Y-m-d' );
+
+		// Update all provisioned future events, regardless of their current stored goal.
+		$updated = $wpdb->query( $wpdb->prepare(
+			"UPDATE {$wpdb->prefix}hmo_event_ops ops
+			 INNER JOIN {$wpdb->prefix}event_details_list edl
+			   ON edl.eve_id = ops.hostlinks_event_id
+			 SET ops.registration_goal = %d
+			 WHERE edl.eve_start >= %s",
+			$goal,
+			$today
+		) );
+
+		self::flush_row_cache();
+
+		wp_send_json_success( array( 'updated' => (int) $updated, 'goal' => $goal ) );
 	}
 
 	private function get_event_ops_bulk( array $event_ids ): array {

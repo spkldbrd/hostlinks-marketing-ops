@@ -56,8 +56,11 @@ class HMO_Checklist_Service {
 			);
 		}
 
-		// Ensure event_ops row exists.
-		HMO_DB::upsert_event_ops( $event_id, array() );
+		// Ensure event_ops row exists; seed goal from the current setting so it
+		// is never hard-coded. A stored value of 0 means "not yet set."
+		HMO_DB::upsert_event_ops( $event_id, array(
+			'registration_goal' => max( 1, (int) get_option( 'hmo_default_goal', 25 ) ),
+		) );
 		$this->recalculate_open_task_count( $event_id );
 	}
 

@@ -71,6 +71,21 @@ class HMO_REST {
 			),
 		) );
 
+		// Registration goal update (managers only, future events).
+		register_rest_route( $ns, '/events/(?P<id>\d+)/goal', array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => array( $this, 'update_goal' ),
+			'permission_callback' => array( $this, 'require_manager' ),
+			'args'                => array(
+				'id'                => array( 'validate_callback' => 'is_numeric' ),
+				'registration_goal' => array(
+					'required'          => true,
+					'validate_callback' => fn( $v ) => is_numeric( $v ) && (int) $v >= 1,
+					'sanitize_callback' => 'absint',
+				),
+			),
+		) );
+
 		// Mark task complete.
 		register_rest_route( $ns, '/tasks/(?P<id>\d+)/complete', array(
 			'methods'             => WP_REST_Server::CREATABLE,
@@ -135,6 +150,29 @@ class HMO_REST {
 		return new WP_REST_Response( array( 'success' => true ), 200 );
 	}
 
+	public function update_goal( WP_REST_Request $request ): WP_REST_Response {
+		global $wpdb;
+
+		$event_id = (int) $request->get_param( 'id' );
+		$goal     = (int) $request->get_param( 'registration_goal' );
+
+		// Refuse to change goals for past events.
+		$eve_start = $wpdb->get_var( $wpdb->prepare(
+			"SELECT eve_start FROM {$wpdb->prefix}event_details_list WHERE eve_id = %d",
+			$event_id
+		) );
+
+		if ( $eve_start && strtotime( $eve_start ) < strtotime( current_time( 'Y-m-d' ) ) ) {
+			return new WP_REST_Response( array( 'message' => 'Cannot change goal for a past event.' ), 403 );
+		}
+
+		HMO_DB::upsert_event_ops( $event_id, array( 'registration_goal' => $goal ) );
+		HMO_DB::log_activity( $event_id, 'goal_update', sprintf( 'Registration goal set to %d.', $goal ) );
+		HMO_Dashboard_Service::flush_row_cache();
+
+		return new WP_REST_Response( array( 'success' => true, 'registration_goal' => $goal ), 200 );
+	}
+
 	public function update_lists( WP_REST_Request $request ): WP_REST_Response {
 		$event_id = (int) $request->get_param( 'id' );
 		$data     = $request->get_json_params();
@@ -172,6 +210,10 @@ class HMO_REST {
 
 	public function require_logged_in( WP_REST_Request $request ): bool {
 		return is_user_logged_in();
+	}
+
+	public function require_manager( WP_REST_Request $request ): bool {
+		return is_user_logged_in() && current_user_can( 'manage_options' );
 	}
 
 	public function require_event_access( WP_REST_Request $request ): bool {

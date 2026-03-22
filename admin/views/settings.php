@@ -197,6 +197,60 @@ $tabs = array(
 		<span id="hmo-bulk-provision-status" style="margin-left:12px;font-size:13px;"></span>
 	</p>
 
+	<h2 style="margin-top:24px;">Registration Goal</h2>
+	<p>
+		Use this to apply the current Default Registration Goal
+		(<strong><?php echo (int) get_option( 'hmo_default_goal', 25 ); ?></strong>)
+		to all <strong>future</strong> events that still have the old default stored. Past events are never changed.
+	</p>
+	<p>
+		<button type="button" class="button button-secondary" id="hmo-reset-goals-btn">
+			&#9654; Apply Current Default Goal to Future Events
+		</button>
+		<span id="hmo-reset-goals-status" style="margin-left:12px;font-size:13px;"></span>
+	</p>
+
+	<script>
+	(function() {
+		var ajaxUrl    = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+		var nonce      = <?php echo wp_json_encode( wp_create_nonce( 'hmo_reset_goals' ) ); ?>;
+		var btn        = document.getElementById('hmo-reset-goals-btn');
+		var status     = document.getElementById('hmo-reset-goals-status');
+
+		btn.addEventListener('click', function() {
+			if ( ! confirm('This will overwrite the stored registration goal for all future events. Continue?') ) { return; }
+			btn.disabled = true;
+			btn.textContent = '⏳ Applying…';
+			status.style.color = '#888';
+			status.textContent = 'Updating…';
+
+			var fd = new FormData();
+			fd.append('action',      'hmo_reset_goals');
+			fd.append('_ajax_nonce', nonce);
+
+			fetch(ajaxUrl, { method: 'POST', body: fd })
+				.then(function(r) { return r.json(); })
+				.then(function(res) {
+					btn.disabled = false;
+					btn.textContent = '✓ Apply Current Default Goal to Future Events';
+					if (res.success) {
+						status.style.color = '#007017';
+						status.textContent = 'Done! ' + res.data.updated + ' future events updated to goal ' + res.data.goal + '.';
+					} else {
+						status.style.color = '#d63638';
+						status.textContent = 'Error: ' + (res.data || 'Unknown error.');
+					}
+				})
+				.catch(function() {
+					btn.disabled = false;
+					btn.textContent = '✓ Apply Current Default Goal to Future Events';
+					status.style.color = '#d63638';
+					status.textContent = 'Request failed. Please try again.';
+				});
+		});
+	})();
+	</script>
+
 	<script>
 	(function() {
 		var ajaxUrl = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;

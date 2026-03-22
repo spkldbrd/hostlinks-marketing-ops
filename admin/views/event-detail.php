@@ -3,9 +3,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 // Variables: $event, $ops, $checklist, $days_left, $reg_count
-$goal         = $ops ? (int) $ops->registration_goal : (int) get_option( 'hmo_default_goal', 40 );
-$stage        = $ops ? $ops->workflow_stage : 'event_setup';
-$days_label   = isset( $countdown ) ? $countdown->format_days_left( $days_left ) : ( $days_left . ' days' );
+$stored_goal   = $ops ? (int) $ops->registration_goal : 0;
+$goal          = $stored_goal > 0 ? $stored_goal : (int) get_option( 'hmo_default_goal', 25 );
+$stage         = $ops ? $ops->workflow_stage : 'event_setup';
+$days_label    = isset( $countdown ) ? $countdown->format_days_left( $days_left ) : ( $days_left . ' days' );
+$is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime( current_time( 'Y-m-d' ) );
 ?>
 <div class="wrap hmo-wrap hmo-event-detail">
 	<h1 class="wp-heading-inline">
@@ -42,7 +44,21 @@ $days_label   = isset( $countdown ) ? $countdown->format_days_left( $days_left )
 			</div>
 			<div class="hmo-summary-item">
 				<span class="hmo-summary-label">Registrations</span>
-				<span class="hmo-summary-value"><?php echo (int) $reg_count; ?> / <?php echo (int) $goal; ?></span>
+				<span class="hmo-summary-value">
+					<?php echo (int) $reg_count; ?> /
+					<?php if ( ! $is_past_event ) : ?>
+						<span class="hmo-goal-wrap" data-event-id="<?php echo (int) $event->eve_id; ?>">
+							<input type="number" class="hmo-goal-input" min="1"
+								value="<?php echo (int) $goal; ?>"
+								style="width:64px;">
+							<button class="button hmo-goal-save">Save Goal</button>
+							<span class="hmo-goal-status" style="font-size:12px;margin-left:4px;"></span>
+						</span>
+					<?php else : ?>
+						<span><?php echo (int) $goal; ?></span>
+						<small style="color:#888;">(locked — past event)</small>
+					<?php endif; ?>
+				</span>
 			</div>
 			<div class="hmo-summary-item">
 				<span class="hmo-summary-label">Stage</span>

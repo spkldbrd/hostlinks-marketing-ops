@@ -196,4 +196,36 @@
 		);
 	} );
 
+	// -------------------------------------------------------------------------
+	// Registration goal save (manager, future events only)
+	// -------------------------------------------------------------------------
+
+	$( document ).on( 'click', '.hmo-goal-save', function () {
+		var $btn    = $( this );
+		var $wrap   = $btn.closest( '.hmo-goal-wrap' );
+		var eventId = $wrap.data( 'event-id' );
+		var goal    = parseInt( $wrap.find( '.hmo-goal-input' ).val(), 10 );
+		var $status = $wrap.find( '.hmo-goal-status' );
+
+		if ( ! goal || goal < 1 ) {
+			showInlineStatus( $status, 'Goal must be ≥ 1', true );
+			return;
+		}
+
+		$btn.text( str.saving ).prop( 'disabled', true );
+
+		apiPost(
+			'/events/' + eventId + '/goal',
+			{ registration_goal: goal },
+			function () {
+				$btn.text( 'Save Goal' ).prop( 'disabled', false );
+				showInlineStatus( $status, str.saved, false );
+			},
+			function () {
+				$btn.text( 'Save Goal' ).prop( 'disabled', false );
+				showInlineStatus( $status, str.error, true );
+			}
+		);
+	} );
+
 } )( jQuery );

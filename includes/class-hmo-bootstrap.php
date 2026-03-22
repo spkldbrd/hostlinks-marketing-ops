@@ -25,10 +25,11 @@ class HMO_Bootstrap {
 		$rest = new HMO_REST( $checklist_svc, $dashboard_svc, $access );
 		add_action( 'rest_api_init', array( $rest, 'register_routes' ) );
 
-		// AJAX (user/bucket access + task editor CRUD + bulk provision).
+		// AJAX (user/bucket access + task editor CRUD + bulk provision + goal reset).
 		HMO_Access_Service::register_ajax();
 		HMO_Checklist_Templates::register_ajax();
 		HMO_Checklist_Service::register_ajax();
+		HMO_Dashboard_Service::register_ajax();
 
 		// Front-end shortcodes.
 		$shortcodes = new HMO_Shortcodes( $access, $dashboard_svc, $checklist_svc, $countdown_svc, $bridge, $alert_svc );
