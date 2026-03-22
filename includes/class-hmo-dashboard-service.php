@@ -120,11 +120,14 @@ class HMO_Dashboard_Service {
 			);
 		}
 
-		// Sort: upcoming events first (soonest date at top), null/empty dates at end.
+		// Sort: fewest days left first; null (no date set) floats to the bottom.
 		usort( $rows, function ( $a, $b ) {
-			$da = $a->event_date ?: '9999-12-31';
-			$db = $b->event_date ?: '9999-12-31';
-			return strcmp( $da, $db );
+			$da = $a->days_left;
+			$db = $b->days_left;
+			if ( $da === null && $db === null ) { return 0; }
+			if ( $da === null ) { return 1; }
+			if ( $db === null ) { return -1; }
+			return $da <=> $db;
 		} );
 
 		set_transient( $cache_key, $rows, self::CACHE_TTL );
