@@ -839,7 +839,11 @@
 	// -------------------------------------------------------------------------
 
 	function initKanbanSortable( kanbanEl ) {
-		if ( ! kanbanEl || typeof Sortable === 'undefined' ) { return; }
+		if ( ! kanbanEl ) { return; }
+		if ( typeof Sortable === 'undefined' ) {
+			window.console && console.warn( 'HMO: SortableJS not loaded — kanban drag-and-drop unavailable.' );
+			return;
+		}
 
 		kanbanEl.querySelectorAll( '.hmo-kanban__cards' ).forEach( function ( zone ) {
 		Sortable.create( zone, {
