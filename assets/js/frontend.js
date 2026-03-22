@@ -47,12 +47,15 @@
 	// -------------------------------------------------------------------------
 
 	$( document ).on( 'change', '.hmo-task-toggle', function () {
-		var $cb     = $( this );
-		var taskId  = $cb.data( 'task-id' );
-		var checked = $cb.is( ':checked' );
-		var $task   = $cb.closest( '.hmo-task' );
+		var $cb      = $( this );
+		var taskId   = $cb.data( 'task-id' );
+		var checked  = $cb.is( ':checked' );
+		var $task    = $cb.closest( '.hmo-task' );
+		var $spinner = $task.find( '.hmo-task__saving' );
+		var $compBy  = $task.find( '.hmo-task__completed-by' );
 
 		$cb.prop( 'disabled', true );
+		$spinner.show();
 
 		if ( checked ) {
 			var note = $task.find( '.hmo-task-note-input' ).val() || '';
@@ -62,10 +65,20 @@
 				function () {
 					$task.addClass( 'hmo-task--complete' );
 					$cb.prop( 'disabled', false );
+					$spinner.hide();
+					// Show "Completed just now" line.
+					var now = new Date();
+					var mon = now.toLocaleString( 'en-US', { month: 'short' } );
+					var day = now.getDate();
+					$compBy.text( 'Completed ' + mon + ' ' + day + ' by you' ).show();
 					updateAccordionMeta( $task );
 				},
 				function () {
 					$cb.prop( 'checked', false ).prop( 'disabled', false );
+					$spinner.hide();
+					$compBy.text( 'Could not save — please try again.' )
+						.css( 'color', 'hsl(0 70% 45%)' ).show();
+					setTimeout( function () { $compBy.hide().css( 'color', '' ); }, 3000 );
 				}
 			);
 		} else {
@@ -75,10 +88,16 @@
 				function () {
 					$task.removeClass( 'hmo-task--complete' );
 					$cb.prop( 'disabled', false );
+					$spinner.hide();
+					$compBy.hide().text( '' );
 					updateAccordionMeta( $task );
 				},
 				function () {
 					$cb.prop( 'checked', true ).prop( 'disabled', false );
+					$spinner.hide();
+					$compBy.text( 'Could not save — please try again.' )
+						.css( 'color', 'hsl(0 70% 45%)' ).show();
+					setTimeout( function () { $compBy.hide().css( 'color', '' ); }, 3000 );
 				}
 			);
 		}

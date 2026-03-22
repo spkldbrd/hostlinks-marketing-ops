@@ -117,29 +117,36 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 					<?php else : ?>
 					<div class="hmo-task-list">
 						<?php foreach ( $tasks as $task ) :
-							$is_complete = $task->status === 'complete';
+							$is_complete  = $task->status === 'complete';
+							$cb_id        = 'hmo-task-cb-' . (int) $task->id;
+							$completed_by = '';
+							if ( $is_complete && $task->completed_by_user_id ) {
+								$u = get_userdata( (int) $task->completed_by_user_id );
+								if ( $u ) { $completed_by = $u->display_name; }
+							}
 						?>
 						<div class="hmo-task <?php echo $is_complete ? 'hmo-task--complete' : ''; ?>"
 							data-task-id="<?php echo (int) $task->id; ?>">
-							<label class="hmo-task__check-label">
+							<div class="hmo-task__check-row">
 								<input type="checkbox"
+									id="<?php echo esc_attr( $cb_id ); ?>"
 									class="hmo-task-toggle"
 									data-task-id="<?php echo (int) $task->id; ?>"
 									<?php checked( $is_complete ); ?>>
-								<span class="hmo-task__label"><?php echo esc_html( $task->task_label ); ?></span>
-							</label>
+								<label for="<?php echo esc_attr( $cb_id ); ?>" class="hmo-task__label">
+									<?php echo esc_html( $task->task_label ); ?>
+								</label>
+								<span class="hmo-task__saving" style="display:none;">&#8987;</span>
+							</div>
 							<?php if ( $task->task_description ) : ?>
 								<div class="hmo-task__desc"><?php echo esc_html( $task->task_description ); ?></div>
 							<?php endif; ?>
-							<?php if ( $is_complete && $task->completed_at ) : ?>
-								<div class="hmo-task__completed-by">
-									Completed <?php echo esc_html( date_i18n( 'M j', strtotime( $task->completed_at ) ) ); ?>
-									<?php if ( $task->completed_by_user_id ) :
-										$u = get_userdata( (int) $task->completed_by_user_id );
-										if ( $u ) echo ' by ' . esc_html( $u->display_name );
-									endif; ?>
-								</div>
-							<?php endif; ?>
+							<div class="hmo-task__completed-by"<?php echo ( $is_complete && $task->completed_at ) ? '' : ' style="display:none;"'; ?>>
+								<?php if ( $is_complete && $task->completed_at ) : ?>
+								Completed <?php echo esc_html( date_i18n( 'M j', strtotime( $task->completed_at ) ) ); ?>
+								<?php if ( $completed_by ) : ?> by <?php echo esc_html( $completed_by ); ?><?php endif; ?>
+								<?php endif; ?>
+							</div>
 							<div class="hmo-task__note-wrap">
 								<textarea class="hmo-task-note-input"
 									data-task-id="<?php echo (int) $task->id; ?>"
