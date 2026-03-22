@@ -65,7 +65,7 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 			</div>
 			<div class="hmo-detail-stat">
 				<span class="hmo-detail-stat__label">Open Tasks</span>
-				<span class="hmo-detail-stat__value"><?php echo $ops ? (int) $ops->open_task_count : 0; ?></span>
+				<span class="hmo-detail-stat__value" id="hmo-header-open-tasks"><?php echo $ops ? (int) $ops->open_task_count : 0; ?></span>
 			</div>
 			<!-- Stage selector on the right (admins only; auto-saves on change) -->
 			<?php if ( $is_admin ) : ?>

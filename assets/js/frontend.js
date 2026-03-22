@@ -111,6 +111,13 @@
 		var open   = total - done;
 		var pct    = total ? Math.round( ( done / total ) * 100 ) : 0;
 		$acc.find( '.hmo-accordion__meta' ).text( open + ' open \u2022 ' + pct + '%' );
+
+		// Update header bar "Open Tasks" count by summing all incomplete tasks on the page.
+		var $headerCount = $( '#hmo-header-open-tasks' );
+		if ( $headerCount.length ) {
+			var totalOpen = $( '.hmo-task-list .hmo-task:not(.hmo-task--complete)' ).length;
+			$headerCount.text( totalOpen );
+		}
 	}
 
 	// -------------------------------------------------------------------------
