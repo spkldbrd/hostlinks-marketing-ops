@@ -12,27 +12,23 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 <div class="hostlinks-page hmo-frontend hmo-event-detail-page">
 	<div class="hostlinks-container">
 
-		<!-- Back link -->
-		<?php if ( $dashboard_url ) : ?>
-		<div class="hmo-back-link">
-			<a href="<?php echo esc_url( $dashboard_url ); ?>" class="hostlinks-btn">
-				&larr; Back to Dashboard
-			</a>
-		</div>
-		<?php endif; ?>
-
-		<!-- Event Header -->
+		<!-- Event Header: days pill + title on left, back button on right -->
 		<div class="hmo-detail-header">
-			<h1 class="hmo-detail-title">
-				<?php echo esc_html( $event->cvent_event_title ?: $event->eve_location ); ?>
-			</h1>
 			<span class="hmo-risk-pill hmo-risk-pill--<?php echo esc_attr( $countdown->get_risk_level( (int) $days_left, (int) ( $ops ? $ops->open_task_count : 0 ) ) ); ?>">
 				<?php echo esc_html( $days_label ); ?> left
 			</span>
+			<h1 class="hmo-detail-title">
+				<?php echo esc_html( $event->cvent_event_title ?: $event->eve_location ); ?>
+			</h1>
+			<?php if ( $dashboard_url ) : ?>
+			<a href="<?php echo esc_url( $dashboard_url ); ?>" class="hostlinks-btn hmo-detail-back-btn">
+				&larr; Back to Dashboard
+			</a>
+			<?php endif; ?>
 		</div>
 
-		<!-- Summary Grid -->
-		<div class="hmo-detail-summary">
+		<!-- Blue Summary Bar -->
+		<div class="hmo-detail-summary hmo-stage-update" data-event-id="<?php echo (int) $event->eve_id; ?>">
 			<div class="hmo-detail-stat">
 				<span class="hmo-detail-stat__label">Location</span>
 				<span class="hmo-detail-stat__value"><?php echo esc_html( $event->eve_location ); ?></span>
@@ -62,39 +58,38 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 					<?php else : ?>
 						<span><?php echo (int) $goal; ?></span>
 						<?php if ( $is_admin && $is_past_event ) : ?>
-							<small style="color:#888;font-size:11px;">(locked — past event)</small>
+							<small style="font-size:11px;opacity:.75;">(locked — past event)</small>
 						<?php endif; ?>
 					<?php endif; ?>
 				</span>
 			</div>
 			<div class="hmo-detail-stat">
-				<span class="hmo-detail-stat__label">Stage</span>
-				<span class="hmo-detail-stat__value"><?php echo esc_html( ucwords( str_replace( '_', ' ', $stage ) ) ); ?></span>
-			</div>
-			<div class="hmo-detail-stat">
 				<span class="hmo-detail-stat__label">Open Tasks</span>
 				<span class="hmo-detail-stat__value"><?php echo $ops ? (int) $ops->open_task_count : 0; ?></span>
 			</div>
+			<!-- Stage selector on the right (admins only; auto-saves on change) -->
+			<?php if ( $is_admin ) : ?>
+			<div class="hmo-detail-stat hmo-detail-stat--stage-selector">
+				<span class="hmo-detail-stat__label">Stage <span class="hmo-inline-status" style="font-weight:400;font-size:0.75rem;margin-left:4px;opacity:.85;"></span></span>
+				<select class="hmo-stage-select">
+					<?php foreach ( HMO_Checklist_Templates::get_stage_order() as $s ) : ?>
+						<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $stage, $s ); ?>>
+							<?php echo esc_html( ucwords( str_replace( '_', ' ', $s ) ) ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+			</div>
+			<?php else : ?>
+			<div class="hmo-detail-stat">
+				<span class="hmo-detail-stat__label">Stage</span>
+				<span class="hmo-detail-stat__value"><?php echo esc_html( ucwords( str_replace( '_', ' ', $stage ) ) ); ?></span>
+			</div>
+			<?php endif; ?>
 		</div>
 
-		<!-- Stage Selector (admins only) -->
-		<?php if ( $is_admin ) : ?>
-		<div class="hmo-stage-update hmo-detail-panel" data-event-id="<?php echo (int) $event->eve_id; ?>">
-			<label><strong>Update Stage:</strong></label>
-			<select class="hmo-stage-select">
-				<?php foreach ( HMO_Checklist_Templates::get_stage_order() as $s ) : ?>
-					<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $stage, $s ); ?>>
-						<?php echo esc_html( ucwords( str_replace( '_', ' ', $s ) ) ); ?>
-					</option>
-				<?php endforeach; ?>
-			</select>
-			<button class="hostlinks-btn hmo-stage-save">Save Stage</button>
-			<span class="hmo-inline-status"></span>
-		</div>
-		<?php endif; ?>
-
-		<!-- Checklist -->
-		<div class="hmo-detail-panel">
+		<!-- Checklist + Future Feature (two-column) -->
+		<div class="hmo-detail-two-col">
+		<div class="hmo-detail-panel hmo-detail-col-main">
 			<h2 class="hmo-panel-title">Checklist</h2>
 
 			<?php foreach ( $checklist as $stage_key => $stage_data ) :
@@ -162,7 +157,15 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 				</div>
 			</div>
 			<?php endforeach; ?>
+		</div><!-- .hmo-detail-col-main -->
+
+		<!-- Right column placeholder -->
+		<div class="hmo-detail-panel hmo-detail-col-side">
+			<h2 class="hmo-panel-title">Insights</h2>
+			<p class="hmo-notice" style="margin-top:0.5rem;">Future feature — coming soon.</p>
 		</div>
+
+		</div><!-- .hmo-detail-two-col -->
 
 		<!-- List Links -->
 		<div class="hmo-detail-panel hmo-list-links" data-event-id="<?php echo (int) $event->eve_id; ?>">

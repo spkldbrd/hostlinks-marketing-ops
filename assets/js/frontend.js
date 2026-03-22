@@ -143,24 +143,25 @@
 	// Stage update
 	// -------------------------------------------------------------------------
 
-	$( document ).on( 'click', '.hmo-stage-save', function () {
-		var $btn    = $( this );
-		var $wrap   = $btn.closest( '.hmo-stage-update' );
+	$( document ).on( 'change', '.hmo-stage-update .hmo-stage-select', function () {
+		var $sel    = $( this );
+		var $wrap   = $sel.closest( '.hmo-stage-update' );
 		var eventId = $wrap.data( 'event-id' );
-		var stage   = $wrap.find( '.hmo-stage-select' ).val();
+		var stage   = $sel.val();
 		var $status = $wrap.find( '.hmo-inline-status' );
 
-		$btn.text( str.saving ).prop( 'disabled', true );
+		$sel.prop( 'disabled', true );
+		showInlineStatus( $status, str.saving, false );
 
 		apiPost(
 			'/events/' + eventId + '/stage',
 			{ stage: stage },
 			function () {
-				$btn.text( 'Save Stage' ).prop( 'disabled', false );
+				$sel.prop( 'disabled', false );
 				showInlineStatus( $status, str.saved, false );
 			},
 			function () {
-				$btn.text( 'Save Stage' ).prop( 'disabled', false );
+				$sel.prop( 'disabled', false );
 				showInlineStatus( $status, str.error, true );
 			}
 		);
@@ -837,10 +838,18 @@
 	function bindKanbanDrop( kanbanEl ) {
 		if ( ! kanbanEl ) { return; }
 
+		// #region agent log H-A: init
+		var _zones = kanbanEl.querySelectorAll( '.hmo-kanban__cards' );
+		fetch('http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cbac62'},body:JSON.stringify({sessionId:'cbac62',hypothesisId:'H-A',location:'frontend.js:bindKanbanDrop-init',message:'bindKanbanDrop called',data:{kanbanId:kanbanEl.id,kanbanClass:kanbanEl.className,zonesFound:_zones.length},timestamp:Date.now()})}).catch(function(){});
+		// #endregion
+
 		// ── dragstart / dragend on the container (still delegation, but native) ──
 		// This way cards moved into new columns dynamically still work.
 		kanbanEl.addEventListener( 'dragstart', function ( e ) {
 			var card = e.target.closest( '.hmo-kanban__card' );
+			// #region agent log H-B: dragstart
+			fetch('http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cbac62'},body:JSON.stringify({sessionId:'cbac62',hypothesisId:'H-B',location:'frontend.js:dragstart',message:'dragstart fired',data:{targetTag:e.target.tagName,targetClass:e.target.className,cardFound:!!card,cardEventId:card?card.getAttribute('data-event-id'):null,cardStage:card?card.getAttribute('data-stage'):null},timestamp:Date.now()})}).catch(function(){});
+			// #endregion
 			if ( ! card ) { return; }
 			_dragEventId  = parseInt( card.getAttribute( 'data-event-id' ), 10 ) || null;
 			_dragStageKey = card.getAttribute( 'data-stage' ) || null;
@@ -850,6 +859,9 @@
 		} );
 
 		kanbanEl.addEventListener( 'dragend', function ( e ) {
+			// #region agent log H-E: dragend timing
+			fetch('http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cbac62'},body:JSON.stringify({sessionId:'cbac62',hypothesisId:'H-E',location:'frontend.js:dragend',message:'dragend fired',data:{dragEventIdAtEnd:_dragEventId,dragStageAtEnd:_dragStageKey},timestamp:Date.now()})}).catch(function(){});
+			// #endregion
 			var card = e.target.closest( '.hmo-kanban__card' );
 			if ( card ) { card.classList.remove( 'hmo-dragging' ); }
 			kanbanEl.querySelectorAll( '.hmo-kanban__cards' ).forEach( function ( z ) {
@@ -861,16 +873,23 @@
 		// Calling preventDefault on the exact drop-zone element is the only way
 		// to reliably signal the browser that a drop is accepted.
 		kanbanEl.querySelectorAll( '.hmo-kanban__cards' ).forEach( function ( zone ) {
+			var _zoneStage = zone.getAttribute( 'data-stage-drop' );
+			var _dragoverCount = 0;
 
 			zone.addEventListener( 'dragover', function ( e ) {
 				e.preventDefault();
 				e.dataTransfer.dropEffect = 'move';
 				zone.classList.add( 'hmo-drop-target' );
+				// #region agent log H-C: dragover (log only first hit per zone to avoid spam)
+				if ( _dragoverCount === 0 ) { fetch('http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cbac62'},body:JSON.stringify({sessionId:'cbac62',hypothesisId:'H-C',location:'frontend.js:dragover',message:'dragover fired on zone',data:{zoneStage:_zoneStage,currentDragId:_dragEventId},timestamp:Date.now()})}).catch(function(){}); }
+				_dragoverCount++;
+				// #endregion
 			} );
 
 			zone.addEventListener( 'dragleave', function ( e ) {
 				if ( ! zone.contains( e.relatedTarget ) ) {
 					zone.classList.remove( 'hmo-drop-target' );
+					_dragoverCount = 0;
 				}
 			} );
 
@@ -878,9 +897,13 @@
 				e.preventDefault();
 				zone.classList.remove( 'hmo-drop-target' );
 
+				// #region agent log H-D: drop entry
+				var newStage = zone.getAttribute( 'data-stage-drop' );
+				fetch('http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cbac62'},body:JSON.stringify({sessionId:'cbac62',hypothesisId:'H-D',location:'frontend.js:drop',message:'drop fired on zone',data:{zoneStage:newStage,dragEventId:_dragEventId,dragStageKey:_dragStageKey,stages:window.hmoKanbanStages},timestamp:Date.now()})}).catch(function(){});
+				// #endregion
+
 				if ( ! _dragEventId ) { return; }
 
-				var newStage = zone.getAttribute( 'data-stage-drop' );
 				if ( ! newStage || newStage === _dragStageKey ) {
 					_dragEventId = null; _dragStageKey = null;
 					return;
@@ -892,6 +915,10 @@
 					if ( stages[ i ].key === _dragStageKey ) { oldIndex = i; }
 					if ( stages[ i ].key === newStage )       { newIndex = i; }
 				}
+
+				// #region agent log H-D: index check
+				fetch('http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cbac62'},body:JSON.stringify({sessionId:'cbac62',hypothesisId:'H-D',location:'frontend.js:drop-index',message:'stage index check',data:{oldIndex:oldIndex,newIndex:newIndex,fromStage:_dragStageKey,toStage:newStage},timestamp:Date.now()})}).catch(function(){});
+				// #endregion
 
 				// Only allow forward progression.
 				if ( newIndex <= oldIndex ) {
