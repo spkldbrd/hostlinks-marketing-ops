@@ -42,9 +42,6 @@ class HMO_REST {
 			'methods'             => WP_REST_Server::READABLE,
 			'callback'            => array( $this, 'get_checklist' ),
 			'permission_callback' => array( $this, 'require_event_access' ),
-			'args'                => array(
-				'id' => array( 'validate_callback' => 'is_numeric' ),
-			),
 		) );
 
 		// Stage update.
@@ -53,7 +50,6 @@ class HMO_REST {
 			'callback'            => array( $this, 'update_stage' ),
 			'permission_callback' => array( $this, 'require_event_access' ),
 			'args'                => array(
-				'id'    => array( 'validate_callback' => 'is_numeric' ),
 				'stage' => array(
 					'required'          => true,
 					'sanitize_callback' => 'sanitize_text_field',
@@ -66,9 +62,6 @@ class HMO_REST {
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => array( $this, 'update_lists' ),
 			'permission_callback' => array( $this, 'require_event_access' ),
-			'args'                => array(
-				'id' => array( 'validate_callback' => 'is_numeric' ),
-			),
 		) );
 
 		// Registration goal update (managers only, future events).
@@ -77,7 +70,6 @@ class HMO_REST {
 			'callback'            => array( $this, 'update_goal' ),
 			'permission_callback' => array( $this, 'require_manager' ),
 			'args'                => array(
-				'id'                => array( 'validate_callback' => 'is_numeric' ),
 				'registration_goal' => array(
 					'required'          => true,
 					'validate_callback' => fn( $v ) => is_numeric( $v ) && (int) $v >= 1,
@@ -92,7 +84,6 @@ class HMO_REST {
 			'callback'            => array( $this, 'complete_stages' ),
 			'permission_callback' => array( $this, 'require_event_access' ),
 			'args'                => array(
-				'id'         => array( 'validate_callback' => 'is_numeric' ),
 				'stage_keys' => array(
 					'required'          => true,
 					'validate_callback' => fn( $v ) => is_array( $v ) && ! empty( $v ),
@@ -106,7 +97,6 @@ class HMO_REST {
 			'callback'            => array( $this, 'task_complete' ),
 			'permission_callback' => array( $this, 'require_task_access' ),
 			'args'                => array(
-				'id'   => array( 'validate_callback' => 'is_numeric' ),
 				'note' => array( 'sanitize_callback' => 'sanitize_textarea_field' ),
 			),
 		) );
@@ -116,9 +106,6 @@ class HMO_REST {
 			'methods'             => WP_REST_Server::CREATABLE,
 			'callback'            => array( $this, 'task_incomplete' ),
 			'permission_callback' => array( $this, 'require_task_access' ),
-			'args'                => array(
-				'id' => array( 'validate_callback' => 'is_numeric' ),
-			),
 		) );
 
 		// Save task note.
@@ -127,7 +114,6 @@ class HMO_REST {
 			'callback'            => array( $this, 'save_note' ),
 			'permission_callback' => array( $this, 'require_task_access' ),
 			'args'                => array(
-				'id'   => array( 'validate_callback' => 'is_numeric' ),
 				'note' => array(
 					'required'          => true,
 					'sanitize_callback' => 'sanitize_textarea_field',
