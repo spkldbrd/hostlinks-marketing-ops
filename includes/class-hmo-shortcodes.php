@@ -21,18 +21,23 @@ class HMO_Shortcodes {
 	/** @var HMO_Hostlinks_Bridge */
 	private $bridge;
 
+	/** @var HMO_Alert_Service */
+	private $alerts;
+
 	public function __construct(
 		HMO_Access_Service $access,
 		HMO_Dashboard_Service $dashboard,
 		HMO_Checklist_Service $checklist,
 		HMO_Countdown_Service $countdown,
-		HMO_Hostlinks_Bridge $bridge
+		HMO_Hostlinks_Bridge $bridge,
+		HMO_Alert_Service $alerts
 	) {
 		$this->access    = $access;
 		$this->dashboard = $dashboard;
 		$this->checklist = $checklist;
 		$this->countdown = $countdown;
 		$this->bridge    = $bridge;
+		$this->alerts    = $alerts;
 	}
 
 	public function register(): void {
@@ -43,7 +48,7 @@ class HMO_Shortcodes {
 	}
 
 	// -------------------------------------------------------------------------
-	// [hmo_dashboard] — all events (admins) or marketer-filtered (others)
+	// [hmo_dashboard] — manager view, all accessible events + quick filters
 	// -------------------------------------------------------------------------
 
 	public function render_dashboard( $atts ): string {
@@ -51,10 +56,24 @@ class HMO_Shortcodes {
 			return $this->access->get_denial_message_html();
 		}
 
-		$view     = $this->get_view_param();
-		$all_rows = $this->dashboard->get_dashboard_rows( array( 'view' => $view ) );
-		$cards    = $this->dashboard->get_summary_cards();
-		$access   = $this->access;
+		$view    = $this->get_view_param();
+		$filters = array_merge( $this->get_dashboard_filter_params(), array( 'view' => $view ) );
+
+		// Full unfiltered set for kanban (uses all upcoming rows, ignoring quick filters).
+		$all_rows_unfiltered = $this->dashboard->get_dashboard_rows( array( 'view' => $view ) );
+		$all_rows            = $this->dashboard->get_dashboard_rows( $filters );
+
+		$cards       = $this->dashboard->get_summary_cards();
+		$alert_data  = $this->alerts->get_alerts( $all_rows_unfiltered );
+		$access      = $this->access;
+		$detail_base = HMO_Page_URLs::get_event_detail();
+
+		// Available buckets for bucket quick-filter dropdown (admin sees all).
+		$buckets = $this->bridge->get_marketers();
+
+		// All stages for stage filter dropdown.
+		$stage_order = HMO_Checklist_Templates::get_stage_order();
+		$stage_labels = array_column( HMO_Checklist_Templates::get_stages_option(), 'label', 'key' );
 
 		list( $rows, $pagination ) = $this->paginate_rows( $all_rows );
 
@@ -64,7 +83,7 @@ class HMO_Shortcodes {
 	}
 
 	// -------------------------------------------------------------------------
-	// [hmo_my_classes] — always filtered to the current marketer's events
+	// [hmo_my_classes] — execution view, filtered to user's buckets
 	// -------------------------------------------------------------------------
 
 	public function render_my_classes( $atts ): string {
@@ -72,75 +91,49 @@ class HMO_Shortcodes {
 			return $this->access->get_denial_message_html();
 		}
 
-		$view        = $this->get_view_param();
-		$marketer_id = $this->access->get_current_user_marketer_id();
-		$filters     = $marketer_id ? array( 'marketer_id' => $marketer_id ) : array();
-		$filters['view'] = $view;
+		$view = $this->get_view_param();
+
+		// User's assigned buckets — for pill UI and access control.
+		$is_admin       = $this->access->current_user_can_see_all_events();
+		$user_buckets   = $is_admin ? array() : $this->access->get_current_user_buckets();
+		$has_multi_buckets = count( $user_buckets ) > 1;
+
+		// Read selected bucket pills from GET (default = all user buckets).
+		$selected_buckets = array();
+		if ( $has_multi_buckets && ! empty( $_GET['hmo_buckets'] ) && is_array( $_GET['hmo_buckets'] ) ) {
+			$selected_buckets = array_map( 'intval', $_GET['hmo_buckets'] );
+		} elseif ( $has_multi_buckets ) {
+			$selected_buckets = array_column( $user_buckets, 'id' );
+		}
+
+		$filters = array( 'view' => $view );
+		if ( $has_multi_buckets && ! empty( $selected_buckets ) ) {
+			$filters['hmo_buckets'] = $selected_buckets;
+		}
+
+		// Carry trouble_only and next30 filters.
+		if ( ! empty( $_GET['hmo_trouble_only'] ) ) {
+			$filters['hmo_trouble_only'] = 1;
+		}
+		if ( ! empty( $_GET['hmo_next30'] ) ) {
+			$filters['hmo_next30'] = 1;
+		}
+
 		$all_rows    = $this->dashboard->get_dashboard_rows( $filters );
 		$cards       = $this->dashboard->get_summary_cards();
+		$alert_data  = $this->alerts->get_alerts( $all_rows );
 		$access      = $this->access;
+		$detail_base = HMO_Page_URLs::get_event_detail();
 
 		list( $rows, $pagination ) = $this->paginate_rows( $all_rows );
 
 		ob_start();
-		include HMO_PLUGIN_DIR . 'shortcode/views/dashboard.php';
+		include HMO_PLUGIN_DIR . 'shortcode/views/my-classes.php';
 		return ob_get_clean();
 	}
 
 	// -------------------------------------------------------------------------
-	// Pagination helper
-	// -------------------------------------------------------------------------
-
-	/**
-	 * Slices a flat array of rows into a page of 30 and returns metadata.
-	 *
-	 * @param array $all_rows
-	 * @return array  [ sliced_rows[], pagination_meta[] ]
-	 */
-	private function get_view_param(): string {
-		$v = $_GET['hmo_view'] ?? 'upcoming';
-		return $v === 'past' ? 'past' : 'upcoming';
-	}
-
-	private function paginate_rows( array $all_rows ): array {
-		$per_page    = 30;
-		$total       = count( $all_rows );
-		$total_pages = max( 1, (int) ceil( $total / $per_page ) );
-		$page        = max( 1, min( $total_pages, (int) ( $_GET['hmo_page'] ?? 1 ) ) );
-		$offset      = ( $page - 1 ) * $per_page;
-		$rows        = array_slice( $all_rows, $offset, $per_page );
-
-		// Base URL preserves hmo_view but resets hmo_page.
-		$base = remove_query_arg( 'hmo_page' );
-
-		$pagination = array(
-			'page'        => $page,
-			'total_pages' => $total_pages,
-			'total'       => $total,
-			'per_page'    => $per_page,
-			'from'        => $total ? $offset + 1 : 0,
-			'to'          => min( $offset + $per_page, $total ),
-			'prev_url'    => $page > 1            ? add_query_arg( 'hmo_page', $page - 1, $base ) : '',
-			'next_url'    => $page < $total_pages ? add_query_arg( 'hmo_page', $page + 1, $base ) : '',
-			'page_urls'   => array(),
-		);
-
-		// Build per-page link list (max 7 visible page numbers).
-		$window = 2; // pages either side of current
-		for ( $p = 1; $p <= $total_pages; $p++ ) {
-			if (
-				$p === 1 || $p === $total_pages
-				|| ( $p >= $page - $window && $p <= $page + $window )
-			) {
-				$pagination['page_urls'][ $p ] = add_query_arg( 'hmo_page', $p, $base );
-			}
-		}
-
-		return array( $rows, $pagination );
-	}
-
-	// -------------------------------------------------------------------------
-	// [hmo_task_editor] — manage task templates (for Task Editor users + admins)
+	// [hmo_task_editor]
 	// -------------------------------------------------------------------------
 
 	public function render_task_editor( $atts ): string {
@@ -165,7 +158,7 @@ class HMO_Shortcodes {
 	}
 
 	// -------------------------------------------------------------------------
-	// [hmo_event_detail] — single event, event_id from URL ?event_id=X
+	// [hmo_event_detail]
 	// -------------------------------------------------------------------------
 
 	public function render_event_detail( $atts ): string {
@@ -183,17 +176,70 @@ class HMO_Shortcodes {
 			return $this->access->get_denial_message_html();
 		}
 
-		$event     = $this->bridge->get_event( $event_id );
-		$ops       = HMO_DB::get_event_ops( $event_id );
-		$checklist = $this->checklist->get_event_checklist( $event_id );
-		$countdown = $this->countdown;
-		$days_left = $this->countdown->get_days_left( $event_id );
+		$event      = $this->bridge->get_event( $event_id );
+		$ops        = HMO_DB::get_event_ops( $event_id );
+		$checklist  = $this->checklist->get_event_checklist( $event_id );
+		$countdown  = $this->countdown;
+		$days_left  = $this->countdown->get_days_left( $event_id );
 		$days_label = $this->countdown->format_days_left( $days_left );
-		$reg_count = $this->bridge->get_event_registration_count( $event_id );
-		$access    = $this->access;
+		$reg_count  = $this->bridge->get_event_registration_count( $event_id );
+		$access     = $this->access;
 
 		ob_start();
 		include HMO_PLUGIN_DIR . 'shortcode/views/event-detail.php';
 		return ob_get_clean();
+	}
+
+	// -------------------------------------------------------------------------
+	// Helpers
+	// -------------------------------------------------------------------------
+
+	private function get_view_param(): string {
+		$v = $_GET['hmo_view'] ?? 'upcoming';
+		return $v === 'past' ? 'past' : 'upcoming';
+	}
+
+	private function get_dashboard_filter_params(): array {
+		$out = array();
+		$passthrough = array( 'hmo_stage', 'hmo_risk', 'hmo_bucket', 'hmo_trouble', 'hmo_missing' );
+		foreach ( $passthrough as $key ) {
+			if ( ! empty( $_GET[ $key ] ) ) {
+				$out[ $key ] = sanitize_text_field( $_GET[ $key ] );
+			}
+		}
+		return $out;
+	}
+
+	private function paginate_rows( array $all_rows ): array {
+		$per_page    = 30;
+		$total       = count( $all_rows );
+		$total_pages = max( 1, (int) ceil( $total / $per_page ) );
+		$page        = max( 1, min( $total_pages, (int) ( $_GET['hmo_page'] ?? 1 ) ) );
+		$offset      = ( $page - 1 ) * $per_page;
+		$rows        = array_slice( $all_rows, $offset, $per_page );
+
+		// Base URL preserves hmo_view and any active filters but resets hmo_page.
+		$base = remove_query_arg( 'hmo_page' );
+
+		$pagination = array(
+			'page'        => $page,
+			'total_pages' => $total_pages,
+			'total'       => $total,
+			'per_page'    => $per_page,
+			'from'        => $total ? $offset + 1 : 0,
+			'to'          => min( $offset + $per_page, $total ),
+			'prev_url'    => $page > 1            ? add_query_arg( 'hmo_page', $page - 1, $base ) : '',
+			'next_url'    => $page < $total_pages ? add_query_arg( 'hmo_page', $page + 1, $base ) : '',
+			'page_urls'   => array(),
+		);
+
+		$window = 2;
+		for ( $p = 1; $p <= $total_pages; $p++ ) {
+			if ( $p === 1 || $p === $total_pages || ( $p >= $page - $window && $p <= $page + $window ) ) {
+				$pagination['page_urls'][ $p ] = add_query_arg( 'hmo_page', $p, $base );
+			}
+		}
+
+		return array( $rows, $pagination );
 	}
 }

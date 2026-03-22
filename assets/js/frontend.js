@@ -181,6 +181,82 @@
 	} );
 
 	// =========================================================================
+	// Table / Kanban toggle
+	// =========================================================================
+
+	var $tableView  = $( '#hmo-table-view' );
+	var $kanbanView = $( '#hmo-kanban' );
+	var $btnTable   = $( '#hmo-btn-table' );
+	var $btnKanban  = $( '#hmo-btn-kanban' );
+
+	if ( $tableView.length && $kanbanView.length ) {
+		$( document ).on( 'click', '[data-action="show-table"]', function () {
+			$tableView.show();
+			$kanbanView.hide();
+			$btnTable.addClass( 'hmo-view-bar__btn--active' );
+			$btnKanban.removeClass( 'hmo-view-bar__btn--active' );
+			try { localStorage.setItem( 'hmo_view_mode', 'table' ); } catch(e){}
+		} );
+
+		$( document ).on( 'click', '[data-action="show-kanban"]', function () {
+			$tableView.hide();
+			$kanbanView.show();
+			$btnKanban.addClass( 'hmo-view-bar__btn--active' );
+			$btnTable.removeClass( 'hmo-view-bar__btn--active' );
+			try { localStorage.setItem( 'hmo_view_mode', 'kanban' ); } catch(e){}
+		} );
+
+		// Restore last view preference.
+		try {
+			if ( localStorage.getItem( 'hmo_view_mode' ) === 'kanban' ) {
+				$tableView.hide();
+				$kanbanView.show();
+				$btnKanban.addClass( 'hmo-view-bar__btn--active' );
+				$btnTable.removeClass( 'hmo-view-bar__btn--active' );
+			}
+		} catch(e){}
+	}
+
+	// =========================================================================
+	// Alert bar: toggle open/close + panel show/hide
+	// =========================================================================
+
+	var $alertBar = $( '#hmo-alert-bar' );
+
+	if ( $alertBar.length ) {
+		$( document ).on( 'click', '[data-action="toggle-alert-bar"]', function () {
+			var $body = $alertBar.find( '.hmo-alert-bar__body' );
+			$alertBar.toggleClass( 'hmo-alert-bar--open' );
+			var isOpen = $alertBar.hasClass( 'hmo-alert-bar--open' );
+			$( this ).attr( 'aria-expanded', isOpen ? 'true' : 'false' );
+			if ( isOpen ) {
+				$body.slideDown( 200 );
+			} else {
+				$body.slideUp( 200 );
+				$alertBar.find( '.hmo-alert-panel' ).hide();
+			}
+		} );
+
+		$( document ).on( 'click', '[data-action="toggle-alert-panel"]', function () {
+			var type   = $( this ).data( 'alert-type' );
+			var $panel = $( '#hmo-alert-panel-' + type );
+			var $body  = $alertBar.find( '.hmo-alert-bar__body' );
+
+			// Ensure body is open.
+			if ( ! $alertBar.hasClass( 'hmo-alert-bar--open' ) ) {
+				$alertBar.addClass( 'hmo-alert-bar--open' );
+				$alertBar.find( '[data-action="toggle-alert-bar"]' ).attr( 'aria-expanded', 'true' );
+				$body.slideDown( 200 );
+			}
+
+			// Toggle this panel; close others.
+			var wasOpen = $panel.is( ':visible' );
+			$alertBar.find( '.hmo-alert-panel' ).hide();
+			if ( ! wasOpen ) { $panel.show(); }
+		} );
+	}
+
+	// =========================================================================
 	// Task Template Editor
 	// =========================================================================
 

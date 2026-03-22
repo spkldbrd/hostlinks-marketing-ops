@@ -14,8 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'HMO_VERSION',    '1.1.0' );
-define( 'HMO_DB_VERSION', '1.1' );
+define( 'HMO_VERSION',    '1.2.0' );
+define( 'HMO_DB_VERSION', '1.2' );
 define( 'HMO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HMO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'HMO_PLUGIN_FILE', __FILE__ );
@@ -27,6 +27,7 @@ require_once HMO_PLUGIN_DIR . 'includes/class-hmo-checklist-templates.php';
 require_once HMO_PLUGIN_DIR . 'includes/class-hmo-checklist-service.php';
 require_once HMO_PLUGIN_DIR . 'includes/class-hmo-countdown-service.php';
 require_once HMO_PLUGIN_DIR . 'includes/class-hmo-access-service.php';
+require_once HMO_PLUGIN_DIR . 'includes/class-hmo-alert-service.php';
 require_once HMO_PLUGIN_DIR . 'includes/class-hmo-dashboard-service.php';
 require_once HMO_PLUGIN_DIR . 'includes/class-hmo-shortcodes.php';
 require_once HMO_PLUGIN_DIR . 'includes/class-hmo-rest.php';

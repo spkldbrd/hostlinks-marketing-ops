@@ -103,6 +103,22 @@ class HMO_DB {
 		dbDelta( $sql );
 
 		// -------------------------------------------------------------------------
+		// wp_hmo_bucket_access — many-to-many: event bucket (marketer) ↔ WP user
+		// -------------------------------------------------------------------------
+		$sql = "CREATE TABLE {$wpdb->prefix}hmo_bucket_access (
+			id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+			marketer_id int(11) NOT NULL,
+			bucket_name varchar(100) NOT NULL DEFAULT '',
+			wp_user_id bigint(20) UNSIGNED NOT NULL,
+			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY  (id),
+			UNIQUE KEY bucket_user (marketer_id, wp_user_id),
+			KEY marketer_id (marketer_id),
+			KEY wp_user_id (wp_user_id)
+		) $charset_collate;";
+		dbDelta( $sql );
+
+		// -------------------------------------------------------------------------
 		// wp_hmo_event_activity — light audit log for task and metadata changes
 		// -------------------------------------------------------------------------
 		$sql = "CREATE TABLE {$wpdb->prefix}hmo_event_activity (
@@ -125,12 +141,41 @@ class HMO_DB {
 
 		if ( version_compare( $installed, HMO_DB_VERSION, '<' ) ) {
 			self::create_tables();
+			self::migrate_marketer_meta_to_buckets();
 			update_option( 'hmo_db_version', HMO_DB_VERSION );
 		}
 
 		// Seed stages option for existing installs that pre-date stage management.
 		if ( ! get_option( HMO_Checklist_Templates::OPT_STAGES ) ) {
 			( new HMO_Checklist_Templates() )->seed_stages();
+		}
+	}
+
+	/**
+	 * One-time migration: import any existing hmo_marketer_id user-meta rows into
+	 * the new hmo_bucket_access table (preserves all previously saved mappings).
+	 */
+	public static function migrate_marketer_meta_to_buckets(): void {
+		global $wpdb;
+		$meta_rows = $wpdb->get_results(
+			"SELECT user_id, meta_value AS marketer_id
+			 FROM {$wpdb->usermeta}
+			 WHERE meta_key = 'hmo_marketer_id'
+			   AND meta_value != '' AND meta_value != '0'"
+		);
+		if ( empty( $meta_rows ) ) {
+			return;
+		}
+		foreach ( $meta_rows as $r ) {
+			$uid  = (int) $r->user_id;
+			$mid  = (int) $r->marketer_id;
+			$name = (string) get_user_meta( $uid, 'hmo_marketer_name', true );
+			$wpdb->query( $wpdb->prepare(
+				"INSERT IGNORE INTO {$wpdb->prefix}hmo_bucket_access
+				 (marketer_id, bucket_name, wp_user_id)
+				 VALUES (%d, %s, %d)",
+				$mid, $name, $uid
+			) );
 		}
 	}
 
@@ -160,6 +205,71 @@ class HMO_DB {
 			$data['hostlinks_event_id'] = $event_id;
 			$wpdb->insert( $table, $data );
 		}
+	}
+
+	// -------------------------------------------------------------------------
+	// Bucket access helpers
+	// -------------------------------------------------------------------------
+
+	public static function add_bucket_access( int $marketer_id, string $bucket_name, int $wp_user_id ): void {
+		global $wpdb;
+		$wpdb->query( $wpdb->prepare(
+			"INSERT IGNORE INTO {$wpdb->prefix}hmo_bucket_access (marketer_id, bucket_name, wp_user_id)
+			 VALUES (%d, %s, %d)",
+			$marketer_id, $bucket_name, $wp_user_id
+		) );
+		// Keep bucket_name fresh.
+		$wpdb->update(
+			$wpdb->prefix . 'hmo_bucket_access',
+			array( 'bucket_name' => $bucket_name ),
+			array( 'marketer_id' => $marketer_id, 'wp_user_id' => $wp_user_id )
+		);
+	}
+
+	public static function remove_bucket_access( int $marketer_id, int $wp_user_id ): void {
+		global $wpdb;
+		$wpdb->delete(
+			$wpdb->prefix . 'hmo_bucket_access',
+			array( 'marketer_id' => $marketer_id, 'wp_user_id' => $wp_user_id )
+		);
+	}
+
+	/** Returns array of marketer_ids accessible by a WP user (empty = no access). */
+	public static function get_bucket_ids_for_user( int $wp_user_id ): array {
+		global $wpdb;
+		$ids = $wpdb->get_col( $wpdb->prepare(
+			"SELECT marketer_id FROM {$wpdb->prefix}hmo_bucket_access WHERE wp_user_id = %d",
+			$wp_user_id
+		) );
+		return array_map( 'intval', $ids );
+	}
+
+	/** Returns array of WP user IDs that have access to a bucket (marketer_id). */
+	public static function get_users_for_bucket( int $marketer_id ): array {
+		global $wpdb;
+		return $wpdb->get_results( $wpdb->prepare(
+			"SELECT wp_user_id FROM {$wpdb->prefix}hmo_bucket_access WHERE marketer_id = %d",
+			$marketer_id
+		) );
+	}
+
+	/** Returns all buckets with their assigned users, keyed by marketer_id. */
+	public static function get_all_bucket_access(): array {
+		global $wpdb;
+		$rows = $wpdb->get_results(
+			"SELECT marketer_id, bucket_name, wp_user_id
+			 FROM {$wpdb->prefix}hmo_bucket_access
+			 ORDER BY marketer_id ASC, wp_user_id ASC"
+		);
+		$map = array();
+		foreach ( $rows as $r ) {
+			$mid = (int) $r->marketer_id;
+			if ( ! isset( $map[ $mid ] ) ) {
+				$map[ $mid ] = array( 'bucket_name' => $r->bucket_name, 'users' => array() );
+			}
+			$map[ $mid ]['users'][] = (int) $r->wp_user_id;
+		}
+		return $map;
 	}
 
 	public static function log_activity( int $event_id, string $type, string $summary, array $meta = array() ) {

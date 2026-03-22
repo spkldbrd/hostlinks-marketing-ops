@@ -19,17 +19,18 @@ class HMO_Bootstrap {
 		$checklist_svc  = new HMO_Checklist_Service( $checklist_tmpl );
 		$countdown_svc  = new HMO_Countdown_Service( $bridge );
 		$dashboard_svc  = new HMO_Dashboard_Service( $bridge, $access, $checklist_svc, $countdown_svc );
+		$alert_svc      = new HMO_Alert_Service();
 
 		// REST API.
 		$rest = new HMO_REST( $checklist_svc, $dashboard_svc, $access );
 		add_action( 'rest_api_init', array( $rest, 'register_routes' ) );
 
-		// AJAX (user search for settings page + task editor CRUD).
+		// AJAX (user/bucket access + task editor CRUD).
 		HMO_Access_Service::register_ajax();
 		HMO_Checklist_Templates::register_ajax();
 
 		// Front-end shortcodes.
-		$shortcodes = new HMO_Shortcodes( $access, $dashboard_svc, $checklist_svc, $countdown_svc, $bridge );
+		$shortcodes = new HMO_Shortcodes( $access, $dashboard_svc, $checklist_svc, $countdown_svc, $bridge, $alert_svc );
 		add_action( 'init', array( $shortcodes, 'register' ) );
 
 		// Assets.

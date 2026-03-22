@@ -62,6 +62,34 @@ class HMO_Countdown_Service {
 	}
 
 	/**
+	 * Determine whether an event is "behind schedule" based on stage vs days left.
+	 *
+	 * Rules:
+	 *  - Still in Event Setup with < 60 days left
+	 *  - Still in Data Send Prep with < 30 days left
+	 *  - Not yet in Final Prep or Completion with < 14 days left
+	 *
+	 * @param int    $days_left  From get_days_left() — must be >= 0 (future event).
+	 * @param string $stage      Workflow stage key.
+	 * @return bool
+	 */
+	public function is_behind_schedule( int $days_left, string $stage ): bool {
+		if ( $days_left < 0 ) {
+			return false; // Past events don't count.
+		}
+		if ( $days_left < 60 && $stage === 'event_setup' ) {
+			return true;
+		}
+		if ( $days_left < 30 && $stage === 'data_send_prep' ) {
+			return true;
+		}
+		if ( $days_left < 14 && ! in_array( $stage, array( 'final_prep', 'completion' ), true ) ) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * Human-readable label for days left.
 	 *
 	 * @param int|null $days_left

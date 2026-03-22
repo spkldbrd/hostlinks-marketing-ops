@@ -24,46 +24,7 @@ if ( isset( $_POST['hmo_save_general'] ) ) {
 	$notice = '<div class="notice notice-success is-dismissible"><p>General settings saved.</p></div>';
 }
 
-// Marketer user mappings
-if ( isset( $_POST['hmo_save_mappings'] ) ) {
-	check_admin_referer( 'hmo_save_general' );
-
-	$access_svc = new HMO_Access_Service();
-	$mappings   = isset( $_POST['hmo_mapping'] ) && is_array( $_POST['hmo_mapping'] )
-		? $_POST['hmo_mapping'] : array();
-
-	// Build a lookup of all existing mapped user IDs so we can clear removed ones.
-	$all_users = get_users( array( 'number' => -1, 'fields' => array( 'ID' ) ) );
-	foreach ( $all_users as $u ) {
-		$existing_mid = (int) get_user_meta( $u->ID, HMO_Access_Service::META_MARKETER_ID, true );
-		if ( $existing_mid ) {
-			// Will be overwritten below if still present; cleared if not.
-			$access_svc->remove_user_marketer_mapping( (int) $u->ID );
-		}
-	}
-
-	// Save new mappings: keyed by marketer_id => wp_user_id.
-	$bridge    = new HMO_Hostlinks_Bridge();
-	$marketers = $bridge->get_marketers();
-	$mkt_index = array();
-	foreach ( $marketers as $m ) {
-		$mkt_index[ (int) $m->event_marketer_id ] = $m->event_marketer_name;
-	}
-
-	foreach ( $mappings as $marketer_id => $wp_user_id ) {
-		$marketer_id = (int) $marketer_id;
-		$wp_user_id  = (int) $wp_user_id;
-		if ( $wp_user_id && isset( $mkt_index[ $marketer_id ] ) ) {
-			$access_svc->set_user_marketer_mapping(
-				$wp_user_id,
-				$marketer_id,
-				$mkt_index[ $marketer_id ]
-			);
-		}
-	}
-
-	$notice = '<div class="notice notice-success is-dismissible"><p>Marketer mappings saved.</p></div>';
-}
+// (Marketer bulk-save removed — bucket access is now managed via AJAX on the Bucket Access tab)
 
 // Page links
 if ( isset( $_POST['hmo_save_page_urls'] ) ) {
@@ -152,9 +113,10 @@ $mode_labels = array(
 $active_tab = isset( $_GET['tab'] ) ? sanitize_text_field( $_GET['tab'] ) : 'general';
 
 $tabs = array(
-	'general'     => 'General',
-	'page-links'  => 'Page Links',
-	'user-access' => 'User Access',
+	'general'       => 'General',
+	'bucket-access' => 'Bucket Access',
+	'page-links'    => 'Page Links',
+	'user-access'   => 'User Access',
 );
 ?>
 <div class="wrap">
@@ -220,146 +182,215 @@ $tabs = array(
 		</tr>
 	</table>
 
-	<h2>Access</h2>
-	<table class="form-table">
-		<tr>
-			<th><label for="hmo_enable_marketer_filter">Enable Marketer Filtering</label></th>
-			<td>
-				<input type="checkbox" id="hmo_enable_marketer_filter" name="hmo_enable_marketer_filter" value="1"
-					<?php checked( get_option( 'hmo_enable_marketer_filter', 1 ) ); ?>>
-				<label for="hmo_enable_marketer_filter">Marketers only see their assigned classes.</label>
-			</td>
-		</tr>
-	</table>
-
-	<h2>Marketer User Mapping</h2>
-	<p>
-		Assign each Hostlinks marketer to a WordPress user account.
-		Mapped users will only see their own assigned classes in the My Classes view.
-		Administrators always see all classes regardless of mapping.
-	</p>
-
-	<?php
-	$bridge_for_mapping = new HMO_Hostlinks_Bridge();
-	$all_marketers      = $bridge_for_mapping->get_marketers();
-	$all_wp_users       = get_users( array(
-		'number'  => -1,
-		'orderby' => 'display_name',
-		'order'   => 'ASC',
-		'fields'  => array( 'ID', 'display_name', 'user_email' ),
-	) );
-
-	// Build reverse index: marketer_id => wp_user_id currently mapped.
-	$mapping_by_marketer = array();
-	foreach ( $all_wp_users as $u ) {
-		$mid = (int) get_user_meta( $u->ID, HMO_Access_Service::META_MARKETER_ID, true );
-		if ( $mid ) {
-			$mapping_by_marketer[ $mid ] = (int) $u->ID;
-		}
-	}
-	?>
-
-	<?php if ( empty( $all_marketers ) ) : ?>
-		<div class="notice notice-warning inline"><p>No active marketers found in Hostlinks. Add marketers in Hostlinks first.</p></div>
-	<?php else : ?>
-	<table class="wp-list-table widefat fixed striped" style="max-width:760px;">
-		<thead>
-			<tr>
-				<th style="width:35%;">Hostlinks Marketer</th>
-				<th>Mapped WordPress User</th>
-				<th style="width:90px;text-align:center;">Status</th>
-			</tr>
-		</thead>
-		<tbody>
-		<?php foreach ( $all_marketers as $mkt ) :
-			$mkt_id      = (int) $mkt->event_marketer_id;
-			$mapped_uid  = $mapping_by_marketer[ $mkt_id ] ?? 0;
-		?>
-			<tr>
-				<td>
-					<strong><?php echo esc_html( $mkt->event_marketer_name ); ?></strong>
-					<br><small style="color:#8c8f94;">ID: <?php echo (int) $mkt_id; ?></small>
-				</td>
-				<td>
-					<select name="hmo_mapping[<?php echo (int) $mkt_id; ?>]"
-						class="hmo-mapping-select"
-						style="width:100%;max-width:340px;">
-						<option value="0">— No mapping —</option>
-						<?php foreach ( $all_wp_users as $u ) : ?>
-							<option value="<?php echo (int) $u->ID; ?>" <?php selected( $mapped_uid, (int) $u->ID ); ?>>
-								<?php echo esc_html( $u->display_name ); ?> (<?php echo esc_html( $u->user_email ); ?>)
-							</option>
-						<?php endforeach; ?>
-					</select>
-				</td>
-				<td style="text-align:center;">
-					<?php if ( $mapped_uid ) : ?>
-						<span style="display:inline-block;padding:2px 8px;border-radius:3px;background:hsl(142 55% 90%);color:hsl(142 60% 28%);font-size:11px;font-weight:600;">Mapped</span>
-					<?php else : ?>
-						<span style="display:inline-block;padding:2px 8px;border-radius:3px;background:#f0f0f1;color:#8c8f94;font-size:11px;font-weight:600;">None</span>
-					<?php endif; ?>
-				</td>
-			</tr>
-		<?php endforeach; ?>
-		</tbody>
-	</table>
-	<p style="margin-top:12px;">
-		<button type="submit" name="hmo_save_mappings" class="button button-primary">Save Marketer Mappings</button>
-	</p>
-	<?php endif; ?>
-
 	<hr style="margin:24px 0;">
 	<?php submit_button( 'Save General Settings', 'primary', 'hmo_save_general' ); ?>
+</form>
+
+<!-- ======================================================================
+     TAB: BUCKET ACCESS
+     ====================================================================== -->
+<?php elseif ( $active_tab === 'bucket-access' ) :
+	$bucket_nonce  = wp_create_nonce( 'hmo_bucket_access' );
+	$search_nonce  = wp_create_nonce( 'hmo_user_access' );
+	$bridge_ba     = new HMO_Hostlinks_Bridge();
+	$all_buckets   = $bridge_ba->get_marketers();
+	$bucket_access = HMO_DB::get_all_bucket_access(); // keyed by marketer_id
+
+	// Pre-load WP user data for all assigned users.
+	$all_bucket_user_ids = array();
+	foreach ( $bucket_access as $entry ) {
+		$all_bucket_user_ids = array_merge( $all_bucket_user_ids, $entry['users'] );
+	}
+	$user_data_map = array();
+	if ( ! empty( $all_bucket_user_ids ) ) {
+		$fetched = get_users( array(
+			'include' => array_unique( $all_bucket_user_ids ),
+			'fields'  => array( 'ID', 'display_name', 'user_email' ),
+		) );
+		foreach ( $fetched as $u ) {
+			$user_data_map[ (int) $u->ID ] = $u;
+		}
+	}
+?>
+<p>
+	Assign WordPress users to event buckets. A user can be assigned to multiple buckets;
+	a bucket can have multiple users. Administrators always see all events regardless of bucket assignment.
+</p>
+
+<?php if ( empty( $all_buckets ) ) : ?>
+	<div class="notice notice-warning inline"><p>No active marketers (buckets) found in Hostlinks.</p></div>
+<?php else : ?>
+
+<div id="hmo-bucket-access-wrap">
+<?php foreach ( $all_buckets as $bkt ) :
+	$mid    = (int) $bkt->event_marketer_id;
+	$bname  = $bkt->event_marketer_name;
+	$uids   = $bucket_access[ $mid ]['users'] ?? array();
+?>
+<div class="hmo-bucket-row" id="hmo-bucket-row-<?php echo $mid; ?>">
+	<div class="hmo-bucket-row__header">
+		<strong class="hmo-bucket-row__name"><?php echo esc_html( $bname ); ?></strong>
+		<small style="color:#8c8f94;margin-left:6px;">ID: <?php echo $mid; ?></small>
+	</div>
+	<div class="hmo-bucket-row__users" id="hmo-bucket-users-<?php echo $mid; ?>">
+		<?php foreach ( $uids as $uid ) :
+			$u = $user_data_map[ $uid ] ?? null;
+			if ( ! $u ) { continue; }
+		?>
+		<span class="hmo-bucket-pill hmo-bucket-pill--assigned" id="hmo-bpill-<?php echo $mid; ?>-<?php echo (int) $uid; ?>">
+			<?php echo esc_html( $u->display_name ); ?>
+			<button type="button" class="hmo-bucket-pill__remove"
+				data-marketer-id="<?php echo $mid; ?>"
+				data-user-id="<?php echo (int) $uid; ?>"
+				title="Remove user">×</button>
+		</span>
+		<?php endforeach; ?>
+		<?php if ( empty( $uids ) ) : ?>
+		<span class="hmo-bucket-empty" id="hmo-bucket-empty-<?php echo $mid; ?>">No users assigned.</span>
+		<?php endif; ?>
+	</div>
+	<div class="hmo-bucket-row__add">
+		<input type="text" class="hmo-bucket-user-search"
+			placeholder="Search to add a user…"
+			data-marketer-id="<?php echo $mid; ?>"
+			data-bucket-name="<?php echo esc_attr( $bname ); ?>"
+			autocomplete="off"
+			style="width:260px;">
+		<ul class="hmo-bucket-search-results" data-marketer-id="<?php echo $mid; ?>"
+			style="list-style:none;margin:0;padding:0;max-width:360px;border:1px solid #ddd;border-top:none;display:none;background:#fff;position:absolute;z-index:200;"></ul>
+	</div>
+</div>
+<?php endforeach; ?>
+</div>
+
+<style>
+#hmo-bucket-access-wrap { max-width: 820px; }
+.hmo-bucket-row { border: 1px solid #dcdcde; border-radius: 5px; padding: 12px 16px; margin-bottom: 12px; background: #fff; }
+.hmo-bucket-row__header { margin-bottom: 8px; }
+.hmo-bucket-row__users { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; min-height: 28px; align-items: center; }
+.hmo-bucket-pill--assigned { display:inline-flex; align-items:center; gap:4px; background:hsl(199 89% 90%); color:hsl(199 89% 30%); border:1px solid hsl(199 60% 75%); border-radius:20px; padding:3px 10px 3px 12px; font-size:12px; font-weight:600; }
+.hmo-bucket-pill__remove { background:none; border:none; cursor:pointer; font-size:15px; line-height:1; color:hsl(199 60% 45%); padding:0; }
+.hmo-bucket-pill__remove:hover { color:#d63638; }
+.hmo-bucket-empty { font-size:12px; color:#8c8f94; font-style:italic; }
+.hmo-bucket-row__add { position:relative; }
+</style>
 
 <script>
 (function() {
-	var ajaxUrl  = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
-	var nonce    = <?php echo wp_json_encode( wp_create_nonce( 'hmo_save_mapping' ) ); ?>;
+	var ajaxUrl    = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+	var baNonce    = <?php echo wp_json_encode( $bucket_nonce ); ?>;
+	var sNonce     = <?php echo wp_json_encode( $search_nonce ); ?>;
 
-	// Collect marketer names from the table rows for the AJAX call.
-	var marketerNames = {};
-	<?php foreach ( $all_marketers as $mkt ) : ?>
-	marketerNames[<?php echo (int) $mkt->event_marketer_id; ?>] = <?php echo wp_json_encode( $mkt->event_marketer_name ); ?>;
-	<?php endforeach; ?>
-
-	document.querySelectorAll('.hmo-mapping-select').forEach(function(sel) {
-		sel.addEventListener('change', function() {
-			var row        = sel.closest('tr');
-			var statusCell = row.querySelector('td:last-child');
-			var marketerId = parseInt(sel.name.match(/\[(\d+)\]/)[1], 10);
-			var wpUserId   = parseInt(sel.value, 10);
-			var mktName    = marketerNames[marketerId] || '';
-
-			statusCell.innerHTML = '<span style="color:#888;font-size:11px;">Saving…</span>';
-
-			var data = new FormData();
-			data.append('action',        'hmo_save_single_mapping');
-			data.append('_ajax_nonce',   nonce);
-			data.append('marketer_id',   marketerId);
-			data.append('wp_user_id',    wpUserId);
-			data.append('marketer_name', mktName);
-
-			fetch(ajaxUrl, { method: 'POST', body: data })
-				.then(function(r) { return r.json(); })
-				.then(function(resp) {
-					if (resp.success) {
-						if (resp.data.status === 'mapped') {
-							statusCell.innerHTML = '<span style="display:inline-block;padding:2px 8px;border-radius:3px;background:hsl(142 55% 90%);color:hsl(142 60% 28%);font-size:11px;font-weight:600;">Mapped</span>';
-						} else {
-							statusCell.innerHTML = '<span style="display:inline-block;padding:2px 8px;border-radius:3px;background:#f0f0f1;color:#8c8f94;font-size:11px;font-weight:600;">None</span>';
-						}
-					} else {
-						statusCell.innerHTML = '<span style="color:#d63638;font-size:11px;">Error</span>';
+	function removeUserPill(marketerId, userId) {
+		var fd = new FormData();
+		fd.append('action', 'hmo_remove_bucket_access');
+		fd.append('_ajax_nonce', baNonce);
+		fd.append('marketer_id', marketerId);
+		fd.append('wp_user_id', userId);
+		fetch(ajaxUrl, { method:'POST', body:fd })
+			.then(function(r) { return r.json(); })
+			.then(function(res) {
+				if (res.success) {
+					var pill = document.getElementById('hmo-bpill-' + marketerId + '-' + userId);
+					if (pill) pill.remove();
+					var container = document.getElementById('hmo-bucket-users-' + marketerId);
+					if (container && !container.querySelector('.hmo-bucket-pill--assigned')) {
+						var empty = document.createElement('span');
+						empty.id = 'hmo-bucket-empty-' + marketerId;
+						empty.className = 'hmo-bucket-empty';
+						empty.textContent = 'No users assigned.';
+						container.appendChild(empty);
 					}
-				})
-				.catch(function() {
-					statusCell.innerHTML = '<span style="color:#d63638;font-size:11px;">Error</span>';
-				});
+				}
+			});
+	}
+
+	function addUserToBucket(marketerId, bucketName, user) {
+		var fd = new FormData();
+		fd.append('action', 'hmo_add_bucket_access');
+		fd.append('_ajax_nonce', baNonce);
+		fd.append('marketer_id', marketerId);
+		fd.append('bucket_name', bucketName);
+		fd.append('wp_user_id', user.id);
+		fetch(ajaxUrl, { method:'POST', body:fd })
+			.then(function(r) { return r.json(); })
+			.then(function(res) {
+				if (res.success) {
+					var container = document.getElementById('hmo-bucket-users-' + marketerId);
+					var empty = document.getElementById('hmo-bucket-empty-' + marketerId);
+					if (empty) empty.remove();
+					var span = document.createElement('span');
+					span.id = 'hmo-bpill-' + marketerId + '-' + user.id;
+					span.className = 'hmo-bucket-pill hmo-bucket-pill--assigned';
+					span.innerHTML = escHtml(res.data.name) +
+						' <button type="button" class="hmo-bucket-pill__remove" data-marketer-id="' + marketerId + '" data-user-id="' + user.id + '" title="Remove user">\u00d7</button>';
+					container.appendChild(span);
+				}
+			});
+	}
+
+	// Remove via click.
+	document.addEventListener('click', function(e) {
+		var btn = e.target.closest('.hmo-bucket-pill__remove');
+		if (!btn) return;
+		removeUserPill(parseInt(btn.dataset.marketerId, 10), parseInt(btn.dataset.userId, 10));
+	});
+
+	// Search and add.
+	var timers = {};
+	document.querySelectorAll('.hmo-bucket-user-search').forEach(function(input) {
+		var marketerId  = parseInt(input.dataset.marketerId, 10);
+		var bucketName  = input.dataset.bucketName;
+		var resultsBox  = document.querySelector('.hmo-bucket-search-results[data-marketer-id="' + marketerId + '"]');
+
+		input.addEventListener('input', function() {
+			clearTimeout(timers[marketerId]);
+			var q = input.value.trim();
+			if (q.length < 2) { resultsBox.style.display = 'none'; return; }
+			timers[marketerId] = setTimeout(function() {
+				var fd = new FormData();
+				fd.append('action', 'hmo_search_users');
+				fd.append('_ajax_nonce', sNonce);
+				fd.append('q', q);
+				fetch(ajaxUrl, { method:'POST', body:fd })
+					.then(function(r) { return r.json(); })
+					.then(function(res) {
+						resultsBox.innerHTML = '';
+						if (!res.success || !res.data.length) { resultsBox.style.display='none'; return; }
+						res.data.forEach(function(u) {
+							// Skip already-assigned.
+							if (document.getElementById('hmo-bpill-' + marketerId + '-' + u.id)) return;
+							var li = document.createElement('li');
+							li.style.cssText = 'padding:7px 12px;cursor:pointer;border-bottom:1px solid #eee;font-size:13px;';
+							li.textContent = u.name + ' (' + u.email + ')';
+							li.addEventListener('mousedown', function(e) {
+								e.preventDefault();
+								addUserToBucket(marketerId, bucketName, u);
+								input.value = '';
+								resultsBox.style.display = 'none';
+							});
+							li.addEventListener('mouseover', function(){ this.style.background='#f0f0f0'; });
+							li.addEventListener('mouseout',  function(){ this.style.background=''; });
+							resultsBox.appendChild(li);
+						});
+						if (resultsBox.children.length) {
+							resultsBox.style.display = 'block';
+						}
+					});
+			}, 280);
+		});
+
+		input.addEventListener('blur', function() {
+			setTimeout(function() { resultsBox.style.display = 'none'; }, 200);
 		});
 	});
+
+	function escHtml(s) {
+		return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+	}
 })();
 </script>
-</form>
+<?php endif; ?>
 
 <!-- ======================================================================
      TAB: PAGE LINKS

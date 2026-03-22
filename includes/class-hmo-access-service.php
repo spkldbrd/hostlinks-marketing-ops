@@ -10,8 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  *  1. Shortcode gate (public / logged_in / approved_viewers) — mirrors Hostlinks_Access.
  *     Controls whether a user can see the front-end page at all.
  *
- *  2. Marketer filtering — controls which events a marketer-mapped user sees.
- *     Applied after the shortcode gate passes.
+ *  2. Bucket-based event filtering — controls which events a user sees.
+ *     A user may be assigned to multiple event buckets (marketers).
+ *     A bucket may be assigned to multiple users (many-to-many via hmo_bucket_access).
  */
 class HMO_Access_Service {
 
@@ -33,7 +34,7 @@ class HMO_Access_Service {
 	const OPT_MESSAGE      = 'hmo_denial_message';
 	const OPT_TASK_EDITORS = 'hmo_task_editors';
 
-	// ── Marketer mapping user meta keys ───────────────────────────────────────
+	// ── Legacy marketer meta (read-only for backward compat) ─────────────────
 
 	const META_MARKETER_ID   = 'hmo_marketer_id';
 	const META_MARKETER_NAME = 'hmo_marketer_name';
@@ -43,22 +44,18 @@ class HMO_Access_Service {
 	// ── Bootstrap ─────────────────────────────────────────────────────────────
 
 	public static function register_ajax(): void {
-		add_action( 'wp_ajax_hmo_search_users',       array( __CLASS__, 'ajax_search_users' ) );
-		add_action( 'wp_ajax_nopriv_hmo_search_users',array( __CLASS__, 'ajax_search_users_denied' ) );
-		add_action( 'wp_ajax_hmo_save_single_mapping',array( __CLASS__, 'ajax_save_single_mapping' ) );
+		add_action( 'wp_ajax_hmo_search_users',          array( __CLASS__, 'ajax_search_users' ) );
+		add_action( 'wp_ajax_nopriv_hmo_search_users',   array( __CLASS__, 'ajax_search_users_denied' ) );
+		add_action( 'wp_ajax_hmo_add_bucket_access',     array( __CLASS__, 'ajax_add_bucket_access' ) );
+		add_action( 'wp_ajax_hmo_remove_bucket_access',  array( __CLASS__, 'ajax_remove_bucket_access' ) );
+		// Legacy — kept so old admin JS still works during transition.
+		add_action( 'wp_ajax_hmo_save_single_mapping',   array( __CLASS__, 'ajax_save_single_mapping' ) );
 	}
 
 	// =========================================================================
 	// 1. Shortcode access gate
 	// =========================================================================
 
-	/**
-	 * Main gate: can the current user view an HMO shortcode?
-	 * Administrators (manage_options) always pass.
-	 *
-	 * @param string $key  One of the keys in self::SHORTCODES.
-	 * @return bool
-	 */
 	public function can_view_shortcode( string $key ): bool {
 		if ( current_user_can( 'manage_options' ) ) {
 			return true;
@@ -122,12 +119,6 @@ class HMO_Access_Service {
 		update_option( self::OPT_MODES, $clean );
 	}
 
-	/**
-	 * One-time clone: copies Hostlinks approved viewers into HMO approved viewers.
-	 * Only copies users that exist in WordPress. Does not overwrite — merges.
-	 *
-	 * @return int  Number of users added.
-	 */
 	public function clone_approved_viewers_from_hostlinks(): int {
 		$hl_viewers  = array_map( 'intval', (array) get_option( 'hostlinks_approved_viewers', array() ) );
 		$hmo_viewers = $this->get_approved_viewers();
@@ -164,60 +155,68 @@ class HMO_Access_Service {
 	}
 
 	// =========================================================================
-	// 2. Marketer filtering
+	// 2. Bucket-based event filtering (many-to-many)
 	// =========================================================================
 
 	public function current_user_can_see_all_events(): bool {
 		return current_user_can( 'manage_options' );
 	}
 
-	public function current_user_is_marketer(): bool {
-		return ! $this->current_user_can_see_all_events()
-			&& (bool) $this->get_current_user_marketer_id();
+	/**
+	 * Returns the marketer_ids (bucket IDs) the current user has access to.
+	 * Returns null for admins (no restriction).
+	 *
+	 * @return int[]|null
+	 */
+	public function get_allowed_bucket_ids(): ?array {
+		if ( $this->current_user_can_see_all_events() ) {
+			return null;
+		}
+		return HMO_DB::get_bucket_ids_for_user( get_current_user_id() );
 	}
 
-	public function get_current_user_marketer_id(): int {
-		return (int) get_user_meta( get_current_user_id(), self::META_MARKETER_ID, true );
-	}
-
-	public function get_current_user_marketer_name(): string {
-		return (string) get_user_meta( get_current_user_id(), self::META_MARKETER_NAME, true );
-	}
-
-	public function set_user_marketer_mapping( int $wp_user_id, int $marketer_id, string $marketer_name ): void {
-		update_user_meta( $wp_user_id, self::META_MARKETER_ID,   $marketer_id );
-		update_user_meta( $wp_user_id, self::META_MARKETER_NAME, $marketer_name );
-	}
-
-	public function remove_user_marketer_mapping( int $wp_user_id ): void {
-		delete_user_meta( $wp_user_id, self::META_MARKETER_ID );
-		delete_user_meta( $wp_user_id, self::META_MARKETER_NAME );
+	/**
+	 * Returns bucket info for the current user: array of ['id'=>int,'name'=>string].
+	 */
+	public function get_current_user_buckets(): array {
+		global $wpdb;
+		$uid  = get_current_user_id();
+		$rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT marketer_id AS id, bucket_name AS name
+			 FROM {$wpdb->prefix}hmo_bucket_access
+			 WHERE wp_user_id = %d
+			 ORDER BY bucket_name ASC",
+			$uid
+		) );
+		return array_map( fn( $r ) => array( 'id' => (int) $r->id, 'name' => $r->name ), $rows );
 	}
 
 	/**
 	 * Returns null for admins (no restriction), or an array of allowed
-	 * hostlinks_event_id values for marketers.
+	 * hostlinks_event_id values. Reads from bucket_access table.
+	 *
+	 * Used only for per-event can_view_event() checks. Dashboard rows use
+	 * the marketer_ids filter directly for efficiency.
 	 *
 	 * @return int[]|null
 	 */
-	public function get_allowed_event_ids() {
+	public function get_allowed_event_ids(): ?array {
 		if ( $this->current_user_can_see_all_events() ) {
 			return null;
 		}
 
-		$marketer_id = $this->get_current_user_marketer_id();
-		if ( ! $marketer_id ) {
+		$bucket_ids = $this->get_allowed_bucket_ids();
+		if ( empty( $bucket_ids ) ) {
 			return array();
 		}
 
 		global $wpdb;
-		$ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT hostlinks_event_id FROM {$wpdb->prefix}hmo_event_ops
-				 WHERE assigned_marketer_id = %d",
-				$marketer_id
-			)
-		);
+		$placeholders = implode( ',', array_fill( 0, count( $bucket_ids ), '%d' ) );
+		$ids          = $wpdb->get_col( $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			"SELECT DISTINCT eve_id FROM {$wpdb->prefix}event_details_list
+			 WHERE eve_marketer IN ($placeholders) AND eve_status = 1",
+			$bucket_ids
+		) );
 
 		return array_map( 'intval', $ids );
 	}
@@ -229,6 +228,39 @@ class HMO_Access_Service {
 
 		$allowed = $this->get_allowed_event_ids();
 		return is_array( $allowed ) && in_array( $event_id, $allowed, true );
+	}
+
+	// ── Legacy marketer meta (read-only compat) ───────────────────────────────
+
+	public function current_user_is_marketer(): bool {
+		return ! $this->current_user_can_see_all_events()
+			&& ! empty( $this->get_allowed_bucket_ids() );
+	}
+
+	/** @deprecated Use get_allowed_bucket_ids() */
+	public function get_current_user_marketer_id(): int {
+		return (int) get_user_meta( get_current_user_id(), self::META_MARKETER_ID, true );
+	}
+
+	/** @deprecated Use get_current_user_buckets() */
+	public function get_current_user_marketer_name(): string {
+		return (string) get_user_meta( get_current_user_id(), self::META_MARKETER_NAME, true );
+	}
+
+	/** Writes legacy user-meta AND inserts into bucket_access table. */
+	public function set_user_marketer_mapping( int $wp_user_id, int $marketer_id, string $marketer_name ): void {
+		update_user_meta( $wp_user_id, self::META_MARKETER_ID,   $marketer_id );
+		update_user_meta( $wp_user_id, self::META_MARKETER_NAME, $marketer_name );
+		HMO_DB::add_bucket_access( $marketer_id, $marketer_name, $wp_user_id );
+	}
+
+	/** Removes legacy user-meta AND removes from bucket_access table (all buckets for user). */
+	public function remove_user_marketer_mapping( int $wp_user_id ): void {
+		delete_user_meta( $wp_user_id, self::META_MARKETER_ID );
+		delete_user_meta( $wp_user_id, self::META_MARKETER_NAME );
+		// Remove all bucket access for this user.
+		global $wpdb;
+		$wpdb->delete( $wpdb->prefix . 'hmo_bucket_access', array( 'wp_user_id' => $wp_user_id ) );
 	}
 
 	// =========================================================================
@@ -268,10 +300,53 @@ class HMO_Access_Service {
 		wp_send_json_error( 'Unauthorized', 403 );
 	}
 
-	/**
-	 * Save a single marketer → WP user mapping via AJAX.
-	 * Expects POST: marketer_id (int), wp_user_id (int), marketer_name (string), _ajax_nonce
-	 */
+	/** Add a user → bucket mapping. POST: marketer_id, bucket_name, wp_user_id, _ajax_nonce */
+	public static function ajax_add_bucket_access(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Unauthorized', 403 );
+		}
+		check_ajax_referer( 'hmo_bucket_access' );
+
+		$marketer_id  = (int) ( $_POST['marketer_id']  ?? 0 );
+		$wp_user_id   = (int) ( $_POST['wp_user_id']   ?? 0 );
+		$bucket_name  = sanitize_text_field( $_POST['bucket_name'] ?? '' );
+
+		if ( ! $marketer_id || ! $wp_user_id ) {
+			wp_send_json_error( 'Invalid parameters', 400 );
+		}
+
+		HMO_DB::add_bucket_access( $marketer_id, $bucket_name, $wp_user_id );
+		HMO_Dashboard_Service::flush_row_cache();
+
+		$user = get_userdata( $wp_user_id );
+		wp_send_json_success( array(
+			'user_id' => $wp_user_id,
+			'name'    => $user ? $user->display_name : '',
+			'email'   => $user ? $user->user_email : '',
+		) );
+	}
+
+	/** Remove a user → bucket mapping. POST: marketer_id, wp_user_id, _ajax_nonce */
+	public static function ajax_remove_bucket_access(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Unauthorized', 403 );
+		}
+		check_ajax_referer( 'hmo_bucket_access' );
+
+		$marketer_id = (int) ( $_POST['marketer_id'] ?? 0 );
+		$wp_user_id  = (int) ( $_POST['wp_user_id']  ?? 0 );
+
+		if ( ! $marketer_id || ! $wp_user_id ) {
+			wp_send_json_error( 'Invalid parameters', 400 );
+		}
+
+		HMO_DB::remove_bucket_access( $marketer_id, $wp_user_id );
+		HMO_Dashboard_Service::flush_row_cache();
+
+		wp_send_json_success( array( 'removed' => true ) );
+	}
+
+	/** Legacy: kept for backward compat with older admin JS. */
 	public static function ajax_save_single_mapping(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( 'Unauthorized', 403 );
@@ -287,20 +362,6 @@ class HMO_Access_Service {
 		}
 
 		$self = new self();
-
-		// If a different user was previously mapped to this marketer, clear them first.
-		global $wpdb;
-		$old_user_ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT user_id FROM {$wpdb->usermeta} WHERE meta_key = %s AND meta_value = %s",
-				self::META_MARKETER_ID,
-				$marketer_id
-			)
-		);
-		foreach ( $old_user_ids as $old_uid ) {
-			$self->remove_user_marketer_mapping( (int) $old_uid );
-		}
-
 		if ( $wp_user_id ) {
 			$self->set_user_marketer_mapping( $wp_user_id, $marketer_id, $marketer_name );
 			wp_send_json_success( array( 'status' => 'mapped', 'user_id' => $wp_user_id ) );

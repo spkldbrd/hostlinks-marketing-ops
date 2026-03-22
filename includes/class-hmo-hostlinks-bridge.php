@@ -54,11 +54,12 @@ class HMO_Hostlinks_Bridge {
 	 * Fetch multiple events with optional filters.
 	 *
 	 * Supported $filters keys:
-	 *   status      int   1 = active (default), 0 = inactive
-	 *   marketer_id int   filter by eve_marketer FK
-	 *   date_from   string Y-m-d  eve_start >= date_from
-	 *   date_to     string Y-m-d  eve_start <= date_to
-	 *   event_ids   array list of eve_id values to include
+	 *   status       int    1 = active (default), 0 = inactive
+	 *   marketer_id  int    filter by eve_marketer FK (single)
+	 *   marketer_ids array  filter by eve_marketer IN (…) (multi-bucket)
+	 *   date_from    string Y-m-d  eve_start >= date_from
+	 *   date_to      string Y-m-d  eve_start <= date_to
+	 *   event_ids    array  list of eve_id values to include
 	 *
 	 * @param array $filters
 	 * @return array
@@ -76,6 +77,13 @@ class HMO_Hostlinks_Bridge {
 		if ( ! empty( $filters['marketer_id'] ) ) {
 			$where[]  = 'e.eve_marketer = %d';
 			$params[] = (int) $filters['marketer_id'];
+		}
+
+		if ( ! empty( $filters['marketer_ids'] ) && is_array( $filters['marketer_ids'] ) ) {
+			$ids          = array_map( 'intval', $filters['marketer_ids'] );
+			$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+			$where[]      = "e.eve_marketer IN ($placeholders)";
+			$params       = array_merge( $params, $ids );
 		}
 
 		if ( ! empty( $filters['date_from'] ) ) {
