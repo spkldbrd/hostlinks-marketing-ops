@@ -1,0 +1,122 @@
+---
+description: How to commit, version, and publish Hostlinks Marketing Ops (git + GitHub release zip)
+alwaysApply: true
+---
+
+# HMO Plugin — Git commits and GitHub releases
+
+Follow this whenever shipping changes to **this repository** (Hostlinks Marketing Ops). The plugin auto-updater reads **GitHub Releases** (`releases/latest`) and the **`hostlinks-marketing-ops.zip`** asset.
+
+## Repository root
+
+This folder is the Git repo root: it contains `hostlinks-marketing-ops.php`, `.github/workflows/`, etc.
+
+Remote: `https://github.com/spkldbrd/hostlinks-marketing-ops` (branch: `main`)
+
+Run all **git** and **release** commands from this directory (or pass `-C` to that path).
+
+---
+
+## Step 1 — Bump the version
+
+Edit **two places** in `hostlinks-marketing-ops.php`:
+
+```php
+ * Version:     1.4.5   ← plugin header
+...
+define( 'HMO_VERSION',    '1.4.5' );   ← constant (spacing as in file)
+```
+
+Only bump **`HMO_DB_VERSION`** when a database schema change is included.
+
+Optionally add a line under `== Changelog ==` in `readme.txt` for the same version.
+
+---
+
+## Step 2 — Commit and push (PowerShell)
+
+**Do not use `&&` or heredoc (`<<'EOF'`) — not valid in Windows PowerShell.**
+
+With this repo as the Cursor workspace root, `(Get-Location).Path` is the plugin root. Otherwise set `$PluginRoot` to your clone path.
+
+```powershell
+$PluginRoot = (Get-Location).Path   # or: "C:\path\to\hostlinks-marketing-ops"
+Set-Location $PluginRoot
+$msg = "fix: short description of change (v1.X.X)"
+git add -A
+git commit -m $msg
+git push origin main
+```
+
+Use **Conventional-commit** prefixes when they fit (`fix:`, `feat:`, `ci:`, etc.) and include the version when helpful (e.g. `(v1.4.6)`).
+
+---
+
+## Step 3 — Release zip and GitHub Release (default: automated)
+
+Pushing to **`main`** runs GitHub Actions: [`.github/workflows/release-zip.yml`](.github/workflows/release-zip.yml)
+
+- Reads **`HMO_VERSION`** from `hostlinks-marketing-ops.php`
+- Builds **`hostlinks-marketing-ops.zip`** with root folder `hostlinks-marketing-ops/` and Unix-style paths (Linux-safe)
+- **Creates** the GitHub Release + tag if missing, or **`gh release upload --clobber`** if the release already exists (same version, refreshed zip)
+
+After push, confirm on GitHub: **Actions** (workflow succeeded) and **Releases** (zip attached). The updater cache busts when admins visit the Marketing Ops settings page.
+
+**Agents:** after a version bump, commit and push from this repo. **Do not skip the push** — it triggers the release workflow.
+
+---
+
+## Step 4 — Manual zip + release (fallback only)
+
+Use when Actions failed, are disabled, or you must ship without waiting for CI.
+
+### 4a — Build the zip (.NET `ZipFile`, forward slashes)
+
+Always use **.NET `ZipFile`** so zip entries use **forward slashes** (required on Linux). **Do not use `Compress-Archive`** — it can produce backslashes that break extraction on the host.
+
+```powershell
+$PluginRoot = (Get-Location).Path   # repo root = folder with hostlinks-marketing-ops.php
+$zipPath   = Join-Path (Split-Path $PluginRoot -Parent) "hostlinks-marketing-ops.zip"
+
+if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zip = [System.IO.Compression.ZipFile]::Open($zipPath, 'Create')
+
+Get-ChildItem -Path $PluginRoot -Recurse -File | Where-Object {
+    $_.FullName -notmatch '[\\/]\.git[\\/]'
+} | ForEach-Object {
+    $relative = $_.FullName.Substring($PluginRoot.Length + 1).Replace('\', '/')
+    $entry    = "hostlinks-marketing-ops/$relative"
+    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $_.FullName, $entry, 'Optimal') | Out-Null
+}
+
+$zip.Dispose()
+```
+
+The zip root folder must be **`hostlinks-marketing-ops/`** so WordPress installs correctly.
+
+### 4b — Create or refresh the GitHub release
+
+```powershell
+Set-Location $PluginRoot
+gh release create 1.X.X $zipPath `
+    --title "v1.X.X - Short title" `
+    --notes "What changed in this release."
+```
+
+If the release exists and you only replace the asset:
+
+```powershell
+gh release upload 1.X.X $zipPath --clobber
+```
+
+---
+
+## Version history convention
+
+| Segment | When to bump |
+|---------|----------------|
+| PATCH (x.x.**X**) | Bug fixes, copy changes, minor UI tweaks |
+| MINOR (x.**X**.0) | New features, significant UI changes |
+| MAJOR (**X**.0.0) | Breaking changes, major architecture shifts |
