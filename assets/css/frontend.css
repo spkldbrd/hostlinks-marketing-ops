@@ -1,9 +1,9 @@
-/* Hostlinks Marketing Ops — Front-end Styles
+/* Hostlinks Marketing Ops ? Front-end Styles
    Extends and aligns with the Hostlinks visual theme.
    Color tokens match hostlinks-calendar.css exactly.
    ------------------------------------------------------------------ */
 
-/* ── Dashboard header banner ───────────────────────────────────────────── */
+/* ?? Dashboard header banner ????????????????????????????????????????????? */
 
 .hmo-dashboard-header {
 	background: hsl(199 89% 48%);
@@ -32,7 +32,7 @@
 	flex-wrap: wrap;
 }
 
-/* ── Summary stat cards ─────────────────────────────────────────────────── */
+/* ?? Summary stat cards ??????????????????????????????????????????????????? */
 
 .hmo-fe-cards {
 	display: flex;
@@ -77,7 +77,7 @@
 	margin-top: 4px;
 }
 
-/* ── Events table ──────────────────────────────────────────────────────── */
+/* ?? Events table ???????????????????????????????????????????????????????? */
 
 .hmo-fe-table-wrap {
 	overflow-x: auto;
@@ -160,7 +160,7 @@
 .hmo-risk-pill--yellow { background: hsl(38 92% 50%);  color: #fff; }
 .hmo-risk-pill--green  { background: hsl(142 70% 42%); color: #fff; }
 
-/* ── Event detail page ─────────────────────────────────────────────────── */
+/* ?? Event detail page ??????????????????????????????????????????????????? */
 
 .hmo-back-link { margin-bottom: 1.25rem; }
 
@@ -218,7 +218,7 @@
 	margin-bottom: 1.25rem;
 }
 
-/* Panel titles — blue left-border accent matching Hostlinks primary */
+/* Panel titles ? blue left-border accent matching Hostlinks primary */
 .hmo-panel-title {
 	font-size: 1.05rem;
 	font-weight: 700;
@@ -247,7 +247,7 @@
 	color: hsl(215 25% 15%);
 }
 
-/* Primary button — mirrors .hostlinks-btn--active */
+/* Primary button ? mirrors .hostlinks-btn--active */
 .hmo-btn-primary,
 .hmo-btn-primary.hostlinks-btn {
 	background: hsl(199 89% 48%);
@@ -264,7 +264,7 @@
 	text-decoration: none;
 }
 
-/* ── Checklist accordion ───────────────────────────────────────────────── */
+/* ?? Checklist accordion ????????????????????????????????????????????????? */
 
 .hmo-accordion {
 	border: 1px solid hsl(215 15% 88%);
@@ -318,7 +318,7 @@
 
 .hmo-accordion--open .hmo-accordion__body { display: block; }
 
-/* ── Task list ─────────────────────────────────────────────────────────── */
+/* ?? Task list ??????????????????????????????????????????????????????????? */
 
 .hmo-task-list { display: flex; flex-direction: column; gap: 0.5rem; }
 
@@ -383,7 +383,7 @@
 	color: hsl(215 25% 15%);
 }
 
-/* ── List links grid ───────────────────────────────────────────────────── */
+/* ?? List links grid ????????????????????????????????????????????????????? */
 
 .hmo-list-grid {
 	display: grid;
@@ -425,7 +425,7 @@
 	font-size: 0.8rem;
 }
 
-/* ── Activity list ─────────────────────────────────────────────────────── */
+/* ?? Activity list ??????????????????????????????????????????????????????? */
 
 .hmo-activity-list { list-style: none; margin: 0; padding: 0; }
 
@@ -448,7 +448,7 @@
 
 .hmo-activity-user { font-weight: 600; white-space: nowrap; }
 
-/* ── Inline status ─────────────────────────────────────────────────────── */
+/* ?? Inline status ??????????????????????????????????????????????????????? */
 
 .hmo-inline-status,
 .hmo-note-status,
@@ -460,7 +460,7 @@
 .hmo-status--ok    { color: hsl(142 60% 28%); }
 .hmo-status--error { color: hsl(0 72% 51%); }
 
-/* ── Generic notice ────────────────────────────────────────────────────── */
+/* ?? Generic notice ?????????????????????????????????????????????????????? */
 
 .hmo-notice {
 	color: hsl(215 15% 50%);
@@ -468,7 +468,7 @@
 	padding: 0.5rem 0;
 }
 
-/* Access denied — matches .hostlinks-access-denied exactly */
+/* Access denied ? matches .hostlinks-access-denied exactly */
 .hmo-access-denied {
 	background: white;
 	border: 1px solid hsl(215 15% 88%);
@@ -486,7 +486,7 @@
 	line-height: 1.6;
 }
 
-/* ── Pagination ─────────────────────────────────────────────────────────── */
+/* ?? Pagination ??????????????????????????????????????????????????????????? */
 
 .hmo-pagination {
 	display: flex;
@@ -649,7 +649,7 @@
 }
 
 /* ============================================================
-   Task Template Editor
+   Task Template Editor ? two-column layout
    ============================================================ */
 
 .hmo-te-intro {
@@ -658,142 +658,222 @@
 	margin: 0 0 1.25rem;
 }
 
-.hmo-te-stage {
-	margin-bottom: 1rem;
+/* Two-column wrapper */
+.hmo-te-layout {
+	display: grid;
+	grid-template-columns: 240px 1fr;
+	gap: 0;
+	border: 1px solid hsl(215 15% 85%);
+	border-radius: 0.6rem;
+	overflow: hidden;
+	background: #fff;
+	min-height: 480px;
 }
 
-/* Stage header */
-.hmo-te-stage__header {
+/* ?? Left: sidebar ????????????????????????????? */
+
+.hmo-te-sidebar {
+	background: hsl(215 20% 97%);
+	border-right: 1px solid hsl(215 15% 85%);
+	display: flex;
+	flex-direction: column;
+}
+
+.hmo-te-sidebar__header {
 	display: flex;
 	align-items: center;
-	gap: 0.6rem;
+	justify-content: space-between;
 	padding: 0.75rem 1rem;
-	cursor: default;
+	border-bottom: 1px solid hsl(215 15% 88%);
+	gap: 0.5rem;
+}
+
+.hmo-te-sidebar__title {
+	font-size: 0.78rem;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: hsl(215 15% 50%);
+}
+
+.hmo-te-sidebar__add-form {
+	padding: 0.6rem 0.75rem;
+	background: hsl(199 89% 97%);
+	border-bottom: 1px solid hsl(199 60% 85%);
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+}
+
+.hmo-te-stage-list {
+	list-style: none;
+	margin: 0;
+	padding: 0.4rem 0;
+	flex: 1;
+	overflow-y: auto;
+}
+
+.hmo-te-stage-item {
+	position: relative;
 	border-left: 3px solid transparent;
-	transition: border-color 0.15s, background 0.15s;
-	border-radius: 0.5rem 0.5rem 0 0;
+	transition: background 0.12s, border-color 0.12s;
 }
 
-.hmo-te-stage--open > .hmo-te-stage__header {
+.hmo-te-stage-item:hover {
+	background: hsl(215 20% 93%);
+}
+
+.hmo-te-stage-item--active {
+	background: hsl(199 89% 95%);
 	border-left-color: hsl(199 89% 48%);
-	background: hsl(199 89% 96%);
 }
 
-/* Stage toggle button */
-.hmo-te-stage-toggle {
-	background: none;
-	border: none;
-	padding: 0;
+.hmo-te-stage-item--active:hover {
+	background: hsl(199 89% 92%);
+}
+
+.hmo-te-stage-item__select {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.6rem 0.6rem 0.6rem 0.75rem;
 	cursor: pointer;
+	gap: 0.4rem;
+}
+
+.hmo-te-stage-item__name {
+	font-size: 0.875rem;
+	font-weight: 600;
+	color: hsl(215 25% 20%);
+	flex: 1;
+}
+
+.hmo-te-stage-item--active .hmo-te-stage-item__name {
+	color: hsl(199 89% 32%);
+}
+
+.hmo-te-stage-item__count {
+	font-size: 0.72rem;
+	font-weight: 600;
+	background: hsl(215 15% 88%);
+	color: hsl(215 15% 40%);
+	border-radius: 10px;
+	padding: 1px 7px;
+	min-width: 20px;
+	text-align: center;
+}
+
+.hmo-te-stage-item--active .hmo-te-stage-item__count {
+	background: hsl(199 89% 75%);
+	color: hsl(199 89% 18%);
+}
+
+.hmo-te-stage-item__actions {
+	display: none;
+	gap: 0.15rem;
+	padding: 0 0.4rem 0 0;
 	flex-shrink: 0;
-	width: 20px;
+}
+
+.hmo-te-stage-item:hover .hmo-te-stage-item__actions,
+.hmo-te-stage-item--active .hmo-te-stage-item__actions {
+	display: flex;
+}
+
+.hmo-te-btn--icon {
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	font-size: 0.82rem;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	border-radius: 4px;
+	line-height: 1;
 }
 
-.hmo-te-stage__arrow {
-	display: inline-block;
-	font-size: 0.65rem;
-	color: hsl(215 15% 50%);
-	transition: transform 0.2s ease;
-}
-
-.hmo-te-stage--open .hmo-te-stage__arrow {
-	transform: rotate(90deg);
-	color: hsl(199 89% 42%);
-}
-
-/* Stage title + count — clickable toggle zone */
-.hmo-te-stage__title-wrap {
-	display: flex;
-	align-items: baseline;
-	gap: 0.6rem;
-	flex: 1;
-	cursor: pointer;
-}
-
-.hmo-te-stage__title {
-	font-size: 1rem;
-	font-weight: 700;
-	color: hsl(215 25% 15%);
-	padding: 0;
-	margin: 0;
-	border: none;
-}
-
-.hmo-te-stage__title-wrap:hover .hmo-te-stage__title {
-	color: hsl(199 89% 38%);
-}
-
-.hmo-te-stage__count {
-	font-size: 0.75rem;
-	font-weight: 500;
-	color: hsl(215 15% 55%);
-	white-space: nowrap;
-}
-
-/* Stage actions — Rename + Delete Stage */
-.hmo-te-stage__actions {
-	display: flex;
-	gap: 0.35rem;
-	flex-shrink: 0;
-}
-
-/* Collapsible stage body */
-.hmo-te-stage__body {
-	display: none;
-	padding: 0.75rem 1rem 0.75rem;
-	border-top: 1px solid hsl(215 15% 90%);
-}
-
-.hmo-te-stage--open > .hmo-te-stage__body {
-	display: block;
-}
-
-/* Rename form */
 .hmo-te-stage__rename-form {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	flex-wrap: wrap;
-	margin-bottom: 0.75rem;
-	padding: 0.6rem 0.75rem;
+	padding: 0.5rem 0.6rem;
 	background: hsl(199 89% 97%);
-	border: 1px solid hsl(199 60% 85%);
-	border-radius: 0.4rem;
-}
-
-/* Page footer — add stage */
-.hmo-te-page-footer {
-	margin-top: 1.5rem;
-	padding-top: 1rem;
-	border-top: 1px solid hsl(215 15% 88%);
+	border-top: 1px solid hsl(199 60% 85%);
 	display: flex;
 	flex-direction: column;
-	gap: 0.5rem;
-	align-items: flex-start;
+	gap: 0.4rem;
 }
 
 .hmo-te-stage-hint {
-	font-size: 0.82rem;
-	color: hsl(215 15% 50%);
+	font-size: 0.78rem;
+	color: hsl(215 15% 55%);
+	font-style: italic;
+	padding: 0.5rem 0.75rem;
+	margin: 0;
+	border-top: 1px solid hsl(215 15% 88%);
+}
+
+/* ?? Right: panel ???????????????????????????????? */
+
+.hmo-te-content {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.hmo-te-panel {
+	display: none;
+	flex-direction: column;
+	flex: 1;
+}
+
+.hmo-te-panel--active {
+	display: flex;
+}
+
+.hmo-te-panel__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.75rem 1.1rem;
+	border-bottom: 1px solid hsl(215 15% 88%);
+	background: hsl(215 20% 99%);
+	gap: 0.75rem;
+	flex-shrink: 0;
+}
+
+.hmo-te-panel__title {
+	font-size: 1rem;
+	font-weight: 700;
+	color: hsl(215 25% 15%);
+}
+
+.hmo-te-empty-tasks {
+	padding: 1.5rem 1.1rem;
+	color: hsl(215 15% 55%);
+	font-size: 0.875rem;
 	font-style: italic;
 	margin: 0;
 }
 
+.hmo-te-panel > .hmo-te-task-list {
+	padding: 0.75rem 1.1rem;
+	flex: 1;
+	overflow-y: auto;
+}
+
 .hmo-te-add-stage-form {
 	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	flex-wrap: wrap;
-	padding: 0.6rem 0.75rem;
-	background: hsl(215 20% 97%);
-	border: 1px solid hsl(215 15% 85%);
-	border-radius: 0.4rem;
-	width: 100%;
-	box-sizing: border-box;
+	flex-direction: column;
+	gap: 0.4rem;
 }
+
+/* ?? legacy class stubs (kept for any leftover references) ?? */
+.hmo-te-stage { /* no-op */ }
+.hmo-te-stage__body { /* no-op */ }
+.hmo-te-stage__footer { /* no-op */ }
+.hmo-te-page-footer { /* no-op */ }
+
+/* (Stage header/toggle styles replaced by two-column layout above) */
+
+/* (Stale accordion stage CSS removed ? see two-column layout above) */
 
 /* Task list */
 .hmo-te-task-list,
@@ -940,7 +1020,7 @@
 .hmo-te-task__edit,
 .hmo-te-add-task-form,
 .hmo-te-add-subtask-form {
-	padding: 0.75rem 0.85rem;
+	padding: 0.75rem 1.1rem;
 	background: hsl(215 20% 98%);
 	border-top: 1px solid hsl(215 15% 90%);
 	display: flex;
@@ -1064,13 +1144,33 @@
 	background: hsl(199 89% 95%);
 }
 
+/* Small button variant for sidebar header */
+.hmo-te-btn--sm {
+	padding: 3px 9px;
+	font-size: 0.75rem;
+}
+
 /* Inline status */
 .hmo-te-status {
 	font-size: 0.78rem;
 }
 
+/* Responsive: stack to single column on narrow screens */
+@media (max-width: 600px) {
+	.hmo-te-layout {
+		grid-template-columns: 1fr;
+	}
+	.hmo-te-sidebar {
+		border-right: none;
+		border-bottom: 1px solid hsl(215 15% 85%);
+	}
+	.hmo-te-stage-list {
+		max-height: 160px;
+	}
+}
+
 /* ============================================================
-   Dark mode — matches .wp-dark-mode-active pattern from
+   Dark mode ? matches .wp-dark-mode-active pattern from
    hostlinks-calendar.css
    ============================================================ */
 
@@ -1316,7 +1416,7 @@
 }
 
 /* ============================================================
-   UI Redesign additions � Phase 4 / 5
+   UI Redesign additions ? Phase 4 / 5
    ============================================================ */
 
 /* -- Orange summary card --------------------------------------------------- */

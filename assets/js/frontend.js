@@ -320,44 +320,30 @@
 		setTimeout( function () { $el.fadeOut( 400 ); }, 2500 );
 	}
 
-	// ── Stage helpers ─────────────────────────────────────────────────────────
+	// ── Stage selection ───────────────────────────────────────────────────────
 
-	function openStage( $stage ) {
-		$stage.addClass( 'hmo-te-stage--open' );
-		$stage.find( '.hmo-te-stage-toggle' ).first().attr( 'aria-expanded', 'true' );
+	function selectStage( key ) {
+		// Highlight sidebar item.
+		$( '.hmo-te-stage-item' ).removeClass( 'hmo-te-stage-item--active' );
+		$( '.hmo-te-stage-item[data-stage="' + key + '"]' ).addClass( 'hmo-te-stage-item--active' );
+		// Show the matching panel, hide the rest.
+		$( '.hmo-te-panel' ).removeClass( 'hmo-te-panel--active' );
+		$( '#hmo-te-panel-' + key ).addClass( 'hmo-te-panel--active' );
 	}
 
-	function closeStage( $stage ) {
-		$stage.removeClass( 'hmo-te-stage--open' );
-		$stage.find( '.hmo-te-stage-toggle' ).first().attr( 'aria-expanded', 'false' );
-	}
-
-	function updateStageHint( total ) {
-		var $hint = $( '#hmo-te-stage-hint' );
-		if ( ! $hint.length ) { return; }
-		if ( total >= 6 ) {
-			$hint.html( 'You have <strong>' + total + '</strong> stages. We recommend keeping it to 6 or fewer for a manageable checklist — but you can add more if needed.' );
-		} else {
-			$hint.html( 'Recommended maximum: <strong>6 stages</strong>. You currently have ' + total + '.' );
-		}
-	}
-
-	// ── Toggle stage ──────────────────────────────────────────────────────────
-
-	$( document ).on( 'click', '[data-action="toggle-stage"]', function ( e ) {
-		if ( $( e.target ).is( 'button, a' ) || $( e.target ).closest( '.hmo-te-stage__actions' ).length ) {
-			return;
-		}
-		var $stage = $( this ).closest( '.hmo-te-stage' );
-		$stage.hasClass( 'hmo-te-stage--open' ) ? closeStage( $stage ) : openStage( $stage );
+	$( document ).on( 'click', '[data-action="select-stage"]', function ( e ) {
+		if ( $( e.target ).is( 'button' ) ) { return; }
+		var key = $( this ).closest( '.hmo-te-stage-item' ).data( 'stage' );
+		selectStage( key );
 	} );
 
 	// ── Rename stage ──────────────────────────────────────────────────────────
 
-	$( document ).on( 'click', '[data-action="rename-stage"]', function () {
-		var $stage = $( this ).closest( '.hmo-te-stage' );
-		openStage( $stage );
-		$stage.find( '.hmo-te-stage__rename-form' ).first().slideDown( 150 );
+	$( document ).on( 'click', '[data-action="rename-stage"]', function ( e ) {
+		e.stopPropagation();
+		var $item = $( this ).closest( '.hmo-te-stage-item' );
+		selectStage( $item.data( 'stage' ) );
+		$item.find( '.hmo-te-stage__rename-form' ).first().slideToggle( 150 );
 	} );
 
 	$( document ).on( 'click', '[data-action="cancel-stage-rename"]', function () {
@@ -365,11 +351,11 @@
 	} );
 
 	$( document ).on( 'click', '[data-action="save-stage-rename"]', function () {
-		var $btn    = $( this );
+		var $btn     = $( this );
 		var stageKey = $btn.data( 'stage-key' );
-		var $form   = $btn.closest( '.hmo-te-stage__rename-form' );
-		var $status = $form.find( '.hmo-te-status' );
-		var label   = $.trim( $form.find( '.hmo-te-stage-new-label' ).val() );
+		var $form    = $btn.closest( '.hmo-te-stage__rename-form' );
+		var $status  = $form.find( '.hmo-te-status' );
+		var label    = $.trim( $form.find( '.hmo-te-stage-new-label' ).val() );
 
 		if ( ! label ) { teStatus( $status, 'Name is required.', true ); return; }
 
@@ -377,17 +363,17 @@
 
 		teAjax( 'hmo_te_update_stage', { stage_key: stageKey, label: label },
 			function ( data ) {
-				$btn.text( 'Save Name' ).prop( 'disabled', false );
-				var $stage = $form.closest( '.hmo-te-stage' );
-				$stage.find( '.hmo-te-stage__title' ).first().text( data.label );
-				// Update delete button data too.
-				$stage.find( '[data-action="delete-stage"]' ).attr( 'data-stage-label', data.label );
-				// Update add-task footer button text.
-				$stage.find( '[data-action="show-add-task"]' ).text( '+ Add Task to ' + data.label );
+				$btn.text( 'Save' ).prop( 'disabled', false );
+				// Update sidebar item name.
+				var $item = $form.closest( '.hmo-te-stage-item' );
+				$item.find( '.hmo-te-stage-item__name' ).first().text( data.label );
+				$item.find( '[data-action="delete-stage"]' ).attr( 'data-stage-label', data.label );
+				// Update right-panel title.
+				$( '#hmo-te-panel-' + stageKey + ' .hmo-te-panel__title' ).text( data.label );
 				$form.slideUp( 150 );
 			},
 			function ( msg ) {
-				$btn.text( 'Save Name' ).prop( 'disabled', false );
+				$btn.text( 'Save' ).prop( 'disabled', false );
 				teStatus( $status, msg, true );
 			}
 		);
@@ -395,12 +381,13 @@
 
 	// ── Delete stage ──────────────────────────────────────────────────────────
 
-	$( document ).on( 'click', '[data-action="delete-stage"]', function () {
+	$( document ).on( 'click', '[data-action="delete-stage"]', function ( e ) {
+		e.stopPropagation();
 		var $btn       = $( this );
 		var stageKey   = $btn.data( 'stage-key' );
 		var stageLabel = $btn.data( 'stage-label' );
 		var taskCount  = parseInt( $btn.data( 'task-count' ), 10 ) || 0;
-		var $stage     = $btn.closest( '.hmo-te-stage' );
+		var $item      = $btn.closest( '.hmo-te-stage-item' );
 
 		var confirmMsg = 'Delete stage "' + stageLabel + '"';
 		confirmMsg += taskCount
@@ -410,9 +397,16 @@
 		if ( ! window.confirm( confirmMsg ) ) { return; }
 
 		teAjax( 'hmo_te_delete_stage', { stage_key: stageKey },
-			function ( data ) {
-				$stage.fadeOut( 250, function () { $( this ).remove(); } );
-				updateStageHint( data.total );
+			function () {
+				$( '#hmo-te-panel-' + stageKey ).remove();
+				$item.fadeOut( 200, function () {
+					$( this ).remove();
+					// Select the first remaining stage if any.
+					var $first = $( '.hmo-te-stage-item' ).first();
+					if ( $first.length ) {
+						selectStage( $first.data( 'stage' ) );
+					}
+				} );
 			},
 			function ( msg ) { alert( msg ); }
 		);
@@ -441,16 +435,61 @@
 
 		teAjax( 'hmo_te_add_stage', { label: label },
 			function ( data ) {
-				$btn.text( 'Add Stage' ).prop( 'disabled', false );
-				// Append the new stage panel before the page footer.
-				var html = buildStageHtml( data.stage );
-				$( '#hmo-te-page-footer' ).before( html );
+				$btn.text( 'Add' ).prop( 'disabled', false );
+				var s   = data.stage;
+				var key = escAttr( s.key );
+				var lbl = escHtml( s.label );
+
+				// Add sidebar item.
+				$( '#hmo-te-stage-list' ).append(
+					'<li class="hmo-te-stage-item" data-stage="' + key + '">' +
+						'<span class="hmo-te-stage-item__select" data-action="select-stage">' +
+							'<span class="hmo-te-stage-item__name">' + lbl + '</span>' +
+							'<span class="hmo-te-stage-item__count">0</span>' +
+						'</span>' +
+						'<div class="hmo-te-stage-item__actions">' +
+							'<button type="button" class="hmo-te-btn hmo-te-btn--edit hmo-te-btn--icon" data-action="rename-stage" title="Rename stage">&#9998;</button>' +
+							'<button type="button" class="hmo-te-btn hmo-te-btn--delete hmo-te-btn--icon" data-action="delete-stage"' +
+								' data-stage-key="' + key + '" data-stage-label="' + escAttr( s.label ) + '" data-task-count="0" title="Delete stage">&#10005;</button>' +
+						'</div>' +
+						'<div class="hmo-te-stage__rename-form" style="display:none;" data-stage-key="' + key + '">' +
+							'<input type="text" class="hmo-te-input hmo-te-stage-new-label" value="' + escAttr( s.label ) + '" placeholder="Stage name *">' +
+							'<div class="hmo-te-edit-actions">' +
+								'<button type="button" class="hmo-te-btn hmo-te-btn--save" data-action="save-stage-rename" data-stage-key="' + key + '">Save</button>' +
+								'<button type="button" class="hmo-te-btn hmo-te-btn--cancel" data-action="cancel-stage-rename">Cancel</button>' +
+								'<span class="hmo-te-status" style="display:none;"></span>' +
+							'</div>' +
+						'</div>' +
+					'</li>'
+				);
+
+				// Add right-panel.
+				$( '#hmo-te-content' ).append(
+					'<div class="hmo-te-panel" id="hmo-te-panel-' + key + '" data-stage="' + key + '">' +
+						'<div class="hmo-te-panel__header">' +
+							'<span class="hmo-te-panel__title">' + lbl + '</span>' +
+							'<button type="button" class="hmo-te-btn hmo-te-btn--add" data-action="show-add-task" data-stage="' + key + '">+ Add Task</button>' +
+						'</div>' +
+						'<div class="hmo-te-add-task-form" style="display:none;" data-stage="' + key + '">' +
+							'<input type="text" class="hmo-te-input hmo-te-new-label" placeholder="Task label *">' +
+							'<textarea class="hmo-te-textarea hmo-te-new-desc" placeholder="Description (optional)"></textarea>' +
+							'<div class="hmo-te-edit-actions">' +
+								'<button type="button" class="hmo-te-btn hmo-te-btn--save" data-action="save-new-task">Add Task</button>' +
+								'<button type="button" class="hmo-te-btn hmo-te-btn--cancel" data-action="cancel-add-task">Cancel</button>' +
+								'<span class="hmo-te-status" style="display:none;"></span>' +
+							'</div>' +
+						'</div>' +
+						'<ul class="hmo-te-task-list" id="hmo-te-list-' + key + '"></ul>' +
+						'<p class="hmo-te-empty-tasks">No tasks in this stage yet. Click <strong>+ Add Task</strong> above to add one.</p>' +
+					'</div>'
+				);
+
 				$( '#hmo-te-add-stage-form' ).slideUp( 150 );
 				$( '#hmo-te-new-stage-label' ).val( '' );
-				updateStageHint( data.total );
+				selectStage( s.key );
 			},
 			function ( msg ) {
-				$btn.text( 'Add Stage' ).prop( 'disabled', false );
+				$btn.text( 'Add' ).prop( 'disabled', false );
 				teStatus( $status, msg, true );
 			}
 		);
@@ -508,11 +547,14 @@
 		teAjax( 'hmo_te_add_task', { stage_key: stage, label: label, description: desc, parent_id: 0 },
 			function ( data ) {
 				$btn.text( 'Add Task' ).prop( 'disabled', false );
-				var html = buildTaskHtml( data.task );
 				var $list = $( '#hmo-te-list-' + stage );
-				$list.append( html );
-				// Auto-open the parent stage so the new task is visible.
-				openStage( $list.closest( '.hmo-te-stage' ) );
+				$list.append( buildTaskHtml( data.task ) );
+				// Hide the "no tasks" placeholder.
+				$list.closest( '.hmo-te-panel' ).find( '.hmo-te-empty-tasks' ).hide();
+				// Update sidebar task count.
+				var $item = $( '.hmo-te-stage-item[data-stage="' + stage + '"]' );
+				var cur   = parseInt( $item.find( '.hmo-te-stage-item__count' ).text(), 10 ) || 0;
+				$item.find( '.hmo-te-stage-item__count' ).text( cur + 1 );
 				$form.find( '.hmo-te-new-label' ).val( '' );
 				$form.find( '.hmo-te-new-desc' ).val( '' );
 				$form.slideUp( 150 );
@@ -622,19 +664,28 @@
 	// ── Delete task / sub-task ────────────────────────────────────────────────
 
 	$( document ).on( 'click', '[data-action="delete-task"]', function () {
-		var id    = $( this ).data( 'id' );
-		var $li   = $( this ).closest( '.hmo-te-task, .hmo-te-subtask' );
-		var $task = $( this ).closest( '.hmo-te-task' );
+		var id       = $( this ).data( 'id' );
+		var $li      = $( this ).closest( '.hmo-te-task, .hmo-te-subtask' );
+		var $task    = $( this ).closest( '.hmo-te-task' );
+		var isTopLevel = $li.hasClass( 'hmo-te-task' );
 
 		if ( ! window.confirm( str.confirmDelete ) ) { return; }
 
 		teAjax( 'hmo_te_delete_task', { id: id },
 			function () {
 				$li.fadeOut( 250, function () {
+					var $panel = $( this ).closest( '.hmo-te-panel' );
+					var stage  = $panel.data( 'stage' );
 					$( this ).remove();
-					// Refresh badge if a subtask was removed.
-					if ( $task.length && ! $li.hasClass( 'hmo-te-task' ) ) {
+					// Refresh sub-task badge if a subtask was removed.
+					if ( $task.length && ! isTopLevel ) {
 						updateSubBadge( $task );
+					}
+					// Decrement sidebar count for top-level task deletions.
+					if ( isTopLevel && stage ) {
+						var $item = $( '.hmo-te-stage-item[data-stage="' + stage + '"]' );
+						var cur   = parseInt( $item.find( '.hmo-te-stage-item__count' ).text(), 10 ) || 1;
+						$item.find( '.hmo-te-stage-item__count' ).text( Math.max( 0, cur - 1 ) );
 					}
 				} );
 			},
@@ -732,49 +783,6 @@
 		'</li>';
 	}
 
-	function buildStageHtml( stage ) {
-		var key   = escAttr( stage.key );
-		var label = escHtml( stage.label );
-		return '<div class="hmo-detail-panel hmo-te-stage" data-stage="' + key + '">' +
-			'<div class="hmo-te-stage__header">' +
-				'<button type="button" class="hmo-te-stage-toggle" data-action="toggle-stage" aria-expanded="false" title="Expand / collapse stage">' +
-					'<span class="hmo-te-stage__arrow">&#9654;</span>' +
-				'</button>' +
-				'<span class="hmo-te-stage__title-wrap hmo-te-stage__toggle-zone" data-action="toggle-stage">' +
-					'<span class="hmo-te-stage__title">' + label + '</span>' +
-					'<span class="hmo-te-stage__count">0 tasks</span>' +
-				'</span>' +
-				'<div class="hmo-te-stage__actions">' +
-					'<button type="button" class="hmo-te-btn hmo-te-btn--edit" data-action="rename-stage">Rename</button>' +
-					'<button type="button" class="hmo-te-btn hmo-te-btn--delete" data-action="delete-stage"' +
-						' data-stage-key="' + key + '" data-stage-label="' + escAttr( stage.label ) + '" data-task-count="0">Delete Stage</button>' +
-				'</div>' +
-			'</div>' +
-			'<div class="hmo-te-stage__body">' +
-				'<div class="hmo-te-stage__rename-form" style="display:none;" data-stage-key="' + key + '">' +
-					'<input type="text" class="hmo-te-input hmo-te-stage-new-label" value="' + escAttr( stage.label ) + '" placeholder="Stage name *">' +
-					'<div class="hmo-te-edit-actions">' +
-						'<button type="button" class="hmo-te-btn hmo-te-btn--save" data-action="save-stage-rename" data-stage-key="' + key + '">Save Name</button>' +
-						'<button type="button" class="hmo-te-btn hmo-te-btn--cancel" data-action="cancel-stage-rename">Cancel</button>' +
-						'<span class="hmo-te-status" style="display:none;"></span>' +
-					'</div>' +
-				'</div>' +
-				'<ul class="hmo-te-task-list" id="hmo-te-list-' + key + '"></ul>' +
-				'<div class="hmo-te-add-task-form" style="display:none;" data-stage="' + key + '">' +
-					'<input type="text" class="hmo-te-input hmo-te-new-label" placeholder="Task label *">' +
-					'<textarea class="hmo-te-textarea hmo-te-new-desc" placeholder="Description (optional)"></textarea>' +
-					'<div class="hmo-te-edit-actions">' +
-						'<button type="button" class="hmo-te-btn hmo-te-btn--save" data-action="save-new-task">Add Task</button>' +
-						'<button type="button" class="hmo-te-btn hmo-te-btn--cancel" data-action="cancel-add-task">Cancel</button>' +
-						'<span class="hmo-te-status" style="display:none;"></span>' +
-					'</div>' +
-				'</div>' +
-				'<div class="hmo-te-stage__footer">' +
-					'<button type="button" class="hmo-te-btn hmo-te-btn--add" data-action="show-add-task" data-stage="' + key + '">+ Add Task to ' + label + '</button>' +
-				'</div>' +
-			'</div>' +
-		'</div>';
-	}
 
 	function escHtml( s ) {
 		return String( s )
