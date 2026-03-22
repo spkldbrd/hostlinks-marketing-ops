@@ -187,10 +187,10 @@
 
 /* Blue summary bar ? matches .hmo-dashboard-header */
 .hmo-detail-summary {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 1.25rem 2rem;
-	align-items: flex-end;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	gap: 0.75rem 1.5rem;
+	align-items: end;
 	background: hsl(199 89% 48%);
 	border-radius: 0.75rem;
 	padding: 1rem 1.5rem;
@@ -215,7 +215,7 @@
 }
 
 /* Stage selector inside the blue bar */
-.hmo-detail-stat--stage-selector { margin-left: auto; }
+.hmo-detail-stat--stage-selector { }
 
 .hmo-detail-summary .hmo-stage-select {
 	padding: 5px 10px;
@@ -1273,7 +1273,6 @@
 	.hmo-detail-two-col {
 		grid-template-columns: 1fr;
 	}
-	.hmo-detail-stat--stage-selector { margin-left: 0; }
 }
 
 @media (max-width: 600px) {
