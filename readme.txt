@@ -41,5 +41,8 @@ Requires the Hostlinks plugin to be installed and active.
 
 == Changelog ==
 
+= 1.4.5 =
+* Kanban: SortableJS drag-and-drop, drag anywhere except title row, full-column drop zones.
+
 = 1.0.0 =
 * Initial Phase 1 release.
