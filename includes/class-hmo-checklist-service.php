@@ -316,7 +316,8 @@ class HMO_Checklist_Service {
 	// -------------------------------------------------------------------------
 
 	public static function register_ajax(): void {
-		add_action( 'wp_ajax_hmo_bulk_provision', array( __CLASS__, 'ajax_bulk_provision' ) );
+		add_action( 'wp_ajax_hmo_bulk_provision',        array( __CLASS__, 'ajax_bulk_provision' ) );
+		add_action( 'wp_ajax_hmo_bulk_complete_stages',  array( __CLASS__, 'ajax_bulk_complete_stages' ) );
 	}
 
 	/**
@@ -373,6 +374,101 @@ class HMO_Checklist_Service {
 			'provisioned'  => $provisioned,
 			'already_done' => $already_done,
 			'total'        => count( $events ),
+		) );
+	}
+
+	/**
+	 * Bulk-complete all tasks in specified stages for future events within a given days window.
+	 *
+	 * POST params:
+	 *   stages[]   — stage_key values to complete (e.g. event_setup, data_send_prep)
+	 *   days_out   — upper limit of days until event (inclusive, e.g. 50)
+	 */
+	public static function ajax_bulk_complete_stages(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Unauthorized', 403 );
+		}
+		check_ajax_referer( 'hmo_bulk_complete_stages' );
+
+		@set_time_limit( 180 );
+
+		$raw_stages = isset( $_POST['stages'] ) && is_array( $_POST['stages'] )
+			? array_map( 'sanitize_key', $_POST['stages'] )
+			: array();
+		$days_out   = isset( $_POST['days_out'] ) ? max( 1, (int) $_POST['days_out'] ) : 50;
+
+		if ( empty( $raw_stages ) ) {
+			wp_send_json_error( 'No stages specified.' );
+		}
+
+		global $wpdb;
+
+		$today    = current_time( 'Y-m-d' );
+		$end_date = date( 'Y-m-d', strtotime( "+{$days_out} days", strtotime( $today ) ) );
+
+		// Fetch all qualifying future events.
+		$events = $wpdb->get_col( $wpdb->prepare(
+			"SELECT eve_id FROM {$wpdb->prefix}event_details_list
+			 WHERE eve_status = 1 AND eve_start >= %s AND eve_start <= %s",
+			$today,
+			$end_date
+		) );
+
+		if ( empty( $events ) ) {
+			wp_send_json_success( array( 'events' => 0, 'tasks_completed' => 0, 'stages' => $raw_stages ) );
+		}
+
+		$templates     = new HMO_Checklist_Templates();
+		$checklist_svc = new self( $templates );
+		$user_id       = get_current_user_id();
+		$now           = current_time( 'mysql' );
+		$tasks_done    = 0;
+		$affected_events = 0;
+
+		// Build a safe IN() clause for stage keys.
+		$stage_placeholders = implode( ', ', array_fill( 0, count( $raw_stages ), '%s' ) );
+
+		foreach ( $events as $event_id ) {
+			$event_id = (int) $event_id;
+
+			// Ensure task rows exist before completing them.
+			$checklist_svc->ensure_event_tasks_exist( $event_id );
+
+			// Build query args: event_id + each stage key.
+			$query_args = array_merge( array( $event_id ), $raw_stages );
+
+			$updated = $wpdb->query(
+				$wpdb->prepare(
+					"UPDATE {$wpdb->prefix}hmo_event_tasks
+					 SET status = 'complete',
+					     completed_at = %s,
+					     completed_by_user_id = %d
+					 WHERE hostlinks_event_id = %d
+					   AND stage_key IN ($stage_placeholders)
+					   AND status = 'pending'",
+					array_merge( array( $now, $user_id, $event_id ), $raw_stages )
+				)
+			);
+
+			if ( $updated > 0 ) {
+				$tasks_done += $updated;
+				$affected_events++;
+				$checklist_svc->recalculate_open_task_count( $event_id );
+
+				// Log activity.
+				$stage_label = implode( ' + ', array_map( fn( $s ) => ucwords( str_replace( '_', ' ', $s ) ), $raw_stages ) );
+				HMO_DB::log_activity( $event_id, 'bulk_complete', sprintf( 'Bulk-completed all tasks in: %s', $stage_label ) );
+			}
+		}
+
+		HMO_Dashboard_Service::flush_row_cache();
+
+		wp_send_json_success( array(
+			'events'          => count( $events ),
+			'affected_events' => $affected_events,
+			'tasks_completed' => $tasks_done,
+			'stages'          => $raw_stages,
+			'days_out'        => $days_out,
 		) );
 	}
 }

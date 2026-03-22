@@ -295,6 +295,107 @@ $tabs = array(
 	})();
 	</script>
 
+	<hr style="margin:24px 0;">
+
+	<h2>Bulk Stage Completion</h2>
+	<p>
+		Mark all tasks in selected stages as <strong>complete</strong> for every event within the specified days window.
+		Only <em>pending</em> tasks are changed; already-completed tasks are untouched.
+		This action <strong>cannot be undone</strong> in bulk — proceed carefully.
+	</p>
+	<table class="form-table" style="max-width:520px;">
+		<tr>
+			<th><label>Days Out (&le;)</label></th>
+			<td>
+				<input type="number" id="hmo-bulk-complete-days" value="50" min="1" max="730" class="small-text">
+				<p class="description">Complete tasks on events happening within this many days from today.</p>
+			</td>
+		</tr>
+		<tr>
+			<th><label>Stages to Complete</label></th>
+			<td>
+				<?php foreach ( HMO_Checklist_Templates::get_stages_option() as $s ) : ?>
+				<label style="display:block;margin-bottom:4px;">
+					<input type="checkbox" class="hmo-bulk-complete-stage"
+						value="<?php echo esc_attr( $s['key'] ); ?>"
+						<?php checked( in_array( $s['key'], array( 'event_setup', 'data_send_prep' ), true ) ); ?>>
+					<?php echo esc_html( $s['label'] ); ?>
+				</label>
+				<?php endforeach; ?>
+			</td>
+		</tr>
+	</table>
+	<p>
+		<button type="button" class="button button-secondary" id="hmo-bulk-complete-btn">
+			&#9654; Mark Selected Stages Complete
+		</button>
+		<span id="hmo-bulk-complete-status" style="margin-left:12px;font-size:13px;"></span>
+	</p>
+
+	<script>
+	(function() {
+		var ajaxUrl = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+		var nonce   = <?php echo wp_json_encode( wp_create_nonce( 'hmo_bulk_complete_stages' ) ); ?>;
+		var btn     = document.getElementById('hmo-bulk-complete-btn');
+		var status  = document.getElementById('hmo-bulk-complete-status');
+
+		btn.addEventListener('click', function() {
+			var stages = Array.from( document.querySelectorAll('.hmo-bulk-complete-stage:checked') )
+							   .map(function(cb){ return cb.value; });
+			var days   = parseInt( document.getElementById('hmo-bulk-complete-days').value, 10 ) || 50;
+
+			if ( stages.length === 0 ) {
+				status.style.color = '#d63638';
+				status.textContent = 'Please select at least one stage.';
+				return;
+			}
+
+			var stageNames = Array.from( document.querySelectorAll('.hmo-bulk-complete-stage:checked') )
+								  .map(function(cb){ return cb.closest('label').textContent.trim(); });
+
+			if ( ! confirm(
+				'This will mark ALL pending tasks in:\n\n  • ' + stageNames.join('\n  • ') +
+				'\n\nComplete for every event within the next ' + days + ' days.\n\nThis cannot be undone in bulk. Continue?'
+			) ) { return; }
+
+			btn.disabled = true;
+			btn.textContent = '⏳ Running…';
+			status.style.color = '#888';
+			status.textContent = 'Processing events…';
+
+			var fd = new FormData();
+			fd.append('action',      'hmo_bulk_complete_stages');
+			fd.append('_ajax_nonce', nonce);
+			fd.append('days_out',    days);
+			stages.forEach(function(s){ fd.append('stages[]', s); });
+
+			fetch(ajaxUrl, { method: 'POST', body: fd })
+				.then(function(r){ return r.json(); })
+				.then(function(res) {
+					btn.disabled = false;
+					btn.textContent = '&#9654; Mark Selected Stages Complete';
+					if (res.success) {
+						var d = res.data;
+						status.style.color = '#007017';
+						status.textContent =
+							'Done! Scanned ' + d.events + ' events within ' + d.days_out + ' days — ' +
+							d.affected_events + ' had pending tasks; ' +
+							d.tasks_completed + ' task(s) marked complete.';
+					} else {
+						status.style.color = '#d63638';
+						status.textContent = 'Error: ' + (res.data || 'Unknown error.');
+					}
+				})
+				.catch(function() {
+					btn.disabled = false;
+					btn.textContent = '&#9654; Mark Selected Stages Complete';
+					status.style.color = '#d63638';
+					status.textContent = 'Request failed. Please try again.';
+				});
+		});
+	})();
+	</script>
+
 	<?php submit_button( 'Save General Settings', 'primary', 'hmo_save_general' ); ?>
 </form>
 
