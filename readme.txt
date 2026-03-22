@@ -41,6 +41,9 @@ Requires the Hostlinks plugin to be installed and active.
 
 == Changelog ==
 
+= 1.4.7 =
+* Kanban: Sortable forceFallback + fallbackOnBody so drags escape .hmo-kanban overflow (cross-column drops).
+
 = 1.4.6 =
 * Kanban: opt-in debug logging (localStorage hmo_kanban_debug=1 or ?hmo_kanban_debug=1) for drag issues.
 

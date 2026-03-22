@@ -930,6 +930,9 @@
 				delayOnTouchOnly:    true,
 				emptyInsertThreshold: 48,
 				ghostClass:          'hmo-dragging',
+				// Native drag breaks when ancestors use overflow hidden/auto; fallback uses body-attached clone.
+				forceFallback:       true,
+				fallbackOnBody:      true,
 
 				onChoose: function ( evt ) {
 					hmoKanbanDbg( 'onChoose', { stage: stage, eventId: evt.item.getAttribute( 'data-event-id' ) } );
