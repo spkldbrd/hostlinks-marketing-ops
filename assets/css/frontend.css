@@ -664,7 +664,7 @@
 	border-color: hsl(38 85% 32%);
 }
 
-/* Single icon toggle button (Table ? Kanban) */
+/* Single icon toggle button (Table / Kanban) */
 .hmo-view-bar__btn--icon-toggle {
 	font-size: 1rem;
 	padding: 0.28rem 0.65rem;
@@ -672,6 +672,24 @@
 	cursor: pointer;
 	line-height: 1;
 	font-family: inherit;
+}
+
+/* CSS-drawn 3-column icon used when in Kanban mode */
+.hmo-icon-cols {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	vertical-align: middle;
+	pointer-events: none;
+}
+
+.hmo-icon-cols i {
+	display: block;
+	width: 3px;
+	height: 14px;
+	background: currentColor;
+	border-radius: 2px;
+	font-style: normal;
 }
 
 .hmo-view-bar__btn--icon-toggle--kanban {
