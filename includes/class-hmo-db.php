@@ -127,6 +127,11 @@ class HMO_DB {
 			self::create_tables();
 			update_option( 'hmo_db_version', HMO_DB_VERSION );
 		}
+
+		// Seed stages option for existing installs that pre-date stage management.
+		if ( ! get_option( HMO_Checklist_Templates::OPT_STAGES ) ) {
+			( new HMO_Checklist_Templates() )->seed_stages();
+		}
 	}
 
 	// -------------------------------------------------------------------------

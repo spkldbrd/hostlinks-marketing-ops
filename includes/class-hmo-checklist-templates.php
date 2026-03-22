@@ -6,25 +6,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class HMO_Checklist_Templates {
 
-	/** @var array Canonical stage order */
-	private static $stage_order = array(
-		'event_setup',
-		'data_send_prep',
-		'marketing_60_day',
-		'marketing_30_day',
-		'final_prep',
-		'completion',
+	const OPT_STAGES = 'hmo_stages';
+
+	/** @var array Default stage definitions — used as seed only, not the live source */
+	private static $default_stages = array(
+		array( 'key' => 'event_setup',      'label' => 'Event Setup' ),
+		array( 'key' => 'data_send_prep',   'label' => 'Data Send Prep' ),
+		array( 'key' => 'marketing_60_day', 'label' => '60-Day Marketing' ),
+		array( 'key' => 'marketing_30_day', 'label' => '30-Day Marketing' ),
+		array( 'key' => 'final_prep',       'label' => 'Final Prep' ),
+		array( 'key' => 'completion',       'label' => 'Completion' ),
 	);
 
-	/** @var array Stage label map */
-	private static $stage_labels = array(
-		'event_setup'       => 'Event Setup',
-		'data_send_prep'    => 'Data Send Prep',
-		'marketing_60_day'  => '60-Day Marketing',
-		'marketing_30_day'  => '30-Day Marketing',
-		'final_prep'        => 'Final Prep',
-		'completion'        => 'Completion',
-	);
+	// -------------------------------------------------------------------------
+	// Stage option helpers
+	// -------------------------------------------------------------------------
+
+	public static function get_stages_option(): array {
+		$stored = get_option( self::OPT_STAGES );
+		if ( ! empty( $stored ) && is_array( $stored ) ) {
+			return $stored;
+		}
+		return self::$default_stages;
+	}
+
+	public static function save_stages( array $stages ): void {
+		update_option( self::OPT_STAGES, $stages );
+	}
+
+	public function seed_stages(): void {
+		if ( ! get_option( self::OPT_STAGES ) ) {
+			update_option( self::OPT_STAGES, self::$default_stages );
+		}
+	}
 
 	// -------------------------------------------------------------------------
 	// Seed
@@ -49,12 +63,12 @@ class HMO_Checklist_Templates {
 	// -------------------------------------------------------------------------
 
 	public function get_all_stages(): array {
-		return array_map( function( $key ) {
+		return array_map( function( $s ) {
 			return array(
-				'stage_key'   => $key,
-				'stage_label' => self::$stage_labels[ $key ],
+				'stage_key'   => $s['key'],
+				'stage_label' => $s['label'],
 			);
-		}, self::$stage_order );
+		}, self::get_stages_option() );
 	}
 
 	public function get_tasks_for_stage( string $stage_key ): array {
@@ -165,10 +179,13 @@ class HMO_Checklist_Templates {
 	// -------------------------------------------------------------------------
 
 	public static function register_ajax(): void {
-		add_action( 'wp_ajax_hmo_te_add_task',    array( __CLASS__, 'ajax_add_task' ) );
-		add_action( 'wp_ajax_hmo_te_update_task', array( __CLASS__, 'ajax_update_task' ) );
-		add_action( 'wp_ajax_hmo_te_delete_task', array( __CLASS__, 'ajax_delete_task' ) );
-		add_action( 'wp_ajax_hmo_te_reorder',     array( __CLASS__, 'ajax_reorder' ) );
+		add_action( 'wp_ajax_hmo_te_add_task',      array( __CLASS__, 'ajax_add_task' ) );
+		add_action( 'wp_ajax_hmo_te_update_task',   array( __CLASS__, 'ajax_update_task' ) );
+		add_action( 'wp_ajax_hmo_te_delete_task',   array( __CLASS__, 'ajax_delete_task' ) );
+		add_action( 'wp_ajax_hmo_te_reorder',       array( __CLASS__, 'ajax_reorder' ) );
+		add_action( 'wp_ajax_hmo_te_add_stage',     array( __CLASS__, 'ajax_add_stage' ) );
+		add_action( 'wp_ajax_hmo_te_update_stage',  array( __CLASS__, 'ajax_update_stage' ) );
+		add_action( 'wp_ajax_hmo_te_delete_stage',  array( __CLASS__, 'ajax_delete_stage' ) );
 	}
 
 	private static function check_task_editor_cap(): void {
@@ -257,7 +274,7 @@ class HMO_Checklist_Templates {
 	}
 
 	public static function get_stage_order(): array {
-		return self::$stage_order;
+		return array_column( self::get_stages_option(), 'key' );
 	}
 
 	// -------------------------------------------------------------------------
@@ -369,5 +386,93 @@ class HMO_Checklist_Templates {
 		}
 
 		return $rows;
+	}
+
+	// -------------------------------------------------------------------------
+	// Stage AJAX handlers
+	// -------------------------------------------------------------------------
+
+	public static function ajax_add_stage(): void {
+		check_ajax_referer( 'hmo_task_editor', 'nonce' );
+		self::check_task_editor_cap();
+
+		$label = sanitize_text_field( $_POST['label'] ?? '' );
+		if ( ! $label ) {
+			wp_send_json_error( array( 'message' => 'Stage name is required.' ) );
+		}
+
+		$key    = sanitize_key( $label ) . '_' . time();
+		$stages = self::get_stages_option();
+		$stages[] = array( 'key' => $key, 'label' => $label );
+		self::save_stages( $stages );
+
+		wp_send_json_success( array(
+			'stage' => array( 'key' => $key, 'label' => $label ),
+			'total' => count( $stages ),
+		) );
+	}
+
+	public static function ajax_update_stage(): void {
+		check_ajax_referer( 'hmo_task_editor', 'nonce' );
+		self::check_task_editor_cap();
+
+		$key   = sanitize_key( $_POST['stage_key'] ?? '' );
+		$label = sanitize_text_field( $_POST['label'] ?? '' );
+
+		if ( ! $key || ! $label ) {
+			wp_send_json_error( array( 'message' => 'Stage key and label are required.' ) );
+		}
+
+		// Update the option.
+		$stages = self::get_stages_option();
+		$found  = false;
+		foreach ( $stages as &$s ) {
+			if ( $s['key'] === $key ) {
+				$s['label'] = $label;
+				$found = true;
+				break;
+			}
+		}
+		unset( $s );
+
+		if ( ! $found ) {
+			wp_send_json_error( array( 'message' => 'Stage not found.' ) );
+		}
+
+		self::save_stages( $stages );
+
+		// Update the cached stage_label on all template rows.
+		global $wpdb;
+		$wpdb->update(
+			$wpdb->prefix . 'hmo_checklist_templates',
+			array( 'stage_label' => $label ),
+			array( 'stage_key'   => $key )
+		);
+
+		wp_send_json_success( array( 'stage_key' => $key, 'label' => $label ) );
+	}
+
+	public static function ajax_delete_stage(): void {
+		check_ajax_referer( 'hmo_task_editor', 'nonce' );
+		self::check_task_editor_cap();
+
+		$key = sanitize_key( $_POST['stage_key'] ?? '' );
+		if ( ! $key ) {
+			wp_send_json_error( array( 'message' => 'Stage key is required.' ) );
+		}
+
+		// Remove from option.
+		$stages  = self::get_stages_option();
+		$stages  = array_values( array_filter( $stages, fn( $s ) => $s['key'] !== $key ) );
+		self::save_stages( $stages );
+
+		// Hard-delete all tasks (and sub-tasks via same stage_key) for this stage.
+		global $wpdb;
+		$wpdb->delete(
+			$wpdb->prefix . 'hmo_checklist_templates',
+			array( 'stage_key' => $key )
+		);
+
+		wp_send_json_success( array( 'total' => count( $stages ) ) );
 	}
 }

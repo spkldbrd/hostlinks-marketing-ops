@@ -20,6 +20,7 @@ class HMO_Activator {
 
 		$templates = new HMO_Checklist_Templates();
 		$templates->seed_templates();
+		$templates->seed_stages();
 
 		update_option( 'hmo_db_version', HMO_DB_VERSION );
 		update_option( 'hmo_version', HMO_VERSION );

@@ -603,11 +603,140 @@
 }
 
 .hmo-te-stage {
-	margin-bottom: 1.5rem;
+	margin-bottom: 1rem;
+}
+
+/* Stage header */
+.hmo-te-stage__header {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	padding: 0.75rem 1rem;
+	cursor: default;
+	border-left: 3px solid transparent;
+	transition: border-color 0.15s, background 0.15s;
+	border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.hmo-te-stage--open > .hmo-te-stage__header {
+	border-left-color: hsl(199 89% 48%);
+	background: hsl(199 89% 96%);
+}
+
+/* Stage toggle button */
+.hmo-te-stage-toggle {
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	flex-shrink: 0;
+	width: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.hmo-te-stage__arrow {
+	display: inline-block;
+	font-size: 0.65rem;
+	color: hsl(215 15% 50%);
+	transition: transform 0.2s ease;
+}
+
+.hmo-te-stage--open .hmo-te-stage__arrow {
+	transform: rotate(90deg);
+	color: hsl(199 89% 42%);
+}
+
+/* Stage title + count — clickable toggle zone */
+.hmo-te-stage__title-wrap {
+	display: flex;
+	align-items: baseline;
+	gap: 0.6rem;
+	flex: 1;
+	cursor: pointer;
 }
 
 .hmo-te-stage__title {
+	font-size: 1rem;
+	font-weight: 700;
+	color: hsl(215 25% 15%);
+	padding: 0;
+	margin: 0;
+	border: none;
+}
+
+.hmo-te-stage__title-wrap:hover .hmo-te-stage__title {
+	color: hsl(199 89% 38%);
+}
+
+.hmo-te-stage__count {
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: hsl(215 15% 55%);
+	white-space: nowrap;
+}
+
+/* Stage actions — Rename + Delete Stage */
+.hmo-te-stage__actions {
+	display: flex;
+	gap: 0.35rem;
+	flex-shrink: 0;
+}
+
+/* Collapsible stage body */
+.hmo-te-stage__body {
+	display: none;
+	padding: 0.75rem 1rem 0.75rem;
+	border-top: 1px solid hsl(215 15% 90%);
+}
+
+.hmo-te-stage--open > .hmo-te-stage__body {
+	display: block;
+}
+
+/* Rename form */
+.hmo-te-stage__rename-form {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
 	margin-bottom: 0.75rem;
+	padding: 0.6rem 0.75rem;
+	background: hsl(199 89% 97%);
+	border: 1px solid hsl(199 60% 85%);
+	border-radius: 0.4rem;
+}
+
+/* Page footer — add stage */
+.hmo-te-page-footer {
+	margin-top: 1.5rem;
+	padding-top: 1rem;
+	border-top: 1px solid hsl(215 15% 88%);
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	align-items: flex-start;
+}
+
+.hmo-te-stage-hint {
+	font-size: 0.82rem;
+	color: hsl(215 15% 50%);
+	font-style: italic;
+	margin: 0;
+}
+
+.hmo-te-add-stage-form {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+	padding: 0.6rem 0.75rem;
+	background: hsl(215 20% 97%);
+	border: 1px solid hsl(215 15% 85%);
+	border-radius: 0.4rem;
+	width: 100%;
+	box-sizing: border-box;
 }
 
 /* Task list */
@@ -1038,6 +1167,41 @@
 .wp-dark-mode-active .hmo-days-left--green  { background: hsl(142 40% 14%); color: hsl(142 55% 60%); }
 
 /* Task editor dark mode */
+.wp-dark-mode-active .hmo-te-stage__title {
+	color: hsl(210 25% 88%);
+}
+
+.wp-dark-mode-active .hmo-te-stage__count {
+	color: hsl(215 15% 55%);
+}
+
+.wp-dark-mode-active .hmo-te-stage--open > .hmo-te-stage__header {
+	background: hsl(199 89% 10%);
+	border-left-color: hsl(199 89% 40%);
+}
+
+.wp-dark-mode-active .hmo-te-stage__body {
+	border-top-color: hsl(215 20% 20%);
+}
+
+.wp-dark-mode-active .hmo-te-stage__rename-form {
+	background: hsl(199 89% 8%);
+	border-color: hsl(199 60% 25%);
+}
+
+.wp-dark-mode-active .hmo-te-page-footer {
+	border-top-color: hsl(215 20% 20%);
+}
+
+.wp-dark-mode-active .hmo-te-stage-hint {
+	color: hsl(215 15% 55%);
+}
+
+.wp-dark-mode-active .hmo-te-add-stage-form {
+	background: hsl(215 20% 16%);
+	border-color: hsl(215 20% 25%);
+}
+
 .wp-dark-mode-active .hmo-te-task--open > .hmo-te-task__row {
 	background: hsl(199 89% 10%);
 	border-left-color: hsl(199 89% 40%);
