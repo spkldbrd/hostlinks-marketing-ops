@@ -150,22 +150,62 @@
 	// Stage update
 	// -------------------------------------------------------------------------
 
+	// Capture the current stage before the dropdown opens so we can detect direction.
+	$( document ).on( 'focus mousedown', '.hmo-stage-update .hmo-stage-select', function () {
+		if ( ! $( this ).data( 'prev-stage' ) ) {
+			$( this ).data( 'prev-stage', $( this ).val() );
+		}
+	} );
+
 	$( document ).on( 'change', '.hmo-stage-update .hmo-stage-select', function () {
-		var $sel    = $( this );
-		var $wrap   = $sel.closest( '.hmo-stage-update' );
-		var eventId = $wrap.data( 'event-id' );
-		var stage   = $sel.val();
-		var $status = $wrap.find( '.hmo-inline-status' );
+		var $sel      = $( this );
+		var $wrap     = $sel.closest( '.hmo-stage-update' );
+		var eventId   = $wrap.data( 'event-id' );
+		var newStage  = $sel.val();
+		var oldStage  = $sel.data( 'prev-stage' ) || '';
+		var $status   = $wrap.find( '.hmo-inline-status' );
+
+		// Reset so the next interaction re-captures the (now saved) value.
+		$sel.data( 'prev-stage', newStage );
+
+		// Build ordered stage list from select options (strip the "N. " prefix for labels).
+		var stages = [];
+		$sel.find( 'option' ).each( function () {
+			stages.push( {
+				key:   $( this ).val(),
+				label: $( this ).text().replace( /^\d+\.\s*/, '' ).trim()
+			} );
+		} );
+
+		var oldIdx = -1, newIdx = -1;
+		for ( var i = 0; i < stages.length; i++ ) {
+			if ( stages[ i ].key === oldStage ) { oldIdx = i; }
+			if ( stages[ i ].key === newStage  ) { newIdx = i; }
+		}
+
+		// Prior stages: only built for forward moves.
+		var priorStages = ( oldIdx >= 0 && newIdx > oldIdx ) ? stages.slice( oldIdx, newIdx ) : [];
 
 		$sel.prop( 'disabled', true );
 		showInlineStatus( $status, str.saving, false );
 
 		apiPost(
 			'/events/' + eventId + '/stage',
-			{ stage: stage },
+			{ stage: newStage },
 			function () {
 				$sel.prop( 'disabled', false );
 				showInlineStatus( $status, str.saved, false );
+
+				if ( priorStages.length === 0 ) { return; }
+
+				var msg = priorStages.length === 1
+					? 'Do you want to mark all tasks for "' + priorStages[ 0 ].label + '" as complete?'
+					: 'Do you want to mark all tasks for all prior stages complete?';
+
+				if ( ! window.confirm( msg ) ) { return; }
+
+				var keys = priorStages.map( function ( s ) { return s.key; } );
+				apiPost( '/events/' + eventId + '/complete-stages', { stage_keys: keys }, function () {} );
 			},
 			function () {
 				$sel.prop( 'disabled', false );

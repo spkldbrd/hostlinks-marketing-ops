@@ -706,8 +706,8 @@
 
 /* Single icon toggle button (Table / Kanban) */
 .hmo-view-bar__btn--icon-toggle {
-	font-size: 1rem;
-	padding: 0.28rem 0.65rem;
+	font-size: 0.95rem;
+	padding: 0.35rem 0.9rem;
 	pointer-events: auto;
 	cursor: pointer;
 	line-height: 1;

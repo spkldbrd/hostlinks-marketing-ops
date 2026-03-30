@@ -88,19 +88,23 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 			<!-- Stage selector on the right (admins only; auto-saves on change) -->
 			<?php if ( $is_admin ) : ?>
 			<div class="hmo-detail-stat hmo-detail-stat--stage-selector">
-				<span class="hmo-detail-stat__label">Stage <span class="hmo-inline-status" style="font-weight:400;font-size:0.75rem;margin-left:4px;opacity:.85;"></span></span>
+				<span class="hmo-detail-stat__label">Current Stage <span class="hmo-inline-status" style="font-weight:400;font-size:0.75rem;margin-left:4px;opacity:.85;"></span></span>
 				<select class="hmo-stage-select">
-					<?php foreach ( HMO_Checklist_Templates::get_stage_order() as $s ) : ?>
+					<?php $stage_num = 1; foreach ( HMO_Checklist_Templates::get_stage_order() as $s ) : ?>
 						<option value="<?php echo esc_attr( $s ); ?>" <?php selected( $stage, $s ); ?>>
-							<?php echo esc_html( ucwords( str_replace( '_', ' ', $s ) ) ); ?>
+							<?php echo esc_html( $stage_num . '. ' . ucwords( str_replace( '_', ' ', $s ) ) ); ?>
 						</option>
-					<?php endforeach; ?>
+					<?php $stage_num++; endforeach; ?>
 				</select>
 			</div>
 			<?php else : ?>
 			<div class="hmo-detail-stat">
-				<span class="hmo-detail-stat__label">Stage</span>
-				<span class="hmo-detail-stat__value"><?php echo esc_html( ucwords( str_replace( '_', ' ', $stage ) ) ); ?></span>
+				<span class="hmo-detail-stat__label">Current Stage</span>
+				<span class="hmo-detail-stat__value"><?php
+					$stage_order = HMO_Checklist_Templates::get_stage_order();
+					$stage_pos   = array_search( $stage, $stage_order, true );
+					echo esc_html( ( $stage_pos !== false ? ( $stage_pos + 1 ) . '. ' : '' ) . ucwords( str_replace( '_', ' ', $stage ) ) );
+				?></span>
 			</div>
 			<?php endif; ?>
 		</div>
