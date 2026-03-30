@@ -1273,6 +1273,205 @@
 	font-size: 0.78rem;
 }
 
+/* ── Insights panel ─────────────────────────────────────────────────────── */
+
+.hmo-insights-section {
+	margin-bottom: 1.1rem;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid hsl(215 15% 90%);
+}
+.hmo-insights-section:last-child {
+	border-bottom: none;
+	margin-bottom: 0;
+	padding-bottom: 0;
+}
+
+.hmo-insights-section__label {
+	display: block;
+	font-size: 0.72rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: hsl(215 20% 55%);
+	margin-bottom: 0.5rem;
+}
+
+/* Venue address block */
+.hmo-insights-address {
+	font-style: normal;
+	font-size: 0.88rem;
+	line-height: 1.55;
+	color: hsl(215 20% 25%);
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+}
+.hmo-insights-address strong {
+	color: hsl(215 25% 15%);
+	font-weight: 600;
+}
+
+/* Event Links */
+.hmo-insights-link {
+	display: flex;
+	flex-direction: column;
+	gap: 0.15rem;
+	margin-bottom: 0.65rem;
+}
+.hmo-insights-link:last-child { margin-bottom: 0; }
+
+.hmo-insights-link__url {
+	font-size: 0.88rem;
+	font-weight: 600;
+	color: hsl(199 89% 38%);
+	text-decoration: none;
+}
+.hmo-insights-link__url:hover {
+	text-decoration: underline;
+	color: hsl(199 89% 28%);
+}
+
+.hmo-insights-link__hint {
+	font-size: 0.78rem;
+	color: hsl(215 15% 55%);
+}
+
+/* Contact cards */
+.hmo-contact-card {
+	background: hsl(215 20% 97%);
+	border: 1px solid hsl(215 15% 88%);
+	border-radius: 6px;
+	padding: 0.55rem 0.75rem;
+	margin-bottom: 0.5rem;
+	font-size: 0.85rem;
+	line-height: 1.5;
+}
+.hmo-contact-card:last-child { margin-bottom: 0; }
+
+.hmo-contact-card__name {
+	font-weight: 700;
+	color: hsl(215 25% 15%);
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+}
+.hmo-contact-card__agency {
+	font-size: 0.8rem;
+	color: hsl(215 15% 50%);
+}
+.hmo-contact-card__row {
+	color: hsl(215 20% 30%);
+}
+.hmo-contact-card__row a {
+	color: hsl(199 89% 38%);
+	text-decoration: none;
+}
+.hmo-contact-card__row a:hover { text-decoration: underline; }
+
+.hmo-contact-card__phones {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.35rem;
+}
+.hmo-contact-card__phone-sep {
+	color: hsl(215 15% 70%);
+}
+
+/* DO NOT PUBLISH badge */
+.hmo-dnp-badge {
+	display: inline-block;
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	color: #fff;
+	background: hsl(0 72% 51%);
+	border-radius: 3px;
+	padding: 1px 5px;
+	vertical-align: middle;
+	white-space: nowrap;
+}
+
+/* Hotel cards */
+.hmo-hotel-card {
+	background: hsl(215 20% 97%);
+	border: 1px solid hsl(215 15% 88%);
+	border-radius: 6px;
+	padding: 0.55rem 0.75rem;
+	margin-bottom: 0.5rem;
+	font-size: 0.85rem;
+	line-height: 1.5;
+}
+.hmo-hotel-card:last-child { margin-bottom: 0; }
+
+.hmo-hotel-card__name {
+	font-weight: 700;
+	color: hsl(215 25% 15%);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+.hmo-hotel-card__link {
+	font-size: 0.78rem;
+	font-weight: 600;
+	color: hsl(199 89% 38%);
+	text-decoration: none;
+	white-space: nowrap;
+}
+.hmo-hotel-card__link:hover { text-decoration: underline; }
+
+.hmo-hotel-card__row {
+	color: hsl(215 20% 40%);
+}
+.hmo-hotel-card__address {
+	font-size: 0.8rem;
+	color: hsl(215 15% 55%);
+}
+
+/* Dark mode overrides — Insights */
+.wp-dark-mode-active .hmo-insights-section {
+	border-color: hsl(215 20% 25%);
+}
+.wp-dark-mode-active .hmo-insights-section__label {
+	color: hsl(215 20% 55%);
+}
+.wp-dark-mode-active .hmo-insights-address {
+	color: hsl(210 20% 75%);
+}
+.wp-dark-mode-active .hmo-insights-address strong {
+	color: hsl(210 20% 90%);
+}
+.wp-dark-mode-active .hmo-insights-link__url {
+	color: hsl(199 89% 60%);
+}
+.wp-dark-mode-active .hmo-insights-link__hint {
+	color: hsl(215 15% 50%);
+}
+.wp-dark-mode-active .hmo-contact-card,
+.wp-dark-mode-active .hmo-hotel-card {
+	background: hsl(215 20% 18%);
+	border-color: hsl(215 20% 28%);
+}
+.wp-dark-mode-active .hmo-contact-card__name,
+.wp-dark-mode-active .hmo-hotel-card__name {
+	color: hsl(210 20% 88%);
+}
+.wp-dark-mode-active .hmo-contact-card__agency,
+.wp-dark-mode-active .hmo-hotel-card__address {
+	color: hsl(215 15% 55%);
+}
+.wp-dark-mode-active .hmo-contact-card__row,
+.wp-dark-mode-active .hmo-hotel-card__row {
+	color: hsl(210 15% 70%);
+}
+.wp-dark-mode-active .hmo-contact-card__row a,
+.wp-dark-mode-active .hmo-hotel-card__link,
+.wp-dark-mode-active .hmo-insights-link__url {
+	color: hsl(199 89% 60%);
+}
+
 /* Responsive: stack to single column on narrow screens */
 @media (max-width: 768px) {
 	.hmo-detail-two-col {

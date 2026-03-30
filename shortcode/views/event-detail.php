@@ -181,10 +181,169 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 			<?php endforeach; ?>
 		</div><!-- .hmo-detail-col-main -->
 
-		<!-- Right column placeholder -->
+		<!-- Right column: Event Insights -->
 		<div class="hmo-detail-panel hmo-detail-col-side">
 			<h2 class="hmo-panel-title">Insights</h2>
-			<p class="hmo-notice" style="margin-top:0.5rem;">Future feature — coming soon.</p>
+
+			<?php
+			// ── Decode JSON fields ─────────────────────────────────────────
+			$contacts = array();
+			if ( ! empty( $event->host_contacts ) ) {
+				$decoded = json_decode( $event->host_contacts, true );
+				if ( is_array( $decoded ) ) { $contacts = $decoded; }
+			}
+			$hotels = array();
+			if ( ! empty( $event->hotels ) ) {
+				$decoded = json_decode( $event->hotels, true );
+				if ( is_array( $decoded ) ) { $hotels = $decoded; }
+			}
+
+			// ── Build address lines ────────────────────────────────────────
+			$addr_lines = array_filter( array(
+				trim( $event->street_address_1 ?? '' ),
+				trim( $event->street_address_2 ?? '' ),
+				trim( $event->street_address_3 ?? '' ),
+			) );
+			$city_line = trim(
+				trim( $event->city  ?? '' ) . ', ' .
+				trim( $event->state ?? '' ) . ' ' .
+				trim( $event->zip_code ?? '' ),
+				', '
+			);
+			$has_venue = $event->displayed_as || $event->location_name || $addr_lines || $city_line;
+			?>
+
+			<?php if ( $has_venue ) : ?>
+			<!-- Venue / Address -->
+			<div class="hmo-insights-section">
+				<span class="hmo-insights-section__label">Venue</span>
+				<address class="hmo-insights-address">
+					<?php if ( $event->displayed_as ) : ?>
+						<strong><?php echo esc_html( $event->displayed_as ); ?></strong>
+					<?php endif; ?>
+					<?php if ( $event->location_name ) : ?>
+						<span><?php echo esc_html( $event->location_name ); ?></span>
+					<?php endif; ?>
+					<?php foreach ( $addr_lines as $line ) : ?>
+						<span><?php echo esc_html( $line ); ?></span>
+					<?php endforeach; ?>
+					<?php if ( $city_line ) : ?>
+						<span><?php echo esc_html( $city_line ); ?></span>
+					<?php endif; ?>
+				</address>
+			</div>
+			<?php endif; ?>
+
+			<?php if ( ! empty( $event->eve_email_url ) || ! empty( $event->eve_web_url ) ) : ?>
+			<!-- Event Links -->
+			<div class="hmo-insights-section">
+				<span class="hmo-insights-section__label">Event Links</span>
+
+				<?php if ( ! empty( $event->eve_email_url ) ) : ?>
+				<div class="hmo-insights-link">
+					<a href="<?php echo esc_url( $event->eve_email_url ); ?>" target="_blank" rel="noopener" class="hmo-insights-link__url">
+						Event Announcement &mdash; Email &amp; PDF <span aria-hidden="true">&#8599;</span>
+					</a>
+					<span class="hmo-insights-link__hint">Copy for email, or Print &rarr; Save as PDF</span>
+				</div>
+				<?php endif; ?>
+
+				<?php if ( ! empty( $event->eve_web_url ) ) : ?>
+				<div class="hmo-insights-link">
+					<a href="<?php echo esc_url( $event->eve_web_url ); ?>" target="_blank" rel="noopener" class="hmo-insights-link__url">
+						Event Info &amp; Registration <span aria-hidden="true">&#8599;</span>
+					</a>
+					<span class="hmo-insights-link__hint">Customer registration &amp; free seat reservations</span>
+				</div>
+				<?php endif; ?>
+			</div>
+			<?php endif; ?>
+
+			<?php if ( ! empty( $contacts ) ) : ?>
+			<!-- Host Contacts -->
+			<div class="hmo-insights-section">
+				<span class="hmo-insights-section__label">Event Contacts</span>
+				<?php foreach ( $contacts as $c ) :
+					$c_name    = trim( $c['name']   ?? '' );
+					$c_agency  = trim( $c['agency'] ?? '' );
+					$c_email   = trim( $c['email']  ?? '' );
+					$c_phone   = trim( $c['phone']  ?? '' );
+					$c_phone2  = trim( $c['phone2'] ?? '' );
+					$c_public  = ! empty( $c['include_in_email'] );
+					$c_dnl1    = ! empty( $c['dnl_phone'] );
+					$c_dnl2    = ! empty( $c['dnl_phone2'] );
+					if ( ! $c_name && ! $c_agency ) { continue; }
+				?>
+				<div class="hmo-contact-card">
+					<div class="hmo-contact-card__name">
+						<?php echo esc_html( $c_name ); ?>
+						<?php if ( ! $c_public ) : ?>
+							<span class="hmo-dnp-badge">DO NOT PUBLISH</span>
+						<?php endif; ?>
+					</div>
+					<?php if ( $c_agency ) : ?>
+						<div class="hmo-contact-card__agency"><?php echo esc_html( $c_agency ); ?></div>
+					<?php endif; ?>
+					<?php if ( $c_email ) : ?>
+						<div class="hmo-contact-card__row">
+							<a href="mailto:<?php echo esc_attr( $c_email ); ?>"><?php echo esc_html( $c_email ); ?></a>
+						</div>
+					<?php endif; ?>
+					<?php if ( $c_phone ) : ?>
+					<div class="hmo-contact-card__row hmo-contact-card__phones">
+						<?php if ( $c_dnl1 ) : ?>
+							<span class="hmo-dnp-badge">DO NOT PUBLISH</span>
+						<?php else : ?>
+							<span><?php echo esc_html( $c_phone ); ?></span>
+						<?php endif; ?>
+						<?php if ( $c_phone2 ) : ?>
+							<span class="hmo-contact-card__phone-sep">&bull;</span>
+							<?php if ( $c_dnl2 ) : ?>
+								<span class="hmo-dnp-badge">DO NOT PUBLISH</span>
+							<?php else : ?>
+								<span><?php echo esc_html( $c_phone2 ); ?></span>
+							<?php endif; ?>
+						<?php endif; ?>
+					</div>
+					<?php endif; ?>
+				</div>
+				<?php endforeach; ?>
+			</div>
+			<?php endif; ?>
+
+			<?php if ( ! empty( $hotels ) ) : ?>
+			<!-- Recommended Hotels -->
+			<div class="hmo-insights-section">
+				<span class="hmo-insights-section__label">Recommended Hotels</span>
+				<?php foreach ( $hotels as $h ) :
+					$h_name    = trim( $h['name']    ?? '' );
+					$h_phone   = trim( $h['phone']   ?? '' );
+					$h_address = trim( $h['address'] ?? '' );
+					$h_url     = trim( $h['url']     ?? '' );
+					if ( ! $h_name ) { continue; }
+				?>
+				<div class="hmo-hotel-card">
+					<div class="hmo-hotel-card__name">
+						<?php echo esc_html( $h_name ); ?>
+						<?php if ( $h_url ) : ?>
+							<a href="<?php echo esc_url( $h_url ); ?>" target="_blank" rel="noopener" class="hmo-hotel-card__link">View &#8599;</a>
+						<?php endif; ?>
+					</div>
+					<?php if ( $h_phone ) : ?>
+						<div class="hmo-hotel-card__row"><?php echo esc_html( $h_phone ); ?></div>
+					<?php endif; ?>
+					<?php if ( $h_address ) : ?>
+						<div class="hmo-hotel-card__row hmo-hotel-card__address"><?php echo esc_html( $h_address ); ?></div>
+					<?php endif; ?>
+				</div>
+				<?php endforeach; ?>
+			</div>
+			<?php endif; ?>
+
+			<?php if ( ! $has_venue && empty( $event->eve_email_url ) && empty( $event->eve_web_url ) && empty( $contacts ) && empty( $hotels ) ) : ?>
+			<p class="hmo-notice" style="margin-top:0.5rem;">No event details available yet.</p>
+			<?php endif; ?>
+
 		</div>
 
 		</div><!-- .hmo-detail-two-col -->
