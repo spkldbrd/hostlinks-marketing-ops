@@ -21,6 +21,8 @@ if ( isset( $_POST['hmo_save_general'] ) ) {
 			update_option( $key, $san( $_POST[ $key ] ) );
 		}
 	}
+	// Checkbox — unchecked inputs are absent from POST, so we always write it.
+	update_option( 'hmo_hide_list_links', isset( $_POST['hmo_hide_list_links'] ) ? 1 : 0 );
 	$notice = '<div class="notice notice-success is-dismissible"><p>General settings saved.</p></div>';
 }
 
@@ -437,6 +439,23 @@ $tabs = array(
 		});
 	})();
 	</script>
+
+	<hr style="margin:24px 0;">
+
+	<h2>Event Detail Display</h2>
+	<table class="form-table">
+		<tr>
+			<th><label for="hmo_hide_list_links">List Links Card</label></th>
+			<td>
+				<label>
+					<input type="checkbox" id="hmo_hide_list_links" name="hmo_hide_list_links" value="1"
+						<?php checked( 1, (int) get_option( 'hmo_hide_list_links', 0 ) ); ?>>
+					Hide the "List Links" card on the Event Detail page
+				</label>
+				<p class="description">When checked, the Data List / Call List card is hidden for all users.</p>
+			</td>
+		</tr>
+	</table>
 
 	<?php submit_button( 'Save General Settings', 'primary', 'hmo_save_general' ); ?>
 </form>

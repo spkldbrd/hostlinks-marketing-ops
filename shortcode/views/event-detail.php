@@ -186,6 +186,7 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 		</div><!-- .hmo-detail-two-col -->
 
 		<!-- List Links -->
+		<?php if ( ! get_option( 'hmo_hide_list_links', 0 ) ) : ?>
 		<div class="hmo-detail-panel hmo-list-links" data-event-id="<?php echo (int) $event->eve_id; ?>">
 			<h2 class="hmo-panel-title">List Links</h2>
 			<div class="hmo-list-grid">
@@ -231,6 +232,7 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 			<button class="hostlinks-btn hostlinks-btn--active hmo-save-lists">Save List Info</button>
 			<span class="hmo-lists-status"></span>
 		</div>
+		<?php endif; ?>
 
 		<!-- Activity -->
 		<div class="hmo-detail-panel">
