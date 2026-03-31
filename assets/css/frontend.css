@@ -2620,3 +2620,218 @@
 .wp-dark-mode-active .hmo-report-activity-table thead th { background: hsl(215 20% 16%); color: hsl(215 15% 60%); border-bottom-color: hsl(215 20% 25%); }
 .wp-dark-mode-active .hmo-report-activity-table tbody tr:nth-child(even) td { background: hsl(215 20% 14%); }
 .wp-dark-mode-active .hmo-report-activity-table tbody td { border-bottom-color: hsl(215 20% 22%); }
+
+/* ── Report: rich summary header ────────────────────────────────────────── */
+
+.hmo-report-subtitle {
+	color: hsl(215 15% 55%);
+	font-size: 0.9rem;
+	margin: 0.15rem 0 0;
+}
+
+.hmo-report-summary-header {
+	background: hsl(199 89% 48%);
+	border-radius: 0.65rem;
+	padding: 1rem 1.25rem;
+	margin-bottom: 1.5rem;
+	color: #fff;
+}
+
+.hmo-report-summary-title {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+	margin-bottom: 0.85rem;
+}
+
+.hmo-report-event-title {
+	font-size: 1.15rem;
+	font-weight: 700;
+	color: #fff;
+	margin: 0;
+}
+
+.hmo-report-summary-header .hmo-report-event-date {
+	font-size: 0.9rem;
+	color: hsla(0 0% 100% / 0.85);
+}
+
+.hmo-report-stat-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.hmo-report-stat {
+	background: hsla(0 0% 100% / 0.18);
+	border-radius: 0.45rem;
+	padding: 0.4rem 0.85rem;
+	min-width: 100px;
+}
+
+.hmo-report-stat__label {
+	display: block;
+	font-size: 0.68rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: hsla(0 0% 100% / 0.75);
+}
+
+.hmo-report-stat__value {
+	display: block;
+	font-size: 1.1rem;
+	font-weight: 700;
+	color: #fff;
+	line-height: 1.2;
+}
+
+.hmo-report-stat__sub {
+	font-size: 0.78rem;
+	font-weight: 400;
+	opacity: 0.8;
+	margin-left: 2px;
+}
+
+.hmo-report-stat--days.hmo-report-stat--red   { background: hsla(0 75% 55% / 0.35); }
+.hmo-report-stat--days.hmo-report-stat--yellow { background: hsla(40 85% 55% / 0.35); }
+.hmo-report-stat--days.hmo-report-stat--past   { background: hsla(215 15% 50% / 0.35); }
+.hmo-report-stat--days.hmo-report-stat--green  { background: hsla(145 50% 40% / 0.35); }
+
+/* Stage progress overview grid */
+.hmo-report-progress-overview {
+	background: #fff;
+	border: 1px solid hsl(215 15% 88%);
+	border-radius: 0.65rem;
+	padding: 1rem 1.25rem;
+	margin-bottom: 1.5rem;
+}
+
+.hmo-report-progress-overview .hmo-report-section-title {
+	margin-bottom: 0.75rem;
+}
+
+.hmo-report-progress-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+	gap: 0.65rem;
+}
+
+.hmo-report-progress-card {
+	border: 1px solid hsl(215 15% 88%);
+	border-radius: 0.45rem;
+	padding: 0.6rem 0.75rem;
+	background: hsl(215 20% 98%);
+}
+
+.hmo-report-progress-card--current {
+	border-color: hsl(199 89% 55%);
+	background: hsl(199 89% 96%);
+}
+
+.hmo-report-progress-card--done {
+	border-color: hsl(145 40% 70%);
+	background: hsl(145 30% 97%);
+}
+
+.hmo-report-progress-card__label {
+	font-size: 0.78rem;
+	font-weight: 700;
+	color: hsl(215 25% 30%);
+	margin-bottom: 0.4rem;
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	flex-wrap: wrap;
+}
+
+.hmo-report-current-badge {
+	font-size: 0.65rem;
+	font-weight: 700;
+	background: hsl(199 89% 48%);
+	color: #fff;
+	border-radius: 3px;
+	padding: 1px 5px;
+	white-space: nowrap;
+}
+
+.hmo-report-progress-bar-wrap {
+	height: 6px;
+	background: hsl(215 15% 88%);
+	border-radius: 999px;
+	overflow: hidden;
+	margin-bottom: 0.3rem;
+}
+
+.hmo-report-progress-bar {
+	height: 100%;
+	background: hsl(199 89% 48%);
+	border-radius: 999px;
+	transition: width 0.3s;
+}
+
+.hmo-report-progress-card--done .hmo-report-progress-bar { background: hsl(145 50% 45%); }
+
+.hmo-report-progress-card__counts {
+	font-size: 0.75rem;
+	color: hsl(215 15% 50%);
+	display: flex;
+	justify-content: space-between;
+}
+
+.hmo-report-progress-card__pct {
+	font-weight: 700;
+	color: hsl(215 20% 35%);
+}
+
+/* Stage detail — active stage highlight */
+.hmo-report-stage--active {
+	border-color: hsl(199 89% 60%);
+}
+.hmo-report-stage--active .hmo-report-stage-header {
+	background: hsl(199 89% 95%);
+	border-bottom-color: hsl(199 89% 75%);
+}
+
+/* Task check icon and description */
+.hmo-report-task-check {
+	display: inline-block;
+	width: 1.1rem;
+	color: hsl(145 50% 40%);
+	font-size: 0.9rem;
+}
+.hmo-report-task-row--pending .hmo-report-task-check {
+	color: hsl(215 15% 65%);
+}
+.hmo-report-task-desc {
+	display: block;
+	font-size: 0.78rem;
+	color: hsl(215 15% 55%);
+	margin-top: 0.1rem;
+}
+
+/* Dark mode — new report elements */
+.wp-dark-mode-active .hmo-report-summary-header { background: hsl(199 60% 30%); }
+.wp-dark-mode-active .hmo-report-progress-overview {
+	background: hsl(215 20% 14%);
+	border-color: hsl(215 20% 24%);
+}
+.wp-dark-mode-active .hmo-report-progress-card {
+	background: hsl(215 20% 18%);
+	border-color: hsl(215 20% 28%);
+}
+.wp-dark-mode-active .hmo-report-progress-card--current {
+	background: hsl(199 40% 16%);
+	border-color: hsl(199 50% 35%);
+}
+.wp-dark-mode-active .hmo-report-progress-card--done {
+	background: hsl(145 15% 14%);
+	border-color: hsl(145 25% 28%);
+}
+.wp-dark-mode-active .hmo-report-progress-card__label { color: hsl(210 20% 75%); }
+.wp-dark-mode-active .hmo-report-progress-bar-wrap { background: hsl(215 20% 28%); }
+.wp-dark-mode-active .hmo-report-progress-card__counts { color: hsl(215 15% 55%); }
+.wp-dark-mode-active .hmo-report-progress-card__pct { color: hsl(210 20% 75%); }
+.wp-dark-mode-active .hmo-report-stage--active { border-color: hsl(199 60% 35%); }
+.wp-dark-mode-active .hmo-report-stage--active .hmo-report-stage-header { background: hsl(199 30% 14%); border-bottom-color: hsl(199 30% 25%); }

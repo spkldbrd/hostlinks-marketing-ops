@@ -2,26 +2,73 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 /**
  * Variables injected by HMO_Shortcodes::render_event_report():
- *   $events        array of event objects (id, name, event_date)
- *   $event_id      int — selected event ID (0 = none)
- *   $report_event  object|null — Hostlinks event data
- *   $report_stages array — [ stage_key => [ 'label', 'tasks' => [] ] ]
- *   $activity_log  array — hmo_event_activity rows for the event
- *   $user_cache    array — [ user_id => display_name ]
+ *   $events           array of event objects (id, name, event_date)
+ *   $event_id         int — selected event ID (0 = none)
+ *   $report_event     object|null — Hostlinks event data (SELECT *)
+ *   $report_stages    array — [ stage_key => [ 'label', 'tasks' => [] ] ]
+ *   $activity_log     array — hmo_event_activity rows for the event
+ *   $user_cache       array — [ user_id => display_name ]
+ *   $report_reg_count int   — paid + free registrations
+ *   $report_days_left int|null — days until event (negative = past)
+ *   $report_marketer  string — marketer display name
+ *   $report_ops       object|null — hmo_event_ops row
  */
 
-$current_url = remove_query_arg( 'event_id' );
+$event_display_name = '';
+if ( $report_event ) {
+	$event_display_name = trim( $report_event->cvent_event_title ?: $report_event->eve_location ?? '' );
+}
+
+// Build stage-level summary for the progress bar row.
+$stage_summary = array();
+foreach ( $report_stages as $sk => $sd ) {
+	if ( empty( $sd['tasks'] ) ) { continue; }
+	$total    = count( $sd['tasks'] );
+	$done     = count( array_filter( $sd['tasks'], fn( $t ) => $t->status === 'complete' ) );
+	$pct      = $total ? round( ( $done / $total ) * 100 ) : 0;
+	$stage_summary[] = array(
+		'key'   => $sk,
+		'label' => $sd['label'],
+		'done'  => $done,
+		'total' => $total,
+		'pct'   => $pct,
+	);
+}
+
+$current_stage      = $report_ops->workflow_stage ?? '';
+$current_stage_label = '';
+foreach ( HMO_Checklist_Templates::get_stages_option() as $s ) {
+	if ( $s['key'] === $current_stage ) { $current_stage_label = $s['label']; break; }
+}
+$goal         = $report_ops ? (int) $report_ops->registration_goal : 0;
+$open_tasks   = $report_ops ? (int) $report_ops->open_task_count   : 0;
+
+// Days left display.
+$days_display = '—';
+$days_class   = '';
+if ( $report_days_left !== null ) {
+	if ( $report_days_left > 0 ) {
+		$days_display = $report_days_left . ' days';
+		$days_class   = $report_days_left <= 30 ? 'red' : ( $report_days_left <= 45 ? 'yellow' : 'green' );
+	} elseif ( $report_days_left === 0 ) {
+		$days_display = 'Today';
+		$days_class   = 'red';
+	} else {
+		$days_display = abs( $report_days_left ) . ' days ago';
+		$days_class   = 'past';
+	}
+}
 ?>
 <div class="hmo-wrap hmo-report-wrap">
 
 	<div class="hmo-report-header">
 		<h2 class="hmo-report-title">Event Journey Report</h2>
+		<p class="hmo-report-subtitle">Track task completion, stage progression, and team activity for any event.</p>
 	</div>
 
 	<!-- Event selector -->
 	<form method="get" class="hmo-report-selector-form">
 		<?php
-		// Preserve other GET params except event_id and hmo_page.
 		foreach ( $_GET as $k => $v ) {
 			if ( in_array( $k, array( 'event_id', 'hmo_page' ), true ) ) { continue; }
 			echo '<input type="hidden" name="' . esc_attr( $k ) . '" value="' . esc_attr( $v ) . '">';
@@ -33,7 +80,7 @@ $current_url = remove_query_arg( 'event_id' );
 			<?php foreach ( $events as $ev ) : ?>
 			<option value="<?php echo (int) $ev->id; ?>"
 				<?php selected( $event_id, (int) $ev->id ); ?>>
-				<?php echo esc_html( $ev->name ); ?>
+				<?php echo esc_html( $ev->name ?: '(no name)' ); ?>
 				<?php if ( $ev->event_date ) : ?>
 					(<?php echo esc_html( date_i18n( 'M j, Y', strtotime( $ev->event_date ) ) ); ?>)
 				<?php endif; ?>
@@ -48,45 +95,115 @@ $current_url = remove_query_arg( 'event_id' );
 	</div>
 	<?php else : ?>
 
-	<!-- Event summary bar -->
-	<?php if ( $report_event ) : ?>
-	<div class="hmo-report-event-bar">
-		<span class="hmo-report-event-name"><?php echo esc_html( $report_event->eve_name ?? $report_event->name ?? '' ); ?></span>
-		<?php
-		$eve_date = $report_event->eve_start ?? $report_event->event_date ?? '';
-		if ( $eve_date ) :
-		?>
-		<span class="hmo-report-event-date"><?php echo esc_html( date_i18n( 'F j, Y', strtotime( $eve_date ) ) ); ?></span>
-		<?php endif; ?>
-		<?php
-		$ops   = HMO_DB::get_event_ops( $event_id );
-		$stage = $ops->workflow_stage ?? '';
-		if ( $stage ) :
-			$stage_label = '';
-			foreach ( HMO_Checklist_Templates::get_stages_option() as $s ) {
-				if ( $s['key'] === $stage ) { $stage_label = $s['label']; break; }
-			}
-		?>
-		<span class="hmo-stage-pill hmo-stage-pill--<?php echo esc_attr( $stage ); ?>">
-			<?php echo esc_html( $stage_label ?: ucwords( str_replace( '_', ' ', $stage ) ) ); ?>
-		</span>
-		<?php endif; ?>
+	<?php if ( ! $report_event ) : ?>
+	<div class="hmo-report-empty"><p>Event not found.</p></div>
+	<?php else : ?>
+
+	<!-- ── Event summary header ───────────────────────────────────────────── -->
+	<div class="hmo-report-summary-header">
+		<div class="hmo-report-summary-title">
+			<h3 class="hmo-report-event-title"><?php echo esc_html( $event_display_name ); ?></h3>
+			<?php if ( $report_event->eve_start ) : ?>
+			<span class="hmo-report-event-date">
+				<?php
+				$ts_start = strtotime( $report_event->eve_start );
+				$ts_end   = ( ! empty( $report_event->eve_end ) && $report_event->eve_end !== $report_event->eve_start )
+					? strtotime( $report_event->eve_end ) : null;
+				if ( $ts_end ) {
+					echo esc_html(
+						date( 'MY', $ts_start ) === date( 'MY', $ts_end )
+						? date_i18n( 'M j', $ts_start ) . '–' . date_i18n( 'j, Y', $ts_end )
+						: date_i18n( 'M j', $ts_start ) . ' – ' . date_i18n( 'M j, Y', $ts_end )
+					);
+				} else {
+					echo esc_html( date_i18n( 'M j, Y', $ts_start ) );
+				}
+				?>
+			</span>
+			<?php endif; ?>
+			<?php if ( $current_stage_label ) : ?>
+			<span class="hmo-stage-pill hmo-stage-pill--<?php echo esc_attr( $current_stage ); ?>">
+				<?php echo esc_html( $current_stage_label ); ?>
+			</span>
+			<?php endif; ?>
+		</div>
+
+		<!-- Stat cards -->
+		<div class="hmo-report-stat-row">
+			<?php if ( $report_marketer ) : ?>
+			<div class="hmo-report-stat">
+				<span class="hmo-report-stat__label">Marketer</span>
+				<span class="hmo-report-stat__value"><?php echo esc_html( $report_marketer ); ?></span>
+			</div>
+			<?php endif; ?>
+			<div class="hmo-report-stat">
+				<span class="hmo-report-stat__label">Registrations</span>
+				<span class="hmo-report-stat__value">
+					<?php echo (int) $report_reg_count; ?>
+					<?php if ( $goal ) : ?><span class="hmo-report-stat__sub">/ <?php echo (int) $goal; ?> goal</span><?php endif; ?>
+				</span>
+			</div>
+			<div class="hmo-report-stat">
+				<span class="hmo-report-stat__label">Open Tasks</span>
+				<span class="hmo-report-stat__value"><?php echo (int) $open_tasks; ?></span>
+			</div>
+			<?php if ( $report_days_left !== null ) : ?>
+			<div class="hmo-report-stat hmo-report-stat--days hmo-report-stat--<?php echo esc_attr( $days_class ); ?>">
+				<span class="hmo-report-stat__label">Days Left</span>
+				<span class="hmo-report-stat__value"><?php echo esc_html( $days_display ); ?></span>
+			</div>
+			<?php endif; ?>
+		</div>
+	</div>
+
+	<!-- ── Stage progress overview ────────────────────────────────────────── -->
+	<?php if ( ! empty( $stage_summary ) ) : ?>
+	<div class="hmo-report-progress-overview">
+		<h4 class="hmo-report-section-title">Stage Progress</h4>
+		<div class="hmo-report-progress-grid">
+			<?php foreach ( $stage_summary as $ss ) :
+				$is_current = $ss['key'] === $current_stage;
+			?>
+			<div class="hmo-report-progress-card<?php echo $is_current ? ' hmo-report-progress-card--current' : ''; ?>
+				<?php echo $ss['pct'] === 100 ? ' hmo-report-progress-card--done' : ''; ?>">
+				<div class="hmo-report-progress-card__label">
+					<?php echo esc_html( $ss['label'] ); ?>
+					<?php if ( $is_current ) : ?><span class="hmo-report-current-badge">Current</span><?php endif; ?>
+				</div>
+				<div class="hmo-report-progress-bar-wrap">
+					<div class="hmo-report-progress-bar" style="width:<?php echo (int) $ss['pct']; ?>%"></div>
+				</div>
+				<div class="hmo-report-progress-card__counts">
+					<?php echo (int) $ss['done']; ?> / <?php echo (int) $ss['total']; ?>
+					<span class="hmo-report-progress-card__pct"><?php echo (int) $ss['pct']; ?>%</span>
+				</div>
+			</div>
+			<?php endforeach; ?>
+		</div>
+	</div>
+	<?php elseif ( $event_id ) : ?>
+	<div class="hmo-report-empty" style="margin-bottom:1.5rem;">
+		<p>No tasks have been provisioned for this event yet. Open the event detail page to provision them.</p>
 	</div>
 	<?php endif; ?>
 
-	<!-- Journey: tasks grouped by stage -->
+	<!-- ── Stage detail tables ────────────────────────────────────────────── -->
+	<?php if ( ! empty( $stage_summary ) ) : ?>
 	<div class="hmo-report-stages">
 		<?php foreach ( $report_stages as $stage_key => $stage_data ) :
 			if ( empty( $stage_data['tasks'] ) ) { continue; }
-			$all_done   = array_reduce( $stage_data['tasks'], fn( $c, $t ) => $c && $t->status === 'complete', true );
-			$done_count = count( array_filter( $stage_data['tasks'], fn( $t ) => $t->status === 'complete' ) );
+			$all_done    = array_reduce( $stage_data['tasks'], fn( $c, $t ) => $c && $t->status === 'complete', true );
+			$done_count  = count( array_filter( $stage_data['tasks'], fn( $t ) => $t->status === 'complete' ) );
 			$total_count = count( $stage_data['tasks'] );
 		?>
-		<div class="hmo-report-stage hmo-report-stage--<?php echo esc_attr( $all_done ? 'complete' : 'partial' ); ?>">
+		<div class="hmo-report-stage hmo-report-stage--<?php echo esc_attr( $all_done ? 'complete' : ( $stage_key === $current_stage ? 'active' : 'partial' ) ); ?>">
 			<div class="hmo-report-stage-header">
 				<span class="hmo-stage-pill hmo-stage-pill--<?php echo esc_attr( $stage_key ); ?>">
 					<?php echo esc_html( $stage_data['label'] ); ?>
 				</span>
+				<?php if ( $stage_key === $current_stage ) : ?>
+				<span class="hmo-report-current-badge">Current Stage</span>
+				<?php endif; ?>
 				<span class="hmo-report-stage-progress">
 					<?php echo (int) $done_count; ?> / <?php echo (int) $total_count; ?> complete
 				</span>
@@ -118,9 +235,13 @@ $current_url = remove_query_arg( 'event_id' );
 				?>
 				<tr class="hmo-report-task-row hmo-report-task-row--<?php echo $is_complete ? 'complete' : 'pending'; ?>">
 					<td class="hmo-report-col-task">
+						<span class="hmo-report-task-check"><?php echo $is_complete ? '&#10003;' : '&#9675;'; ?></span>
 						<?php echo esc_html( $task->task_label ); ?>
+						<?php if ( $task->task_description ) : ?>
+						<span class="hmo-report-task-desc"><?php echo esc_html( $task->task_description ); ?></span>
+						<?php endif; ?>
 						<?php if ( $task->completion_note ) : ?>
-						<span class="hmo-report-task-note"><?php echo esc_html( $task->completion_note ); ?></span>
+						<span class="hmo-report-task-note">Note: <?php echo esc_html( $task->completion_note ); ?></span>
 						<?php endif; ?>
 					</td>
 					<td class="hmo-report-col-status">
@@ -139,11 +260,12 @@ $current_url = remove_query_arg( 'event_id' );
 		</div>
 		<?php endforeach; ?>
 	</div>
+	<?php endif; ?>
 
-	<!-- Activity log -->
+	<!-- ── Activity log ───────────────────────────────────────────────────── -->
 	<?php if ( ! empty( $activity_log ) ) : ?>
 	<div class="hmo-report-activity">
-		<h3 class="hmo-report-section-title">Activity Log</h3>
+		<h4 class="hmo-report-section-title">Activity Log</h4>
 		<table class="hmo-report-activity-table">
 			<thead>
 				<tr>
@@ -160,11 +282,6 @@ $current_url = remove_query_arg( 'event_id' );
 					$entry_user = $user_cache[ (int) $entry->user_id ] ?? sprintf( 'User #%d', $entry->user_id );
 				}
 				$type_label = ucwords( str_replace( '_', ' ', $entry->activity_type ) );
-				$meta       = array();
-				if ( $entry->meta_json ) {
-					$decoded = json_decode( $entry->meta_json, true );
-					if ( is_array( $decoded ) ) { $meta = $decoded; }
-				}
 			?>
 			<tr>
 				<td class="hmo-report-act-date"><?php echo esc_html( date_i18n( 'M j, Y g:i a', strtotime( $entry->created_at ) ) ); ?></td>
@@ -182,6 +299,7 @@ $current_url = remove_query_arg( 'event_id' );
 	</div>
 	<?php endif; ?>
 
-	<?php endif; // end event_id check ?>
+	<?php endif; // $report_event check ?>
+	<?php endif; // $event_id check ?>
 
 </div>

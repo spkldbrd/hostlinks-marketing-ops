@@ -164,6 +164,9 @@ class HMO_Access_Service {
 		if ( current_user_can( 'manage_options' ) ) {
 			return true;
 		}
+		if ( self::current_user_is_marketing_admin() ) {
+			return true;
+		}
 		$uid     = get_current_user_id();
 		$viewers = array_map( 'intval', (array) get_option( self::OPT_REPORT_VIEWERS, array() ) );
 		return $uid > 0 && in_array( $uid, $viewers, true );

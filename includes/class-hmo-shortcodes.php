@@ -223,16 +223,18 @@ class HMO_Shortcodes {
 		$event_id = isset( $_GET['event_id'] ) ? (int) $_GET['event_id'] : 0;
 
 		// Build event list for the selector dropdown.
-		// WP admins and report viewers see all active events; bucket-only users see their bucket events.
-		$is_admin        = $this->access->current_user_can_see_all_events();
+		// Admins, marketing admins and report viewers see all events; bucket-only users see their bucket events.
+		// Report shows all events regardless of status so past events remain reportable.
+		$is_admin         = $this->access->current_user_can_see_all_events();
 		$is_report_viewer = HMO_Access_Service::current_user_can_view_reports();
+
+		$name_col = "COALESCE(NULLIF(cvent_event_title,''), eve_location, '')";
 
 		if ( $is_admin || $is_report_viewer ) {
 			$events = $wpdb->get_results(
-				"SELECT eve_id AS id, eve_name AS name, eve_start AS event_date
+				"SELECT eve_id AS id, {$name_col} AS name, eve_start AS event_date
 				 FROM {$wpdb->prefix}event_details_list
-				 WHERE eve_status = 1
-				 ORDER BY eve_start DESC"
+				 ORDER BY eve_start DESC" // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			);
 		} else {
 			$allowed = $this->access->get_allowed_event_ids();
@@ -241,9 +243,9 @@ class HMO_Shortcodes {
 			} else {
 				$ph     = implode( ',', array_fill( 0, count( $allowed ), '%d' ) );
 				$events = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-					"SELECT eve_id AS id, eve_name AS name, eve_start AS event_date
+					"SELECT eve_id AS id, {$name_col} AS name, eve_start AS event_date
 					 FROM {$wpdb->prefix}event_details_list
-					 WHERE eve_status = 1 AND eve_id IN ($ph)
+					 WHERE eve_id IN ($ph)
 					 ORDER BY eve_start DESC",
 					$allowed
 				) );
@@ -256,6 +258,12 @@ class HMO_Shortcodes {
 		$activity_log   = array();
 		$user_cache     = array();
 
+		// Extra variables for the view (populated when an event is selected).
+		$report_reg_count   = 0;
+		$report_days_left   = null;
+		$report_marketer    = '';
+		$report_ops         = null;
+
 		if ( $event_id ) {
 			if ( ! $is_admin && ! $is_report_viewer && ! $this->access->can_view_event( $event_id ) ) {
 				return $this->access->get_denial_message_html();
@@ -263,6 +271,12 @@ class HMO_Shortcodes {
 
 			// Fetch event info.
 			$report_event = $this->bridge->get_event( $event_id );
+			if ( $report_event ) {
+				$report_reg_count = $this->bridge->get_event_registration_count( $event_id );
+				$report_days_left = $this->countdown->get_days_left( $event_id );
+				$report_marketer  = $this->bridge->get_event_marketer_name( $event_id );
+				$report_ops       = HMO_DB::get_event_ops( $event_id );
+			}
 
 			// Load tasks grouped by stage.
 			$tasks = $wpdb->get_results( $wpdb->prepare(
