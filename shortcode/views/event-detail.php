@@ -181,6 +181,21 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 			<?php endforeach; ?>
 		</div><!-- .hmo-detail-col-main -->
 
+		<!-- Right column: Notes -->
+		<div class="hmo-detail-panel hmo-detail-col-side hmo-event-notes-panel"
+			data-event-id="<?php echo (int) $event->id; ?>">
+			<h2 class="hmo-panel-title">Notes</h2>
+			<textarea
+				id="hmo-event-note"
+				class="hmo-event-note-textarea"
+				rows="5"
+				placeholder="Add a note visible only here…"><?php echo esc_textarea( $ops ? $ops->event_note : '' ); ?></textarea>
+			<div class="hmo-event-note-footer">
+				<button class="hmo-save-event-note hostlinks-btn">Save</button>
+				<span class="hmo-event-note-status"></span>
+			</div>
+		</div>
+
 		<!-- Right column: Event Insights -->
 		<div class="hmo-detail-panel hmo-detail-col-side">
 			<h2 class="hmo-panel-title">Insights</h2>

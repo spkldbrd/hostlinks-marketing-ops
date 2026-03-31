@@ -32,6 +32,7 @@ class HMO_DB {
 			ship_to_name varchar(255) NOT NULL DEFAULT '',
 			ship_to_address text NOT NULL DEFAULT '',
 			host_contact_json longtext NOT NULL DEFAULT '',
+			event_note text NOT NULL DEFAULT '',
 			last_status_change_at datetime DEFAULT NULL,
 			created_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -251,6 +252,12 @@ class HMO_DB {
 			}
 			if ( ! in_array( 'completion_note', $columns, true ) ) {
 				$wpdb->query( "ALTER TABLE {$wpdb->prefix}hmo_event_tasks ADD COLUMN completion_note text NOT NULL DEFAULT ''" );
+			}
+
+			// v1.3.4: add event_note column to hmo_event_ops.
+			$ops_columns = $wpdb->get_col( "SHOW COLUMNS FROM {$wpdb->prefix}hmo_event_ops", 0 );
+			if ( ! in_array( 'event_note', $ops_columns, true ) ) {
+				$wpdb->query( "ALTER TABLE {$wpdb->prefix}hmo_event_ops ADD COLUMN event_note text NOT NULL DEFAULT ''" );
 			}
 
 			update_option( 'hmo_db_version', HMO_DB_VERSION );

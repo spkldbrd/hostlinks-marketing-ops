@@ -147,6 +147,33 @@
 	} );
 
 	// -------------------------------------------------------------------------
+	// Event note save
+	// -------------------------------------------------------------------------
+
+	$( document ).on( 'click', '.hmo-save-event-note', function () {
+		var $btn     = $( this );
+		var $panel   = $btn.closest( '.hmo-event-notes-panel' );
+		var eventId  = $panel.data( 'event-id' );
+		var $status  = $panel.find( '.hmo-event-note-status' );
+		var note     = $panel.find( '.hmo-event-note-textarea' ).val();
+
+		$btn.text( str.saving ).prop( 'disabled', true );
+
+		apiPost(
+			'/events/' + eventId + '/event-note',
+			{ note: note },
+			function () {
+				$btn.text( 'Save' ).prop( 'disabled', false );
+				showInlineStatus( $status, str.saved, false );
+			},
+			function () {
+				$btn.text( 'Save' ).prop( 'disabled', false );
+				showInlineStatus( $status, str.error, true );
+			}
+		);
+	} );
+
+	// -------------------------------------------------------------------------
 	// Stage update
 	// -------------------------------------------------------------------------
 

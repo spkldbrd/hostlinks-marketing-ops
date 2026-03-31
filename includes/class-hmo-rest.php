@@ -108,6 +108,19 @@ class HMO_REST {
 			'permission_callback' => array( $this, 'require_task_access' ),
 		) );
 
+		// Save event-level note.
+		register_rest_route( $ns, '/events/(?P<id>\d+)/event-note', array(
+			'methods'             => WP_REST_Server::CREATABLE,
+			'callback'            => array( $this, 'save_event_note' ),
+			'permission_callback' => array( $this, 'require_event_access' ),
+			'args'                => array(
+				'note' => array(
+					'required'          => true,
+					'sanitize_callback' => 'sanitize_textarea_field',
+				),
+			),
+		) );
+
 		// Save task note.
 		register_rest_route( $ns, '/tasks/(?P<id>\d+)/note', array(
 			'methods'             => WP_REST_Server::CREATABLE,
@@ -248,6 +261,14 @@ class HMO_REST {
 		$success = $this->checklist->save_task_note( $task_id, $note );
 
 		return new WP_REST_Response( array( 'success' => $success ), $success ? 200 : 400 );
+	}
+
+	public function save_event_note( WP_REST_Request $request ): WP_REST_Response {
+		$event_id = (int) $request->get_param( 'id' );
+		$note     = (string) $request->get_param( 'note' );
+		HMO_DB::upsert_event_ops( $event_id, array( 'event_note' => $note ) );
+
+		return new WP_REST_Response( array( 'success' => true ), 200 );
 	}
 
 	// -------------------------------------------------------------------------
