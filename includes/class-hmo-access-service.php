@@ -211,7 +211,8 @@ class HMO_Access_Service {
 	// =========================================================================
 
 	public function current_user_can_see_all_events(): bool {
-		return current_user_can( 'manage_options' );
+		return current_user_can( 'manage_options' )
+			|| self::current_user_is_marketing_admin();
 	}
 
 	/**
