@@ -78,27 +78,66 @@ if ( $report_days_left !== null ) {
 		<p class="hmo-report-subtitle">Track task completion, stage progression, and team activity for any event.</p>
 	</div>
 
-	<!-- Event selector -->
-	<form method="get" class="hmo-report-selector-form">
+	<!-- Event selector with year + month filters -->
+	<form method="get" class="hmo-report-selector-form" id="hmo-report-filter-form">
 		<?php
+		$_skip = array( 'event_id', 'hmo_page', 'hmo_report_year', 'hmo_report_month' );
 		foreach ( $_GET as $k => $v ) {
-			if ( in_array( $k, array( 'event_id', 'hmo_page' ), true ) ) { continue; }
+			if ( in_array( $k, $_skip, true ) || is_array( $v ) ) { continue; }
 			echo '<input type="hidden" name="' . esc_attr( $k ) . '" value="' . esc_attr( $v ) . '">';
 		}
 		?>
-		<label for="hmo-report-event-select" class="hmo-report-selector-label">Select Event:</label>
-		<select name="event_id" id="hmo-report-event-select" class="hmo-report-selector-select" onchange="this.form.submit()">
-			<option value="">— Choose an event —</option>
+
+		<!-- Year selector -->
+		<select name="hmo_report_year" class="hmo-report-selector-select hmo-report-selector-select--sm"
+			onchange="document.getElementById('hmo-report-event-id').value='';this.form.submit()">
+			<?php foreach ( $report_years as $yr ) : ?>
+			<option value="<?php echo (int) $yr; ?>" <?php selected( $report_year, (int) $yr ); ?>>
+				<?php echo (int) $yr; ?>
+			</option>
+			<?php endforeach; ?>
+		</select>
+
+		<!-- Month selector -->
+		<?php
+		$months = array(
+			1 => 'January', 2 => 'February', 3 => 'March', 4 => 'April',
+			5 => 'May', 6 => 'June', 7 => 'July', 8 => 'August',
+			9 => 'September', 10 => 'October', 11 => 'November', 12 => 'December',
+		);
+		?>
+		<select name="hmo_report_month" class="hmo-report-selector-select hmo-report-selector-select--sm"
+			onchange="document.getElementById('hmo-report-event-id').value='';this.form.submit()">
+			<?php foreach ( $months as $mn => $ml ) : ?>
+			<option value="<?php echo (int) $mn; ?>" <?php selected( $report_month, $mn ); ?>>
+				<?php echo esc_html( $ml ); ?>
+			</option>
+			<?php endforeach; ?>
+		</select>
+
+		<span class="hmo-report-selector-sep">|</span>
+
+		<label for="hmo-report-event-select" class="hmo-report-selector-label">Event:</label>
+		<input type="hidden" id="hmo-report-event-id" name="event_id" value="<?php echo (int) $event_id; ?>">
+		<select id="hmo-report-event-select" class="hmo-report-selector-select"
+			onchange="document.getElementById('hmo-report-event-id').value=this.value;this.form.submit()">
+			<option value="">
+				<?php echo empty( $events ) ? '— No events this month —' : '— Choose an event —'; ?>
+			</option>
 			<?php foreach ( $events as $ev ) : ?>
 			<option value="<?php echo (int) $ev->id; ?>"
 				<?php selected( $event_id, (int) $ev->id ); ?>>
 				<?php echo esc_html( $ev->name ?: '(no name)' ); ?>
 				<?php if ( $ev->event_date ) : ?>
-					(<?php echo esc_html( date_i18n( 'M j, Y', strtotime( $ev->event_date ) ) ); ?>)
+					(<?php echo esc_html( date_i18n( 'M j', strtotime( $ev->event_date ) ) ); ?>)
 				<?php endif; ?>
 			</option>
 			<?php endforeach; ?>
 		</select>
+
+		<?php if ( ! empty( $events ) ) : ?>
+		<span class="hmo-report-selector-count"><?php echo count( $events ); ?> event<?php echo count( $events ) !== 1 ? 's' : ''; ?></span>
+		<?php endif; ?>
 	</form>
 
 	<?php if ( ! $event_id ) : ?>
