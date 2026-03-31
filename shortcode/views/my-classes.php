@@ -4,9 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 //            $alert_data, $user_buckets, $selected_buckets, $has_multi_buckets, $detail_base, $filters
 
 $is_admin     = $access->current_user_can_see_all_events();
-$upcoming_url = add_query_arg( 'hmo_view', 'upcoming', remove_query_arg( array( 'hmo_view', 'hmo_page' ) ) );
-// Past Events clears the Next 30 Days filter.
-$past_url     = add_query_arg( 'hmo_view', 'past', remove_query_arg( array( 'hmo_view', 'hmo_page', 'hmo_next30' ) ) );
+// Upcoming / Past Events — each clears both quick-filter toggles.
+$upcoming_url = remove_query_arg( array( 'hmo_view', 'hmo_page', 'hmo_next30', 'hmo_trouble_only' ) );
+$past_url     = add_query_arg( 'hmo_view', 'past', remove_query_arg( array( 'hmo_view', 'hmo_page', 'hmo_next30', 'hmo_trouble_only' ) ) );
 $f_trouble    = ! empty( $_GET['hmo_trouble_only'] );
 $f_next30     = ! empty( $_GET['hmo_next30'] );
 
@@ -20,9 +20,23 @@ foreach ( HMO_Checklist_Templates::get_stages_option() as $s ) {
 	<!-- Header -->
 	<div class="hmo-dashboard-header">
 		<span class="hmo-dashboard-header__title">My Classes</span>
-		<a href="<?php echo esc_url( Hostlinks_Page_URLs::get_upcoming() ); ?>" class="hostlinks-btn hmo-return-btn">
-			&larr; Return to Hostlinks
-		</a>
+		<nav class="hmo-header-nav">
+			<a href="<?php echo esc_url( Hostlinks_Page_URLs::get_upcoming() ); ?>" class="hmo-header-nav__link">
+				&larr; Return to Hostlinks
+			</a>
+			<?php
+			$_task_url   = HMO_Page_URLs::get_task_editor();
+			$_report_url = HMO_Page_URLs::get_event_report();
+			if ( $_task_url && HMO_Access_Service::current_user_can_edit_tasks() ) :
+			?>
+			<span class="hmo-header-nav__sep" aria-hidden="true">|</span>
+			<a href="<?php echo esc_url( $_task_url ); ?>" class="hmo-header-nav__link">Task Management</a>
+			<?php endif; ?>
+			<?php if ( $_report_url && HMO_Access_Service::current_user_can_view_reports() ) : ?>
+			<span class="hmo-header-nav__sep" aria-hidden="true">|</span>
+			<a href="<?php echo esc_url( $_report_url ); ?>" class="hmo-header-nav__link">Reports</a>
+			<?php endif; ?>
+		</nav>
 	</div>
 
 	<!-- Summary cards -->
@@ -81,20 +95,20 @@ foreach ( HMO_Checklist_Templates::get_stages_option() as $s ) {
 			<!-- (bucket pills handled above; stage/risk dropdowns could go here if needed) -->
 		</div>
 		<div class="hmo-toolbar__right">
-			<!-- Quick filter toggles -->
+			<!-- Quick filter toggles: each clears the others when activated -->
 			<a class="hmo-view-bar__btn hmo-view-bar__btn--filter<?php echo $f_trouble ? ' hmo-view-bar__btn--active' : ''; ?>"
 				href="<?php echo $f_trouble
 					? esc_url( remove_query_arg( array( 'hmo_trouble_only', 'hmo_page' ) ) )
-					: esc_url( add_query_arg( array( 'hmo_trouble_only' => '1', 'hmo_page' => false ) ) ); ?>">
+					: esc_url( add_query_arg( array( 'hmo_trouble_only' => '1', 'hmo_page' => false ), remove_query_arg( array( 'hmo_next30', 'hmo_page' ) ) ) ); ?>">
 				⚠ Trouble Only
 			</a>
 			<a class="hmo-view-bar__btn hmo-view-bar__btn--filter<?php echo $f_next30 ? ' hmo-view-bar__btn--active' : ''; ?>"
 				href="<?php echo $f_next30
 					? esc_url( remove_query_arg( array( 'hmo_next30', 'hmo_page' ) ) )
-					: esc_url( add_query_arg( array( 'hmo_next30' => '1', 'hmo_page' => false ) ) ); ?>">
+					: esc_url( add_query_arg( array( 'hmo_next30' => '1', 'hmo_page' => false ), remove_query_arg( array( 'hmo_trouble_only', 'hmo_view', 'hmo_page' ) ) ) ); ?>">
 				&#128197; Next 30 Days
 			</a>
-			<!-- Upcoming / Past toggle -->
+			<!-- Upcoming / Past toggle: each clears the quick filters -->
 			<div class="hmo-view-bar">
 				<a class="hmo-view-bar__btn<?php echo $view === 'upcoming' ? ' hmo-view-bar__btn--active' : ''; ?>"
 					href="<?php echo esc_url( $upcoming_url ); ?>">Upcoming</a>

@@ -33,6 +33,35 @@
 	text-decoration: underline !important;
 }
 
+/* Header nav (Return to Hostlinks | Task Management | Reports) */
+.hmo-header-nav {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+	margin-left: auto;
+}
+
+.hmo-header-nav__link {
+	color: #fff !important;
+	text-decoration: none !important;
+	white-space: nowrap;
+	font-size: 0.9rem;
+	opacity: 0.92;
+	transition: opacity 0.15s;
+}
+
+.hmo-header-nav__link:hover {
+	text-decoration: underline !important;
+	opacity: 1;
+}
+
+.hmo-header-nav__sep {
+	color: hsla(0 0% 100% / 0.45);
+	user-select: none;
+	font-size: 0.85rem;
+}
+
 /* ?? Summary stat cards ??????????????????????????????????????????????????? */
 
 .hmo-fe-cards {
@@ -1519,6 +1548,9 @@
 .wp-dark-mode-active .hmo-dashboard-header {
 	background: hsl(199 89% 35%);
 }
+
+.wp-dark-mode-active .hmo-header-nav__link { color: #fff !important; }
+.wp-dark-mode-active .hmo-header-nav__sep  { color: hsla(0 0% 100% / 0.35); }
 
 .wp-dark-mode-active .hmo-fe-table-wrap {
 	background: hsl(215 25% 13%);
