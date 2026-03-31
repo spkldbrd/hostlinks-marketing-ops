@@ -78,10 +78,10 @@ if ( $report_days_left !== null ) {
 		<p class="hmo-report-subtitle">Track task completion, stage progression, and team activity for any event.</p>
 	</div>
 
-	<!-- Event selector with year + month filters -->
+	<!-- Event selector with year + month + bucket filters -->
 	<form method="get" class="hmo-report-selector-form" id="hmo-report-filter-form">
 		<?php
-		$_skip = array( 'event_id', 'hmo_page', 'hmo_report_year', 'hmo_report_month' );
+		$_skip = array( 'event_id', 'hmo_page', 'hmo_report_year', 'hmo_report_month', 'hmo_report_bucket' );
 		foreach ( $_GET as $k => $v ) {
 			if ( in_array( $k, $_skip, true ) || is_array( $v ) ) { continue; }
 			echo '<input type="hidden" name="' . esc_attr( $k ) . '" value="' . esc_attr( $v ) . '">';
@@ -114,6 +114,19 @@ if ( $report_days_left !== null ) {
 			</option>
 			<?php endforeach; ?>
 		</select>
+
+		<?php if ( ! empty( $report_buckets ) ) : ?>
+		<!-- Bucket selector -->
+		<select name="hmo_report_bucket" class="hmo-report-selector-select hmo-report-selector-select--sm"
+			onchange="document.getElementById('hmo-report-event-id').value='';this.form.submit()">
+			<option value="0" <?php selected( $report_bucket, 0 ); ?>>All Buckets</option>
+			<?php foreach ( $report_buckets as $bkt ) : ?>
+			<option value="<?php echo (int) $bkt->id; ?>" <?php selected( $report_bucket, (int) $bkt->id ); ?>>
+				<?php echo esc_html( $bkt->name ); ?>
+			</option>
+			<?php endforeach; ?>
+		</select>
+		<?php endif; ?>
 
 		<span class="hmo-report-selector-sep">|</span>
 

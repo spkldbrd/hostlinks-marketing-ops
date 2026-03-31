@@ -220,9 +220,10 @@ class HMO_Shortcodes {
 
 		global $wpdb;
 
-		$event_id     = isset( $_GET['event_id'] ) ? (int) $_GET['event_id'] : 0;
-		$report_year  = isset( $_GET['hmo_report_year'] )  ? (int) $_GET['hmo_report_year']  : (int) current_time( 'Y' );
-		$report_month = isset( $_GET['hmo_report_month'] ) ? (int) $_GET['hmo_report_month'] : (int) current_time( 'n' );
+		$event_id      = isset( $_GET['event_id'] )          ? (int) $_GET['event_id']          : 0;
+		$report_year   = isset( $_GET['hmo_report_year'] )   ? (int) $_GET['hmo_report_year']   : (int) current_time( 'Y' );
+		$report_month  = isset( $_GET['hmo_report_month'] )  ? (int) $_GET['hmo_report_month']  : (int) current_time( 'n' );
+		$report_bucket = isset( $_GET['hmo_report_bucket'] ) ? (int) $_GET['hmo_report_bucket'] : 0;
 
 		// Clamp month to 1–12.
 		$report_month = max( 1, min( 12, $report_month ) );
@@ -232,12 +233,14 @@ class HMO_Shortcodes {
 		$is_admin         = $this->access->current_user_can_see_all_events();
 		$is_report_viewer = HMO_Access_Service::current_user_can_view_reports();
 
-		$name_col = "COALESCE(NULLIF(cvent_event_title,''), eve_location, '')";
+		$name_col = "COALESCE(NULLIF(e.cvent_event_title,''), e.eve_location, '')";
+		$mkt_tbl  = $wpdb->prefix . 'event_marketer';
+		$evt_tbl  = $wpdb->prefix . 'event_details_list';
 
-		// Fetch distinct years for the year dropdown (access-aware).
+		// Fetch distinct years for the year dropdown (access-aware, not bucket-filtered).
 		if ( $is_admin || $is_report_viewer ) {
 			$report_years = $wpdb->get_col(
-				"SELECT DISTINCT YEAR(eve_start) FROM {$wpdb->prefix}event_details_list
+				"SELECT DISTINCT YEAR(eve_start) FROM {$evt_tbl}
 				 WHERE eve_start IS NOT NULL AND eve_start != '0000-00-00'
 				 ORDER BY 1 DESC" // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 			);
@@ -246,7 +249,7 @@ class HMO_Shortcodes {
 			if ( ! empty( $allowed_for_years ) ) {
 				$ph_y         = implode( ',', array_fill( 0, count( $allowed_for_years ), '%d' ) );
 				$report_years = $wpdb->get_col( $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-					"SELECT DISTINCT YEAR(eve_start) FROM {$wpdb->prefix}event_details_list
+					"SELECT DISTINCT YEAR(eve_start) FROM {$evt_tbl}
 					 WHERE eve_id IN ($ph_y) AND eve_start IS NOT NULL AND eve_start != '0000-00-00'
 					 ORDER BY 1 DESC",
 					$allowed_for_years
@@ -256,24 +259,53 @@ class HMO_Shortcodes {
 			}
 		}
 		$report_years = array_map( 'intval', $report_years );
-
-		// Ensure the currently-selected year is always present in the list.
 		if ( ! in_array( $report_year, $report_years, true ) ) {
 			array_unshift( $report_years, $report_year );
 		}
 
-		// Build filtered event list for the selected year + month.
+		// Fetch buckets (marketers) for the bucket dropdown (access-aware, not year/month-filtered).
+		if ( $is_admin || $is_report_viewer ) {
+			$report_buckets = $wpdb->get_results(
+				"SELECT m.event_marketer_id AS id, m.event_marketer_name AS name
+				 FROM {$mkt_tbl} m
+				 INNER JOIN {$evt_tbl} e ON e.eve_marketer = m.event_marketer_id
+				 GROUP BY m.event_marketer_id, m.event_marketer_name
+				 ORDER BY m.event_marketer_name ASC" // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+			);
+		} else {
+			$allowed_bucket_ids = $this->access->get_allowed_bucket_ids();
+			if ( ! empty( $allowed_bucket_ids ) ) {
+				$ph_b           = implode( ',', array_fill( 0, count( $allowed_bucket_ids ), '%d' ) );
+				$report_buckets = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					"SELECT event_marketer_id AS id, event_marketer_name AS name
+					 FROM {$mkt_tbl}
+					 WHERE event_marketer_id IN ($ph_b)
+					 ORDER BY event_marketer_name ASC",
+					$allowed_bucket_ids
+				) );
+			} else {
+				$report_buckets = array();
+			}
+		}
+
+		// Build filtered event list for the selected year + month + bucket.
 		$date_from = sprintf( '%04d-%02d-01', $report_year, $report_month );
 		$date_to   = date( 'Y-m-t', strtotime( $date_from ) ); // last day of month
 
+		$where_extra  = '';
+		$extra_params = array();
+		if ( $report_bucket > 0 ) {
+			$where_extra    = ' AND e.eve_marketer = %d';
+			$extra_params[] = $report_bucket;
+		}
+
 		if ( $is_admin || $is_report_viewer ) {
-			$events = $wpdb->get_results( $wpdb->prepare(
-				"SELECT eve_id AS id, {$name_col} AS name, eve_start AS event_date
-				 FROM {$wpdb->prefix}event_details_list
-				 WHERE eve_start BETWEEN %s AND %s
-				 ORDER BY eve_start ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$date_from,
-				$date_to
+			$events = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT e.eve_id AS id, {$name_col} AS name, e.eve_start AS event_date
+				 FROM {$evt_tbl} e
+				 WHERE e.eve_start BETWEEN %s AND %s{$where_extra}
+				 ORDER BY e.eve_start ASC",
+				array_merge( array( $date_from, $date_to ), $extra_params )
 			) );
 		} else {
 			$allowed = $this->access->get_allowed_event_ids();
@@ -282,11 +314,11 @@ class HMO_Shortcodes {
 			} else {
 				$ph     = implode( ',', array_fill( 0, count( $allowed ), '%d' ) );
 				$events = $wpdb->get_results( $wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-					"SELECT eve_id AS id, {$name_col} AS name, eve_start AS event_date
-					 FROM {$wpdb->prefix}event_details_list
-					 WHERE eve_id IN ($ph) AND eve_start BETWEEN %s AND %s
-					 ORDER BY eve_start ASC",
-					array_merge( $allowed, array( $date_from, $date_to ) )
+					"SELECT e.eve_id AS id, {$name_col} AS name, e.eve_start AS event_date
+					 FROM {$evt_tbl} e
+					 WHERE e.eve_id IN ($ph) AND e.eve_start BETWEEN %s AND %s{$where_extra}
+					 ORDER BY e.eve_start ASC",
+					array_merge( $allowed, array( $date_from, $date_to ), $extra_params )
 				) );
 			}
 		}
