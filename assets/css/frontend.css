@@ -2421,7 +2421,8 @@
 
 .hmo-report-wrap { max-width: 960px; }
 
-.hmo-report-header { margin-bottom: 1.25rem; }
+.hmo-report-header { margin-bottom: 0.75rem; }
+.hmo-report-header .hmo-report-subtitle { margin: 0; }
 
 .hmo-report-title {
 	font-size: 1.4rem;

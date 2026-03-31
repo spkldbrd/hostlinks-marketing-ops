@@ -61,8 +61,20 @@ if ( $report_days_left !== null ) {
 ?>
 <div class="hmo-wrap hmo-report-wrap">
 
+	<!-- Blue header bar matching Dashboard/My Classes style -->
+	<div class="hmo-dashboard-header">
+		<span class="hmo-dashboard-header__title">Event Journey Report</span>
+		<nav class="hmo-header-nav">
+			<?php $__ops_url = HMO_Page_URLs::get_dashboard_selector() ?: HMO_Page_URLs::get_dashboard(); ?>
+			<?php if ( $__ops_url ) : ?>
+			<a href="<?php echo esc_url( $__ops_url ); ?>" class="hmo-header-nav__link">
+				&larr; Return to Marketing Ops
+			</a>
+			<?php endif; ?>
+		</nav>
+	</div>
+
 	<div class="hmo-report-header">
-		<h2 class="hmo-report-title">Event Journey Report</h2>
 		<p class="hmo-report-subtitle">Track task completion, stage progression, and team activity for any event.</p>
 	</div>
 

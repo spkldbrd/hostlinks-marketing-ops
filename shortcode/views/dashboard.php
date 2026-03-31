@@ -37,14 +37,15 @@ function hmo_clear_filter_url( $remove_key ): string {
 				&larr; Return to Hostlinks
 			</a>
 			<?php
-			$_task_url   = HMO_Page_URLs::get_task_editor();
-			$_report_url = HMO_Page_URLs::get_event_report();
-			if ( $_task_url && HMO_Access_Service::current_user_can_edit_tasks() ) :
+			$_task_url    = HMO_Page_URLs::get_task_editor();
+			$_report_url  = HMO_Page_URLs::get_event_report();
+			$_is_mgr_admin = current_user_can( 'manage_options' ) || HMO_Access_Service::current_user_is_marketing_admin();
+			if ( $_task_url && $_is_mgr_admin ) :
 			?>
 			<span class="hmo-header-nav__sep" aria-hidden="true">|</span>
 			<a href="<?php echo esc_url( $_task_url ); ?>" class="hmo-header-nav__link">Task Management</a>
 			<?php endif; ?>
-			<?php if ( $_report_url && HMO_Access_Service::current_user_can_view_reports() ) : ?>
+			<?php if ( $_report_url && $_is_mgr_admin ) : ?>
 			<span class="hmo-header-nav__sep" aria-hidden="true">|</span>
 			<a href="<?php echo esc_url( $_report_url ); ?>" class="hmo-header-nav__link">Reports</a>
 			<?php endif; ?>

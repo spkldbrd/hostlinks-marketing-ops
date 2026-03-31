@@ -8,7 +8,14 @@ $stage_count = count( $stages );
 
 	<div class="hmo-dashboard-header">
 		<span class="hmo-dashboard-header__title">Task Template Editor</span>
-		<span class="hmo-dashboard-header__stats">Edit the master checklist applied to all events</span>
+		<nav class="hmo-header-nav">
+			<?php $__ops_url = HMO_Page_URLs::get_dashboard_selector() ?: HMO_Page_URLs::get_dashboard(); ?>
+			<?php if ( $__ops_url ) : ?>
+			<a href="<?php echo esc_url( $__ops_url ); ?>" class="hmo-header-nav__link">
+				&larr; Return to Marketing Ops
+			</a>
+			<?php endif; ?>
+		</nav>
 	</div>
 
 	<p class="hmo-te-intro">
