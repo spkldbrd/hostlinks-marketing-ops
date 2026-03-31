@@ -97,7 +97,8 @@ class HMO_Dashboard_Service {
 			}
 
 			$stage       = $ops ? $ops->workflow_stage : 'event_setup';
-			$days_left   = $this->countdown->get_days_left( $event_id );
+			// Use data already in the $event object — avoids N×get_event() round-trips.
+			$days_left   = $this->countdown->get_days_left_from_date( $event->eve_start ?? '' );
 			$open_tasks  = $ops ? (int) $ops->open_task_count : 0;
 			$risk        = $days_left !== null
 				? $this->countdown->get_risk_level( $days_left, $open_tasks )
@@ -106,7 +107,7 @@ class HMO_Dashboard_Service {
 				? $this->countdown->is_behind_schedule( $days_left, $stage )
 				: false;
 
-			$reg_count = $this->bridge->get_event_registration_count( $event_id );
+			$reg_count = (int) ( $event->eve_paid ?? 0 ) + (int) ( $event->eve_free ?? 0 );
 			$stored_goal = $ops ? (int) $ops->registration_goal : 0;
 			$reg_goal    = $stored_goal > 0 ? $stored_goal : (int) get_option( 'hmo_default_goal', 25 );
 

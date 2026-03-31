@@ -65,7 +65,9 @@ class HMO_Updater {
 
 	public function bust_cache_on_page_load(): void {
 		delete_transient( $this->transient_key );
-		delete_site_transient( 'update_plugins' );
+		// Intentionally NOT calling delete_site_transient('update_plugins') here — doing so on every
+		// settings visit forced a synchronous full-plugin-list HTTP check on the next admin request.
+		// WordPress manages its own update schedule; we only need to refresh HMO's own GitHub release data.
 	}
 
 	// ── Fetch latest release from GitHub (cached 12 h) ───────────────────────

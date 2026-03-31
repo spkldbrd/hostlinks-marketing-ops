@@ -22,15 +22,24 @@ class HMO_Countdown_Service {
 	 */
 	public function get_days_left( int $event_id ) {
 		$date_str = $this->bridge->get_event_date( $event_id );
+		return $this->get_days_left_from_date( $date_str );
+	}
+
+	/**
+	 * Same calculation but accepts a date string directly — avoids a DB round-trip
+	 * when the caller already has the event record in memory.
+	 *
+	 * @param string $date_str  Y-m-d string (empty = no date).
+	 * @return int|null
+	 */
+	public function get_days_left_from_date( string $date_str ): ?int {
 		if ( ! $date_str ) {
 			return null;
 		}
-
 		$event_date = new DateTime( $date_str );
 		$today      = new DateTime( wp_date( 'Y-m-d' ) );
 		$interval   = $today->diff( $event_date );
 		$days       = (int) $interval->days;
-
 		return $event_date >= $today ? $days : -$days;
 	}
 
