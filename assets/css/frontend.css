@@ -2419,7 +2419,7 @@
    Event Journey Report
    ========================================================================== */
 
-.hmo-report-wrap { max-width: 960px; }
+.hmo-report-wrap { max-width: none; }
 
 .hmo-report-header { margin-bottom: 0.75rem; }
 .hmo-report-header .hmo-report-subtitle { margin: 0; }
