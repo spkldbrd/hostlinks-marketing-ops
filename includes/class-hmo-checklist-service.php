@@ -108,28 +108,17 @@ class HMO_Checklist_Service {
 			}
 		}
 
-		// Attach sub-items if any exist.
-		$task_ids = wp_list_pluck( $tasks, 'id' );
-		if ( ! empty( $task_ids ) ) {
-			$placeholders = implode( ',', array_fill( 0, count( $task_ids ), '%d' ) );
-			$sub_items    = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT * FROM {$wpdb->prefix}hmo_event_task_items WHERE event_task_id IN ($placeholders) ORDER BY sort_order ASC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-					$task_ids
-				)
-			);
-			$items_by_task = array();
-			foreach ( $sub_items as $item ) {
-				$items_by_task[ $item->event_task_id ][] = $item;
+		// Attach template subtasks to each event task so the view can render them.
+		$task_keys         = wp_list_pluck( $tasks, 'task_key' );
+		$template_subtasks = $this->templates->get_subtasks_by_task_keys( $task_keys );
+
+		foreach ( $grouped as $stage_key => &$stage_data ) {
+			foreach ( $stage_data['tasks'] as &$task ) {
+				$task->template_subtasks = $template_subtasks[ $task->task_key ] ?? array();
 			}
-			foreach ( $grouped as $stage_key => &$stage_data ) {
-				foreach ( $stage_data['tasks'] as &$task ) {
-					$task->sub_items = $items_by_task[ $task->id ] ?? array();
-				}
-				unset( $task );
-			}
-			unset( $stage_data );
+			unset( $task );
 		}
+		unset( $stage_data );
 
 		return $grouped;
 	}

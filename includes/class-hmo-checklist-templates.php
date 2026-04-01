@@ -95,6 +95,41 @@ class HMO_Checklist_Templates {
 		);
 	}
 
+	/**
+	 * Fetch all active subtasks whose parent task_key matches one of the given
+	 * keys. Returns an array keyed by parent task_key for easy lookup.
+	 *
+	 * @param  string[] $task_keys
+	 * @return array<string, object[]>
+	 */
+	public function get_subtasks_by_task_keys( array $task_keys ): array {
+		global $wpdb;
+		if ( empty( $task_keys ) ) {
+			return array();
+		}
+
+		$placeholders = implode( ',', array_fill( 0, count( $task_keys ), '%s' ) );
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT sub.*, parent.task_key AS parent_task_key
+				 FROM {$wpdb->prefix}hmo_checklist_templates sub
+				 INNER JOIN {$wpdb->prefix}hmo_checklist_templates parent
+				        ON sub.parent_id = parent.id
+				 WHERE parent.task_key IN ($placeholders)
+				   AND sub.is_active = 1
+				 ORDER BY sub.sort_order ASC",
+				$task_keys
+			)
+		);
+
+		$by_parent = array();
+		foreach ( $rows as $row ) {
+			$by_parent[ $row->parent_task_key ][] = $row;
+		}
+		return $by_parent;
+	}
+
 	public function get_all_active_tasks(): array {
 		global $wpdb;
 		return $wpdb->get_results(

@@ -164,16 +164,29 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 								<?php if ( $completed_by ) : ?> by <?php echo esc_html( $completed_by ); ?><?php endif; ?>
 								<?php endif; ?>
 							</div>
-							<div class="hmo-task__note-wrap">
-								<textarea class="hmo-task-note-input"
-									data-task-id="<?php echo (int) $task->id; ?>"
-									placeholder="Add a note…"
-									rows="1"><?php echo esc_textarea( $task->completion_note ); ?></textarea>
-								<button class="hmo-save-note hostlinks-btn" data-task-id="<?php echo (int) $task->id; ?>">Save</button>
-								<span class="hmo-note-status"></span>
-							</div>
+						<?php if ( ! empty( $task->template_subtasks ) ) : ?>
+						<ul class="hmo-task__subtasks">
+							<?php foreach ( $task->template_subtasks as $sub ) : ?>
+							<li class="hmo-task__subtask">
+								<span class="hmo-task__subtask-bullet">&#8227;</span>
+								<?php echo esc_html( $sub->task_label ); ?>
+								<?php if ( $sub->task_description ) : ?>
+								<span class="hmo-task__subtask-desc"><?php echo esc_html( $sub->task_description ); ?></span>
+								<?php endif; ?>
+							</li>
+							<?php endforeach; ?>
+						</ul>
+						<?php endif; ?>
+						<div class="hmo-task__note-wrap">
+							<textarea class="hmo-task-note-input"
+								data-task-id="<?php echo (int) $task->id; ?>"
+								placeholder="Add a note…"
+								rows="1"><?php echo esc_textarea( $task->completion_note ); ?></textarea>
+							<button class="hmo-save-note hostlinks-btn" data-task-id="<?php echo (int) $task->id; ?>">Save</button>
+							<span class="hmo-note-status"></span>
 						</div>
-						<?php endforeach; ?>
+					</div>
+					<?php endforeach; ?>
 					</div>
 					<?php endif; ?>
 				</div>
