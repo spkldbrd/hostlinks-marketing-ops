@@ -1334,6 +1334,65 @@
 
 /* ── Insights panel ─────────────────────────────────────────────────────── */
 
+/* ── Call List card ────────────────────────────────────────────────── */
+.hmo-panel-title--inline {
+	margin-bottom: 0;
+	padding-bottom: 0;
+	border-bottom: none;
+}
+.hmo-call-list-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-bottom: 0.55rem;
+	padding-bottom: 0.55rem;
+	border-bottom: 1px solid hsl(215 15% 90%);
+}
+.hmo-call-list-status {
+	font-size: 0.85rem;
+	color: hsl(215 15% 48%);
+	margin: 0 0 0.65rem 0;
+}
+.hmo-call-list-footer {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+}
+.hmo-call-list-edit {
+	margin-bottom: 0.6rem;
+}
+.hmo-call-list-url-input {
+	width: 100%;
+	box-sizing: border-box;
+	padding: 0.4rem 0.6rem;
+	font-size: 0.85rem;
+	border: 1px solid hsl(215 15% 78%);
+	border-radius: 5px;
+	background: hsl(0 0% 100%);
+	color: inherit;
+	font-family: inherit;
+}
+.hmo-call-list-url-input:focus {
+	outline: none;
+	border-color: hsl(207 80% 55%);
+	box-shadow: 0 0 0 3px hsl(207 80% 55% / 0.15);
+}
+.hmo-call-list-edit-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 0.45rem;
+	flex-wrap: wrap;
+}
+.hmo-call-list-save-status {
+	font-size: 0.8rem;
+	color: hsl(140 55% 38%);
+}
+.hmo-call-list-save-status.is-error {
+	color: hsl(0 65% 48%);
+}
+
 /* ── Event Notes card ──────────────────────────────────────────────── */
 .hmo-event-note-textarea {
 	width: 100%;
@@ -1541,6 +1600,25 @@
 	font-size: 0.78rem;
 	color: hsl(215 15% 55%);
 	word-break: break-word;
+}
+
+/* Dark mode overrides — Call List card */
+.wp-dark-mode-active .hmo-call-list-header {
+	border-color: hsl(215 20% 25%);
+}
+.wp-dark-mode-active .hmo-call-list-status {
+	color: hsl(215 15% 58%);
+}
+.wp-dark-mode-active .hmo-call-list-url-input {
+	background: hsl(215 20% 18%);
+	border-color: hsl(215 20% 30%);
+	color: hsl(215 20% 88%);
+}
+.wp-dark-mode-active .hmo-call-list-save-status {
+	color: hsl(140 45% 55%);
+}
+.wp-dark-mode-active .hmo-call-list-save-status.is-error {
+	color: hsl(0 60% 60%);
 }
 
 /* Dark mode overrides — Notes card */

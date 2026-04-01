@@ -245,30 +245,54 @@
 	// List links save
 	// -------------------------------------------------------------------------
 
-	$( document ).on( 'click', '.hmo-save-lists', function () {
-		var $btn     = $( this );
-		var $section = $btn.closest( '.hmo-list-links' );
-		var eventId  = $section.data( 'event-id' );
-		var $status  = $section.find( '.hmo-lists-status' );
+	// -------------------------------------------------------------------------
+	// Call List card — Update / Save / Cancel
+	// -------------------------------------------------------------------------
 
-		var payload = {
-			data_list_status: $section.find( '#hmo-data-list-status' ).val(),
-			data_list_url:    $section.find( '#hmo-data-list-url' ).val(),
-			call_list_status: $section.find( '#hmo-call-list-status' ).val(),
-			call_list_url:    $section.find( '#hmo-call-list-url' ).val()
-		};
+	$( document ).on( 'click', '.hmo-call-list-update', function () {
+		var $card = $( this ).closest( '.hmo-call-list-card' );
+		$card.find( '.hmo-call-list-edit' ).slideDown( 150 );
+		$card.find( '.hmo-call-list-url-input' ).focus();
+	} );
+
+	$( document ).on( 'click', '.hmo-call-list-cancel', function () {
+		$( this ).closest( '.hmo-call-list-card' ).find( '.hmo-call-list-edit' ).slideUp( 150 );
+	} );
+
+	$( document ).on( 'click', '.hmo-call-list-save', function () {
+		var $btn    = $( this );
+		var $card   = $btn.closest( '.hmo-call-list-card' );
+		var eventId = $card.data( 'event-id' );
+		var url     = $.trim( $card.find( '.hmo-call-list-url-input' ).val() );
+		var $status = $card.find( '.hmo-call-list-save-status' );
 
 		$btn.text( str.saving ).prop( 'disabled', true );
 
 		apiPost(
 			'/events/' + eventId + '/lists',
-			payload,
+			{ call_list_url: url },
 			function () {
-				$btn.text( 'Save List Info' ).prop( 'disabled', false );
+				$btn.text( 'Save' ).prop( 'disabled', false );
+
+				if ( url ) {
+					$card.find( '.hmo-call-list-status' ).text( 'Set \u2014 click View to open the sheet.' );
+					$card.find( '.hmo-call-list-view' )
+						.attr( 'href', url )
+						.attr( 'aria-hidden', 'false' )
+						.show();
+				} else {
+					$card.find( '.hmo-call-list-status' ).text( 'Not Set \u2014 click Update to set sheet.' );
+					$card.find( '.hmo-call-list-view' )
+						.attr( 'href', '#' )
+						.attr( 'aria-hidden', 'true' )
+						.hide();
+				}
+
+				$card.find( '.hmo-call-list-edit' ).slideUp( 150 );
 				showInlineStatus( $status, str.saved, false );
 			},
 			function () {
-				$btn.text( 'Save List Info' ).prop( 'disabled', false );
+				$btn.text( 'Save' ).prop( 'disabled', false );
 				showInlineStatus( $status, str.error, true );
 			}
 		);

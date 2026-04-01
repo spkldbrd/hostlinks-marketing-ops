@@ -194,9 +194,46 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 			<?php endforeach; ?>
 		</div><!-- .hmo-detail-col-main -->
 
+		<!-- Right column: Call List -->
+		<?php
+		$_call_url = $ops ? trim( $ops->call_list_url ) : '';
+		$_call_set = ! empty( $_call_url );
+		?>
+		<div class="hmo-detail-panel hmo-detail-col-side hmo-call-list-card"
+			data-event-id="<?php echo (int) $event->eve_id; ?>">
+			<div class="hmo-call-list-header">
+				<h2 class="hmo-panel-title hmo-panel-title--inline">Call List</h2>
+				<a href="<?php echo $_call_set ? esc_url( $_call_url ) : '#'; ?>"
+					target="_blank" rel="noopener"
+					class="hmo-hotel-card__link hmo-call-list-view"
+					<?php echo $_call_set ? '' : 'style="display:none;"'; ?>
+					aria-hidden="<?php echo $_call_set ? 'false' : 'true'; ?>">View &#8599;</a>
+			</div>
+			<p class="hmo-call-list-status">
+				<?php if ( $_call_set ) : ?>
+					Set &mdash; click View to open the sheet.
+				<?php else : ?>
+					Not Set &mdash; click Update to set sheet.
+				<?php endif; ?>
+			</p>
+			<div class="hmo-call-list-edit" style="display:none;">
+				<input type="url" class="hmo-call-list-url-input"
+					placeholder="https://docs.google.com/spreadsheets/…"
+					value="<?php echo esc_attr( $_call_url ); ?>">
+				<div class="hmo-call-list-edit-actions">
+					<button class="hostlinks-btn hostlinks-btn--active hmo-call-list-save">Save</button>
+					<button class="hostlinks-btn hmo-call-list-cancel">Cancel</button>
+					<span class="hmo-call-list-save-status"></span>
+				</div>
+			</div>
+			<div class="hmo-call-list-footer">
+				<button class="hostlinks-btn hmo-call-list-update">Update</button>
+			</div>
+		</div>
+
 		<!-- Right column: Notes -->
 		<div class="hmo-detail-panel hmo-detail-col-side hmo-event-notes-panel"
-			data-event-id="<?php echo (int) $event->id; ?>">
+			data-event-id="<?php echo (int) $event->eve_id; ?>">
 			<h2 class="hmo-panel-title">Notes</h2>
 			<textarea
 				id="hmo-event-note"
@@ -379,55 +416,6 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 		</div>
 
 		</div><!-- .hmo-detail-two-col -->
-
-		<!-- List Links -->
-		<?php if ( ! get_option( 'hmo_hide_list_links', 0 ) ) : ?>
-		<div class="hmo-detail-panel hmo-list-links" data-event-id="<?php echo (int) $event->eve_id; ?>">
-			<h2 class="hmo-panel-title">List Links</h2>
-			<div class="hmo-list-grid">
-				<div class="hmo-list-item">
-					<label class="hmo-list-label">Data List Status</label>
-					<select id="hmo-data-list-status">
-						<?php foreach ( array( '' => '—', 'pending' => 'Pending', 'sent' => 'Sent', 'received' => 'Received', 'complete' => 'Complete' ) as $val => $lbl ) : ?>
-							<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $ops ? $ops->data_list_status : '', $val ); ?>>
-								<?php echo esc_html( $lbl ); ?>
-							</option>
-						<?php endforeach; ?>
-					</select>
-				</div>
-				<div class="hmo-list-item">
-					<label class="hmo-list-label">Data List URL</label>
-					<input type="url" id="hmo-data-list-url" class="hmo-list-url-input"
-						value="<?php echo esc_url( $ops ? $ops->data_list_url : '' ); ?>"
-						placeholder="https://docs.google.com/spreadsheets/…">
-					<?php if ( $ops && $ops->data_list_url ) : ?>
-						<a href="<?php echo esc_url( $ops->data_list_url ); ?>" target="_blank" rel="noopener" class="hostlinks-btn hmo-list-open">Open &#8599;</a>
-					<?php endif; ?>
-				</div>
-				<div class="hmo-list-item">
-					<label class="hmo-list-label">Call List Status</label>
-					<select id="hmo-call-list-status">
-						<?php foreach ( array( '' => '—', 'pending' => 'Pending', 'sent' => 'Sent', 'received' => 'Received', 'complete' => 'Complete' ) as $val => $lbl ) : ?>
-							<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $ops ? $ops->call_list_status : '', $val ); ?>>
-								<?php echo esc_html( $lbl ); ?>
-							</option>
-						<?php endforeach; ?>
-					</select>
-				</div>
-				<div class="hmo-list-item">
-					<label class="hmo-list-label">Call List URL</label>
-					<input type="url" id="hmo-call-list-url" class="hmo-list-url-input"
-						value="<?php echo esc_url( $ops ? $ops->call_list_url : '' ); ?>"
-						placeholder="https://docs.google.com/spreadsheets/…">
-					<?php if ( $ops && $ops->call_list_url ) : ?>
-						<a href="<?php echo esc_url( $ops->call_list_url ); ?>" target="_blank" rel="noopener" class="hostlinks-btn hmo-list-open">Open &#8599;</a>
-					<?php endif; ?>
-				</div>
-			</div>
-			<button class="hostlinks-btn hostlinks-btn--active hmo-save-lists">Save List Info</button>
-			<span class="hmo-lists-status"></span>
-		</div>
-		<?php endif; ?>
 
 		<!-- Activity -->
 		<div class="hmo-detail-panel">
