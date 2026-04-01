@@ -266,7 +266,10 @@ class HMO_REST {
 	public function save_event_note( WP_REST_Request $request ): WP_REST_Response {
 		$event_id = (int) $request->get_param( 'id' );
 		$note     = (string) $request->get_param( 'note' );
-		HMO_DB::upsert_event_ops( $event_id, array( 'event_note' => $note ) );
+
+		// Store per-event note in wp_options — avoids any schema migration risk.
+		// Key is unique per event; autoload=false keeps it out of the options cache load.
+		update_option( 'hmo_event_note_' . $event_id, $note, false );
 
 		return new WP_REST_Response( array( 'success' => true ), 200 );
 	}
