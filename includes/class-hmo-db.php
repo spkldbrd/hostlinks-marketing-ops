@@ -311,18 +311,28 @@ class HMO_DB {
 		);
 	}
 
-	public static function upsert_event_ops( int $event_id, array $data ) {
+	/**
+	 * Insert or update a row in hmo_event_ops.
+	 * Returns false on DB failure, otherwise true.
+	 *
+	 * @param int   $event_id  Hostlinks event ID.
+	 * @param array $data      Column => value pairs to write.
+	 * @return bool
+	 */
+	public static function upsert_event_ops( int $event_id, array $data ): bool {
 		global $wpdb;
 		$table = $wpdb->prefix . 'hmo_event_ops';
 
 		$existing = self::get_event_ops( $event_id );
 
 		if ( $existing ) {
-			$wpdb->update( $table, $data, array( 'hostlinks_event_id' => $event_id ) );
+			$result = $wpdb->update( $table, $data, array( 'hostlinks_event_id' => $event_id ) );
 		} else {
 			$data['hostlinks_event_id'] = $event_id;
-			$wpdb->insert( $table, $data );
+			$result = $wpdb->insert( $table, $data );
 		}
+
+		return $result !== false;
 	}
 
 	// -------------------------------------------------------------------------
