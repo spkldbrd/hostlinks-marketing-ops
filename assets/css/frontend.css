@@ -276,7 +276,16 @@
 	margin-bottom: 1.25rem;
 }
 
-.hmo-detail-two-col .hmo-detail-panel { margin-bottom: 0; }
+/* Right-column wrapper keeps all side panels in column 2 */
+.hmo-detail-col-side-wrap {
+	display: flex;
+	flex-direction: column;
+	gap: 1.25rem;
+	min-width: 0;
+}
+
+.hmo-detail-two-col .hmo-detail-panel,
+.hmo-detail-col-side-wrap .hmo-detail-panel { margin-bottom: 0; }
 
 /* Panel */
 .hmo-detail-panel {

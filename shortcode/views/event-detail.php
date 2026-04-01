@@ -194,6 +194,9 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 			<?php endforeach; ?>
 		</div><!-- .hmo-detail-col-main -->
 
+		<!-- Right column: stacked panels -->
+		<div class="hmo-detail-col-side-wrap">
+
 		<!-- Right column: Call List -->
 		<?php
 		$_call_url = $ops ? trim( $ops->call_list_url ) : '';
@@ -410,12 +413,14 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 		<?php endif; ?>
 
 		<?php if ( ! $has_venue && empty( $event->eve_email_url ) && empty( $event->eve_web_url ) && empty( $contacts ) && empty( $hotels ) ) : ?>
-			<p class="hmo-notice" style="margin-top:0.5rem;">No event details available yet.</p>
-			<?php endif; ?>
+		<p class="hmo-notice" style="margin-top:0.5rem;">No event details available yet.</p>
+		<?php endif; ?>
 
-		</div>
+		</div><!-- right column: Insights -->
 
-		</div><!-- .hmo-detail-two-col -->
+		</div><!-- .hmo-detail-col-side-wrap -->
+
+	</div><!-- .hmo-detail-two-col -->
 
 		<!-- Activity -->
 		<div class="hmo-detail-panel">
