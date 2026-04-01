@@ -262,20 +262,19 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 			</div>
 			<?php endif; ?>
 
-			<?php if ( ! empty( $event->eve_email_url ) || ! empty( $event->eve_web_url ) ) : ?>
-			<!-- Event Links -->
-			<div class="hmo-insights-section">
-				<span class="hmo-insights-section__label">Event Links</span>
-
+		<?php if ( ! empty( $event->eve_email_url ) || ! empty( $event->eve_web_url ) ) : ?>
+		<!-- Event Links -->
+		<div class="hmo-insights-section">
+			<span class="hmo-insights-section__label">Event Links</span>
+			<div class="hmo-insights-link-grid">
 				<?php if ( ! empty( $event->eve_email_url ) ) : ?>
 				<div class="hmo-insights-link">
 					<a href="<?php echo esc_url( $event->eve_email_url ); ?>" target="_blank" rel="noopener" class="hmo-insights-link__url">
-						Event Announcement &mdash; Email &amp; PDF <span aria-hidden="true">&#8599;</span>
+						Event Announcement <span aria-hidden="true">&#8599;</span>
 					</a>
-					<span class="hmo-insights-link__hint">Copy for email, or Print &rarr; Save as PDF</span>
+					<span class="hmo-insights-link__hint">Email &amp; PDF &mdash; Copy or Print &rarr; Save as PDF</span>
 				</div>
 				<?php endif; ?>
-
 				<?php if ( ! empty( $event->eve_web_url ) ) : ?>
 				<div class="hmo-insights-link">
 					<a href="<?php echo esc_url( $event->eve_web_url ); ?>" target="_blank" rel="noopener" class="hmo-insights-link__url">
@@ -285,13 +284,15 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 				</div>
 				<?php endif; ?>
 			</div>
-			<?php endif; ?>
+		</div>
+		<?php endif; ?>
 
-			<?php if ( ! empty( $contacts ) ) : ?>
-			<!-- Host Contacts -->
-			<div class="hmo-insights-section">
-				<span class="hmo-insights-section__label">Event Contacts</span>
-				<?php foreach ( $contacts as $c ) :
+		<?php if ( ! empty( $contacts ) ) : ?>
+		<!-- Host Contacts -->
+		<div class="hmo-insights-section">
+			<span class="hmo-insights-section__label">Event Contacts</span>
+			<div class="hmo-contact-cards-grid">
+			<?php foreach ( $contacts as $c ) :
 					$c_name    = trim( $c['name']   ?? '' );
 					$c_agency  = trim( $c['agency'] ?? '' );
 					$c_email   = trim( $c['email']  ?? '' );
@@ -335,15 +336,17 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 					</div>
 					<?php endif; ?>
 				</div>
-				<?php endforeach; ?>
+			<?php endforeach; ?>
 			</div>
-			<?php endif; ?>
+		</div>
+		<?php endif; ?>
 
-			<?php if ( ! empty( $hotels ) ) : ?>
-			<!-- Recommended Hotels -->
-			<div class="hmo-insights-section">
-				<span class="hmo-insights-section__label">Recommended Hotels</span>
-				<?php foreach ( $hotels as $h ) :
+		<?php if ( ! empty( $hotels ) ) : ?>
+		<!-- Recommended Hotels -->
+		<div class="hmo-insights-section">
+			<span class="hmo-insights-section__label">Recommended Hotels</span>
+			<div class="hmo-hotel-cards-grid">
+			<?php foreach ( $hotels as $h ) :
 					$h_name    = trim( $h['name']    ?? '' );
 					$h_phone   = trim( $h['phone']   ?? '' );
 					$h_address = trim( $h['address'] ?? '' );
@@ -364,11 +367,12 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 						<div class="hmo-hotel-card__row hmo-hotel-card__address"><?php echo esc_html( $h_address ); ?></div>
 					<?php endif; ?>
 				</div>
-				<?php endforeach; ?>
+			<?php endforeach; ?>
 			</div>
-			<?php endif; ?>
+		</div>
+		<?php endif; ?>
 
-			<?php if ( ! $has_venue && empty( $event->eve_email_url ) && empty( $event->eve_web_url ) && empty( $contacts ) && empty( $hotels ) ) : ?>
+		<?php if ( ! $has_venue && empty( $event->eve_email_url ) && empty( $event->eve_web_url ) && empty( $contacts ) && empty( $hotels ) ) : ?>
 			<p class="hmo-notice" style="margin-top:0.5rem;">No event details available yet.</p>
 			<?php endif; ?>
 
