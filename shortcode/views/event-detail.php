@@ -250,16 +250,16 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 			<?php else : ?>
 			<ul class="hmo-tools-list">
 				<?php foreach ( $_tools as $_tool ) :
-					$_t_url  = esc_url( $_tool['url'] ?? '' );
-					$_t_name = esc_html( $_tool['name'] ?? '' );
-					$_t_icon = esc_html( $_tool['icon'] ?? '' );
+					$_t_url      = esc_url( $_tool['url'] ?? '' );
+					$_t_name     = esc_html( $_tool['name'] ?? '' );
+					$_t_icon_url = esc_url( $_tool['icon'] ?? '' );
 					if ( ! $_t_url || ! $_t_name ) { continue; }
 				?>
 				<li class="hmo-tools-list__item">
 					<a href="<?php echo $_t_url; ?>" target="_blank" rel="noopener"
 						class="hmo-tools-list__link">
-						<?php if ( $_t_icon ) : ?>
-						<span class="hmo-tools-list__icon" aria-hidden="true"><?php echo $_t_icon; ?></span>
+						<?php if ( $_t_icon_url ) : ?>
+						<img src="<?php echo $_t_icon_url; ?>" class="hmo-tools-list__icon" alt="" aria-hidden="true">
 						<?php endif; ?>
 						<span class="hmo-tools-list__name"><?php echo $_t_name; ?></span>
 						<span class="hmo-tools-list__arrow" aria-hidden="true">&#8599;</span>

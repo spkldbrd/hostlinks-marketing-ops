@@ -6,6 +6,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class HMO_Admin_Menu {
 
+	public function enqueue_media_on_settings( string $hook ): void {
+		if ( strpos( $hook, 'hmo-settings' ) !== false ) {
+			wp_enqueue_media();
+		}
+	}
+
 	public function register_menus(): void {
 		$parent_slug = $this->get_hostlinks_menu_slug();
 

@@ -42,7 +42,8 @@ class HMO_Bootstrap {
 
 		// Admin menu — Settings only.
 		$admin_menu = new HMO_Admin_Menu();
-		add_action( 'admin_menu', array( $admin_menu, 'register_menus' ), 20 );
+		add_action( 'admin_menu',            array( $admin_menu, 'register_menus' ), 20 );
+		add_action( 'admin_enqueue_scripts', array( $admin_menu, 'enqueue_media_on_settings' ) );
 	}
 
 	public function notice_hostlinks_missing() {
