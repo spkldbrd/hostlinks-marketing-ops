@@ -100,6 +100,29 @@ if ( isset( $_POST['hmo_save_marketing_admins'] ) ) {
 	$notice = '<div class="notice notice-success is-dismissible"><p>Marketing admin settings saved.</p></div>';
 }
 
+// Tools links save
+if ( isset( $_POST['hmo_save_tools'] ) ) {
+	check_admin_referer( 'hmo_save_tools' );
+	$raw_names = isset( $_POST['hmo_tool_name'] ) && is_array( $_POST['hmo_tool_name'] )
+		? $_POST['hmo_tool_name'] : array();
+	$raw_urls  = isset( $_POST['hmo_tool_url'] )  && is_array( $_POST['hmo_tool_url'] )
+		? $_POST['hmo_tool_url']  : array();
+	$raw_icons = isset( $_POST['hmo_tool_icon'] ) && is_array( $_POST['hmo_tool_icon'] )
+		? $_POST['hmo_tool_icon'] : array();
+
+	$tools = array();
+	foreach ( $raw_names as $i => $name ) {
+		$name = sanitize_text_field( $name );
+		$url  = esc_url_raw( $raw_urls[ $i ] ?? '' );
+		$icon = sanitize_text_field( $raw_icons[ $i ] ?? '' );
+		if ( $name && $url ) {
+			$tools[] = array( 'name' => $name, 'url' => $url, 'icon' => $icon );
+		}
+	}
+	update_option( 'hmo_tools_links', $tools, false );
+	$notice = '<div class="notice notice-success is-dismissible"><p>Tools links saved.</p></div>';
+}
+
 // ── Current state ─────────────────────────────────────────────────────────────
 
 $access_svc           = new HMO_Access_Service();
@@ -161,6 +184,7 @@ $tabs = array(
 	'bucket-access' => 'Bucket Access',
 	'page-links'    => 'Page Links',
 	'user-access'   => 'User Access',
+	'tools'         => 'Tools Links',
 );
 ?>
 <div class="wrap">
@@ -1328,5 +1352,114 @@ $tabs = array(
 	}
 })();
 </script>
+<!-- ======================================================================
+     TAB: TOOLS LINKS
+     ====================================================================== -->
+<?php elseif ( $active_tab === 'tools' ) :
+	$saved_tools = (array) get_option( 'hmo_tools_links', array() );
+?>
+<p>
+	Add links that appear in the <strong>Tools</strong> card on every Event Detail page.
+	Each link can have an optional icon (any single emoji or character).
+	Both the icon and the link name are clickable and open the URL in a new tab.
+</p>
+
+<form method="post" action="">
+	<?php wp_nonce_field( 'hmo_save_tools' ); ?>
+
+	<table class="widefat" id="hmo-tools-table" style="max-width:680px;margin-bottom:16px;">
+		<thead>
+			<tr>
+				<th style="width:60px;">Icon</th>
+				<th>Link Name</th>
+				<th>URL</th>
+				<th style="width:50px;"></th>
+			</tr>
+		</thead>
+		<tbody id="hmo-tools-tbody">
+		<?php if ( empty( $saved_tools ) ) : ?>
+			<tr id="hmo-tools-empty-row">
+				<td colspan="4" style="color:#8c8f94;font-style:italic;padding:12px;">No links yet — add one below.</td>
+			</tr>
+		<?php else : ?>
+			<?php foreach ( $saved_tools as $tool ) : ?>
+			<tr class="hmo-tool-row">
+				<td>
+					<input type="text" name="hmo_tool_icon[]"
+						value="<?php echo esc_attr( $tool['icon'] ?? '' ); ?>"
+						maxlength="4" placeholder="🔗"
+						style="width:48px;text-align:center;font-size:18px;">
+				</td>
+				<td>
+					<input type="text" name="hmo_tool_name[]"
+						value="<?php echo esc_attr( $tool['name'] ?? '' ); ?>"
+						placeholder="Tool name" class="regular-text" style="width:100%;">
+				</td>
+				<td>
+					<input type="url" name="hmo_tool_url[]"
+						value="<?php echo esc_attr( $tool['url'] ?? '' ); ?>"
+						placeholder="https://" class="regular-text" style="width:100%;">
+				</td>
+				<td style="text-align:center;">
+					<button type="button" class="button button-small hmo-remove-tool-row"
+						title="Remove row">&times;</button>
+				</td>
+			</tr>
+			<?php endforeach; ?>
+		<?php endif; ?>
+		</tbody>
+	</table>
+
+	<p>
+		<button type="button" class="button" id="hmo-add-tool-row">+ Add Link</button>
+	</p>
+
+	<?php submit_button( 'Save Tools Links', 'primary', 'hmo_save_tools' ); ?>
+</form>
+
+<script>
+(function() {
+	var tbody   = document.getElementById('hmo-tools-tbody');
+	var emptyId = 'hmo-tools-empty-row';
+
+	function removeEmpty() {
+		var e = document.getElementById(emptyId);
+		if (e) e.remove();
+	}
+
+	function addRow(icon, name, url) {
+		removeEmpty();
+		var tr = document.createElement('tr');
+		tr.className = 'hmo-tool-row';
+		tr.innerHTML =
+			'<td><input type="text" name="hmo_tool_icon[]" value="' + escAttr(icon || '') + '" maxlength="4" placeholder="🔗" style="width:48px;text-align:center;font-size:18px;"></td>' +
+			'<td><input type="text" name="hmo_tool_name[]" value="' + escAttr(name || '') + '" placeholder="Tool name" class="regular-text" style="width:100%;"></td>' +
+			'<td><input type="url"  name="hmo_tool_url[]"  value="' + escAttr(url  || '') + '" placeholder="https://"   class="regular-text" style="width:100%;"></td>' +
+			'<td style="text-align:center;"><button type="button" class="button button-small hmo-remove-tool-row" title="Remove row">&times;</button></td>';
+		tbody.appendChild(tr);
+	}
+
+	document.getElementById('hmo-add-tool-row').addEventListener('click', function() {
+		addRow('', '', '');
+		tbody.lastElementChild.querySelector('input[name="hmo_tool_name[]"]').focus();
+	});
+
+	document.addEventListener('click', function(e) {
+		if (!e.target.classList.contains('hmo-remove-tool-row')) return;
+		e.target.closest('tr').remove();
+		if (!tbody.querySelector('.hmo-tool-row')) {
+			var tr = document.createElement('tr');
+			tr.id = emptyId;
+			tr.innerHTML = '<td colspan="4" style="color:#8c8f94;font-style:italic;padding:12px;">No links yet — add one below.</td>';
+			tbody.appendChild(tr);
+		}
+	});
+
+	function escAttr(s) {
+		return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+	}
+})();
+</script>
+
 <?php endif; ?>
 </div>

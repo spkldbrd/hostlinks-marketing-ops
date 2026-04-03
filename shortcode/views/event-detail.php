@@ -197,6 +197,9 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 		<!-- Right column: stacked panels -->
 		<div class="hmo-detail-col-side-wrap">
 
+		<!-- Right column: Call List + Tools (side by side) -->
+		<div class="hmo-side-row">
+
 		<!-- Right column: Call List -->
 		<?php
 		$_call_url = $ops ? trim( $ops->call_list_url ) : '';
@@ -233,6 +236,41 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 				<button class="hostlinks-btn hmo-call-list-update">Update</button>
 			</div>
 		</div>
+
+		<!-- Right column: Tools -->
+		<?php
+		$_tools = (array) get_option( 'hmo_tools_links', array() );
+		?>
+		<div class="hmo-detail-panel hmo-detail-col-side hmo-tools-card">
+			<div class="hmo-tools-card__header">
+				<h2 class="hmo-panel-title hmo-panel-title--inline">Tools</h2>
+			</div>
+			<?php if ( empty( $_tools ) ) : ?>
+			<p class="hmo-tools-card__empty">No tools configured.</p>
+			<?php else : ?>
+			<ul class="hmo-tools-list">
+				<?php foreach ( $_tools as $_tool ) :
+					$_t_url  = esc_url( $_tool['url'] ?? '' );
+					$_t_name = esc_html( $_tool['name'] ?? '' );
+					$_t_icon = esc_html( $_tool['icon'] ?? '' );
+					if ( ! $_t_url || ! $_t_name ) { continue; }
+				?>
+				<li class="hmo-tools-list__item">
+					<a href="<?php echo $_t_url; ?>" target="_blank" rel="noopener"
+						class="hmo-tools-list__link">
+						<?php if ( $_t_icon ) : ?>
+						<span class="hmo-tools-list__icon" aria-hidden="true"><?php echo $_t_icon; ?></span>
+						<?php endif; ?>
+						<span class="hmo-tools-list__name"><?php echo $_t_name; ?></span>
+						<span class="hmo-tools-list__arrow" aria-hidden="true">&#8599;</span>
+					</a>
+				</li>
+				<?php endforeach; ?>
+			</ul>
+			<?php endif; ?>
+		</div>
+
+		</div><!-- .hmo-side-row -->
 
 		<!-- Right column: Notes -->
 		<div class="hmo-detail-panel hmo-detail-col-side hmo-event-notes-panel"
