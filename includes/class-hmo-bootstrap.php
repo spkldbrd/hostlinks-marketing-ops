@@ -30,6 +30,7 @@ class HMO_Bootstrap {
 		HMO_Checklist_Templates::register_ajax();
 		HMO_Checklist_Service::register_ajax();
 		HMO_Dashboard_Service::register_ajax();
+		HMO_Page_Sync::register_ajax();
 
 		// Front-end shortcodes.
 		$shortcodes = new HMO_Shortcodes( $access, $dashboard_svc, $checklist_svc, $countdown_svc, $bridge, $alert_svc );
@@ -47,6 +48,10 @@ class HMO_Bootstrap {
 
 		// Auto-provision tasks when Hostlinks creates a new event.
 		add_action( 'hostlinks_event_created', array( $checklist_svc, 'on_event_created' ), 10, 2 );
+
+		// Create GWU marketing page when Hostlinks creates a new event (after checklist).
+		$page_sync = new HMO_Page_Sync();
+		add_action( 'hostlinks_event_created', array( $page_sync, 'on_event_created' ), 20, 2 );
 	}
 
 	public function notice_hostlinks_missing() {

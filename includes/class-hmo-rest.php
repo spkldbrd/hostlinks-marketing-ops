@@ -133,6 +133,13 @@ class HMO_REST {
 				),
 			),
 		) );
+
+		// Public event list — no authentication required.
+		register_rest_route( $ns, '/public-events', array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => array( $this, 'get_public_events' ),
+			'permission_callback' => '__return_true',
+		) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -269,6 +276,91 @@ class HMO_REST {
 		$success  = HMO_DB::upsert_event_ops( $event_id, array( 'event_note' => $note ) );
 
 		return new WP_REST_Response( array( 'success' => $success ), $success ? 200 : 500 );
+	}
+
+	/**
+	 * GET /hmo/v1/public-events
+	 *
+	 * Returns upcoming public events as JSON for consumption by the
+	 * gwu-event-pages plugin on grantwritingusa.com.  No authentication required.
+	 * Mirrors the query in Hostlinks' public-event-list.php shortcode and adds
+	 * a `column` field ('left'|'right'|'') computed from the same saved options.
+	 */
+	public function get_public_events( WP_REST_Request $request ): WP_REST_Response {
+		global $wpdb;
+
+		$today = current_time( 'Y-m-d' );
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT e.*, t.event_type_name
+				 FROM {$wpdb->prefix}event_details_list e
+				 LEFT JOIN {$wpdb->prefix}event_type t ON t.event_type_id = e.eve_type
+				 WHERE e.eve_status = 1
+				   AND e.eve_public_hide = 0
+				   AND e.eve_start >= %s
+				   AND e.eve_location NOT LIKE %s
+				   AND e.eve_location NOT LIKE %s
+				   AND e.eve_location NOT LIKE %s
+				 ORDER BY e.eve_start ASC",
+				$today,
+				'%|PRIVATE%',
+				'%| PRIVATE%',
+				'%|private%'
+			),
+			ARRAY_A
+		);
+
+		// Column assignment uses the same Hostlinks options as the shortcode.
+		$left_types  = array_map( 'intval', (array) get_option( 'hostlinks_pel_left_types',  array() ) );
+		$right_types = array_map( 'intval', (array) get_option( 'hostlinks_pel_right_types', array() ) );
+
+		// Column heading / description options forwarded so the remote shortcode
+		// can render identically without needing its own configuration.
+		$meta = array(
+			'left_heading'      => get_option( 'hostlinks_pel_left_heading',      'Grant Writing Workshops' ),
+			'left_heading_tag'  => get_option( 'hostlinks_pel_left_heading_tag',  'h2' ),
+			'left_desc'         => get_option( 'hostlinks_pel_left_desc',         '' ),
+			'left_desc_tag'     => get_option( 'hostlinks_pel_left_desc_tag',     'p' ),
+			'right_heading'     => get_option( 'hostlinks_pel_right_heading',     'Grant Management Workshops' ),
+			'right_heading_tag' => get_option( 'hostlinks_pel_right_heading_tag', 'h2' ),
+			'right_desc'        => get_option( 'hostlinks_pel_right_desc',        '' ),
+			'right_desc_tag'    => get_option( 'hostlinks_pel_right_desc_tag',    'p' ),
+			'zoom_east'         => get_option( 'hostlinks_pel_zoom_time_east',    '9:30-4:30 EST' ),
+			'zoom_west'         => get_option( 'hostlinks_pel_zoom_time_west',    '8:00-3:00 PST' ),
+			'zoom_default'      => get_option( 'hostlinks_pel_zoom_time_default', '9:30-4:30 EST' ),
+		);
+
+		$events = array();
+		foreach ( (array) $rows as $ev ) {
+			$type_id = (int) $ev['eve_type'];
+			if ( in_array( $type_id, $left_types, true ) ) {
+				$column = 'left';
+			} elseif ( in_array( $type_id, $right_types, true ) ) {
+				$column = 'right';
+			} else {
+				$column = '';
+			}
+
+			$events[] = array(
+				'id'          => (int) $ev['eve_id'],
+				'location'    => $ev['eve_location'],
+				'city'        => $ev['city'],
+				'state'       => $ev['state'],
+				'start'       => $ev['eve_start'],
+				'end'         => $ev['eve_end'],
+				'type_id'     => $type_id,
+				'type_name'   => $ev['event_type_name'],
+				'zoom'        => $ev['eve_zoom'],
+				'zoom_time'   => $ev['eve_zoom_time'],
+				'cvent_title' => $ev['cvent_event_title'],
+				'web_url'     => $ev['eve_web_url'],
+				'reg_url'     => $ev['eve_trainer_url'],
+				'column'      => $column,
+			);
+		}
+
+		return new WP_REST_Response( array( 'events' => $events, 'meta' => $meta ), 200 );
 	}
 
 	// -------------------------------------------------------------------------
