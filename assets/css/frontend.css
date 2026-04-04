@@ -1431,13 +1431,14 @@
 	list-style: none;
 	margin: 0;
 	padding: 0;
-	display: flex;
-	flex-direction: column;
+	display: grid;
+	grid-template-columns: 1fr 1fr;
 	gap: 0.3rem;
 }
 .hmo-tools-list__item {
 	margin: 0;
 	padding: 0;
+	list-style: none;
 }
 .hmo-tools-list__link {
 	display: flex;
@@ -1466,11 +1467,10 @@
 }
 .hmo-tools-list__name {
 	flex: 1;
-}
-.hmo-tools-list__arrow {
-	font-size: 0.8rem;
-	color: hsl(207 80% 60%);
-	flex-shrink: 0;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 /* ── Event Notes card ──────────────────────────────────────────────── */
@@ -1708,9 +1708,6 @@
 .wp-dark-mode-active .hmo-tools-list__link:hover {
 	background: hsl(207 80% 15%);
 	color: hsl(207 80% 80%);
-}
-.wp-dark-mode-active .hmo-tools-list__arrow {
-	color: hsl(207 80% 50%);
 }
 .wp-dark-mode-active .hmo-tools-card__empty {
 	color: hsl(215 15% 55%);

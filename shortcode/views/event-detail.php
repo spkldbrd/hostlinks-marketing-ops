@@ -262,7 +262,6 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 						<img src="<?php echo $_t_icon_url; ?>" class="hmo-tools-list__icon" alt="" aria-hidden="true">
 						<?php endif; ?>
 						<span class="hmo-tools-list__name"><?php echo $_t_name; ?></span>
-						<span class="hmo-tools-list__arrow" aria-hidden="true">&#8599;</span>
 					</a>
 				</li>
 				<?php endforeach; ?>
