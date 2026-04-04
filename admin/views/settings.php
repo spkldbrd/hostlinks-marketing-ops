@@ -265,6 +265,59 @@ $tabs = array(
 		<span id="hmo-bulk-provision-status" style="margin-left:12px;font-size:13px;"></span>
 	</p>
 
+	<h2 style="margin-top:24px;">Recount Open Tasks</h2>
+	<p>
+		Use this to recalculate the open-task counter shown on the dashboard for every already-provisioned future event.
+		This is safe to run at any time — completed tasks are never affected; only the stored count is updated.
+		Run this after editing the task template to ensure counts reflect the current task list.
+	</p>
+	<p>
+		<button type="button" class="button button-secondary" id="hmo-recount-all-btn">
+			&#9654; Recount Open Tasks for Future Events
+		</button>
+		<span id="hmo-recount-all-status" style="margin-left:12px;font-size:13px;"></span>
+	</p>
+
+	<script>
+	(function() {
+		var ajaxUrl = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+		var nonce   = <?php echo wp_json_encode( wp_create_nonce( 'hmo_recount_all_tasks' ) ); ?>;
+		var btn     = document.getElementById('hmo-recount-all-btn');
+		var status  = document.getElementById('hmo-recount-all-status');
+
+		btn.addEventListener('click', function() {
+			btn.disabled = true;
+			btn.textContent = '⏳ Recounting…';
+			status.style.color = '#888';
+			status.textContent = 'Running…';
+
+			var fd = new FormData();
+			fd.append('action',      'hmo_recount_all_tasks');
+			fd.append('_ajax_nonce', nonce);
+
+			fetch(ajaxUrl, { method: 'POST', body: fd })
+				.then(function(r) { return r.json(); })
+				.then(function(res) {
+					btn.disabled = false;
+					btn.textContent = '✓ Recount Open Tasks for Future Events';
+					if (res.success) {
+						status.style.color = '#007017';
+						status.textContent = 'Done! ' + res.data.updated + ' future event(s) recounted.';
+					} else {
+						status.style.color = '#d63638';
+						status.textContent = 'Error: ' + (res.data || 'Unknown error.');
+					}
+				})
+				.catch(function() {
+					btn.disabled = false;
+					btn.textContent = '✓ Recount Open Tasks for Future Events';
+					status.style.color = '#d63638';
+					status.textContent = 'Request failed. Please try again.';
+				});
+		});
+	})();
+	</script>
+
 	<h2 style="margin-top:24px;">Registration Goal</h2>
 	<p>
 		Use this to apply the current Default Registration Goal

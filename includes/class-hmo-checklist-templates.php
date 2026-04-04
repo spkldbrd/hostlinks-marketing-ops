@@ -182,23 +182,94 @@ class HMO_Checklist_Templates {
 
 	public function update_task( int $id, string $label, string $description ): bool {
 		global $wpdb;
+
+		$clean_label = sanitize_text_field( $label );
+
 		$rows = $wpdb->update(
 			$wpdb->prefix . 'hmo_checklist_templates',
 			array(
-				'task_label'       => sanitize_text_field( $label ),
+				'task_label'       => $clean_label,
 				'task_description' => sanitize_textarea_field( $description ),
 			),
 			array( 'id' => $id )
 		);
+
+		if ( $rows !== false ) {
+			// Sync the new label into all provisioned event task rows that match this template.
+			$task_key = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT task_key FROM {$wpdb->prefix}hmo_checklist_templates WHERE id = %d",
+					$id
+				)
+			);
+			if ( $task_key ) {
+				$wpdb->update(
+					$wpdb->prefix . 'hmo_event_tasks',
+					array( 'task_label' => $clean_label ),
+					array( 'task_key'   => $task_key )
+				);
+			}
+		}
+
 		return $rows !== false;
 	}
 
 	public function delete_task( int $id ): void {
 		global $wpdb;
 		$table = $wpdb->prefix . 'hmo_checklist_templates';
-		// Hard delete: also remove sub-tasks.
+
+		// Fetch the task_key and any child IDs before deleting.
+		$task_key  = $wpdb->get_var(
+			$wpdb->prepare( "SELECT task_key FROM {$table} WHERE id = %d", $id )
+		);
+		$child_keys = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT task_key FROM {$table} WHERE parent_id = %d",
+				$id
+			)
+		);
+
+		// Hard-delete from the template table (children first).
 		$wpdb->delete( $table, array( 'parent_id' => $id ) );
 		$wpdb->delete( $table, array( 'id'        => $id ) );
+
+		// Remove only PENDING event-task rows for future events — preserve completed work.
+		$today = current_time( 'Y-m-d' );
+		$keys_to_remove = array_filter( array_merge( array( $task_key ), $child_keys ) );
+		if ( ! empty( $keys_to_remove ) ) {
+			// Get future event IDs that have tasks (provisioned).
+			$future_event_ids = $wpdb->get_col( $wpdb->prepare(
+				"SELECT DISTINCT et.hostlinks_event_id
+				 FROM {$wpdb->prefix}hmo_event_tasks et
+				 INNER JOIN {$wpdb->prefix}event_details_list edl
+				         ON et.hostlinks_event_id = edl.eve_id
+				 WHERE edl.eve_start >= %s",
+				$today
+			) );
+
+			if ( ! empty( $future_event_ids ) ) {
+				$placeholders_keys   = implode( ',', array_fill( 0, count( $keys_to_remove ), '%s' ) );
+				$placeholders_events = implode( ',', array_fill( 0, count( $future_event_ids ), '%d' ) );
+				$wpdb->query(
+					$wpdb->prepare(
+						// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						"DELETE FROM {$wpdb->prefix}hmo_event_tasks
+						 WHERE task_key IN ($placeholders_keys)
+						   AND hostlinks_event_id IN ($placeholders_events)
+						   AND status = 'pending'",
+						array_merge( $keys_to_remove, $future_event_ids )
+					)
+				);
+
+				// Recount affected events.
+				$templates     = new self();
+				$checklist_svc = new HMO_Checklist_Service( $templates );
+				foreach ( $future_event_ids as $event_id ) {
+					$checklist_svc->recalculate_open_task_count( (int) $event_id );
+				}
+				HMO_Dashboard_Service::flush_row_cache();
+			}
+		}
 	}
 
 	public function reorder_tasks( array $ordered_ids ): void {
@@ -250,6 +321,60 @@ class HMO_Checklist_Templates {
 		}
 
 		$row = $tmpl->get_task( $id );
+
+		// Sync new TOP-LEVEL tasks to already-provisioned future events.
+		// Subtasks (parent_id > 0) are rendered from the template, not stored per-event.
+		if ( $parent_id === 0 && $row ) {
+			global $wpdb;
+			$today = current_time( 'Y-m-d' );
+
+			// Only touch events that already have task rows (were previously provisioned).
+			$future_event_ids = $wpdb->get_col( $wpdb->prepare(
+				"SELECT DISTINCT et.hostlinks_event_id
+				 FROM {$wpdb->prefix}hmo_event_tasks et
+				 INNER JOIN {$wpdb->prefix}event_details_list edl
+				         ON et.hostlinks_event_id = edl.eve_id
+				 WHERE edl.eve_start >= %s",
+				$today
+			) );
+
+			if ( ! empty( $future_event_ids ) ) {
+				$now = current_time( 'mysql' );
+				foreach ( $future_event_ids as $event_id ) {
+					$event_id = (int) $event_id;
+					// Avoid duplicates — skip if this task_key already exists for this event.
+					$exists = (int) $wpdb->get_var( $wpdb->prepare(
+						"SELECT COUNT(*) FROM {$wpdb->prefix}hmo_event_tasks
+						 WHERE hostlinks_event_id = %d AND task_key = %s",
+						$event_id, $row->task_key
+					) );
+					if ( $exists ) {
+						continue;
+					}
+					$wpdb->insert(
+						$wpdb->prefix . 'hmo_event_tasks',
+						array(
+							'hostlinks_event_id' => $event_id,
+							'stage_key'          => $row->stage_key,
+							'task_key'           => $row->task_key,
+							'task_label'         => $row->task_label,
+							'task_description'   => $row->task_description,
+							'status'             => 'pending',
+							'sort_order'         => (int) $row->sort_order,
+							'created_at'         => $now,
+							'updated_at'         => $now,
+						)
+					);
+				}
+
+				$checklist_svc = new HMO_Checklist_Service( $tmpl );
+				foreach ( $future_event_ids as $event_id ) {
+					$checklist_svc->recalculate_open_task_count( (int) $event_id );
+				}
+				HMO_Dashboard_Service::flush_row_cache();
+			}
+		}
+
 		wp_send_json_success( array( 'task' => $row ) );
 	}
 

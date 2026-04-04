@@ -305,6 +305,48 @@ class HMO_Checklist_Service {
 	public static function register_ajax(): void {
 		add_action( 'wp_ajax_hmo_bulk_provision',        array( __CLASS__, 'ajax_bulk_provision' ) );
 		add_action( 'wp_ajax_hmo_bulk_complete_stages',  array( __CLASS__, 'ajax_bulk_complete_stages' ) );
+		add_action( 'wp_ajax_hmo_recount_all_tasks',     array( __CLASS__, 'ajax_recount_all_tasks' ) );
+	}
+
+	/**
+	 * Recount open tasks for every provisioned future event and write the
+	 * correct value into hmo_event_ops. Preserves all task statuses.
+	 */
+	public static function ajax_recount_all_tasks(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( 'Unauthorized', 403 );
+		}
+		check_ajax_referer( 'hmo_recount_all_tasks' );
+
+		@set_time_limit( 120 );
+
+		global $wpdb;
+		$today = current_time( 'Y-m-d' );
+
+		// All future events that already have task rows (provisioned).
+		$event_ids = $wpdb->get_col( $wpdb->prepare(
+			"SELECT DISTINCT et.hostlinks_event_id
+			 FROM {$wpdb->prefix}hmo_event_tasks et
+			 INNER JOIN {$wpdb->prefix}event_details_list edl
+			         ON et.hostlinks_event_id = edl.eve_id
+			 WHERE edl.eve_start >= %s",
+			$today
+		) );
+
+		if ( empty( $event_ids ) ) {
+			wp_send_json_success( array( 'updated' => 0 ) );
+		}
+
+		$templates     = new HMO_Checklist_Templates();
+		$checklist_svc = new self( $templates );
+
+		foreach ( $event_ids as $event_id ) {
+			$checklist_svc->recalculate_open_task_count( (int) $event_id );
+		}
+
+		HMO_Dashboard_Service::flush_row_cache();
+
+		wp_send_json_success( array( 'updated' => count( $event_ids ) ) );
 	}
 
 	/**
