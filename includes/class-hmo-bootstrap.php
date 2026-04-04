@@ -44,6 +44,9 @@ class HMO_Bootstrap {
 		$admin_menu = new HMO_Admin_Menu();
 		add_action( 'admin_menu',            array( $admin_menu, 'register_menus' ), 20 );
 		add_action( 'admin_enqueue_scripts', array( $admin_menu, 'enqueue_media_on_settings' ) );
+
+		// Auto-provision tasks when Hostlinks creates a new event.
+		add_action( 'hostlinks_event_created', array( $checklist_svc, 'on_event_created' ), 10, 2 );
 	}
 
 	public function notice_hostlinks_missing() {

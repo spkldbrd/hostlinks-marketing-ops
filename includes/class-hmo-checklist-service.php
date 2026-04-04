@@ -65,6 +65,27 @@ class HMO_Checklist_Service {
 	}
 
 	// -------------------------------------------------------------------------
+	// Auto-provision on event creation
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Called via the 'hostlinks_event_created' action fired by Hostlinks when
+	 * a new event is saved (manual or Cvent import). Provisions tasks immediately
+	 * so the dashboard shows the correct open-task count without requiring a
+	 * first visit to the event detail page.
+	 *
+	 * @param int    $event_id   The new hostlinks_event_id.
+	 * @param string $eve_start  The event start date (Y-m-d).
+	 */
+	public function on_event_created( int $event_id, string $eve_start ): void {
+		// Only provision future events.
+		if ( $eve_start < current_time( 'Y-m-d' ) ) {
+			return;
+		}
+		$this->ensure_event_tasks_exist( $event_id );
+	}
+
+	// -------------------------------------------------------------------------
 	// Read
 	// -------------------------------------------------------------------------
 
