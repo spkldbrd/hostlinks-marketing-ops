@@ -28,17 +28,39 @@ class HMO_REST {
 	}
 
 	/**
-	 * Registers the Force Login bypass so the public-events endpoint remains
-	 * reachable by unauthenticated server-to-server requests (e.g. the GWU
-	 * shortcode fetching event data) even when the Force Login plugin is active.
+	 * Opens the public-events endpoint to unauthenticated requests.
+	 *
+	 * Two complementary hooks are used so the route stays reachable regardless
+	 * of which security/login plugin is restricting the REST API:
+	 *
+	 *  1. v_forcelogin_bypass — Force Login plugin's own whitelist filter.
+	 *  2. rest_authentication_errors @ priority 99 — runs after every other
+	 *     plugin and explicitly clears any 401 error for this route only,
+	 *     leaving all other routes untouched.
 	 */
 	public static function register_force_login_bypass(): void {
+		// Force Login whitelist filter.
 		add_filter( 'v_forcelogin_bypass', function ( $bypass, $url ) {
 			if ( strpos( $url, '/wp-json/hmo/v1/public-events' ) !== false ) {
 				return true;
 			}
 			return $bypass;
 		}, 10, 2 );
+
+		// Catch-all: override any authentication error injected by any plugin
+		// for the public-events route.  Priority 99 ensures this runs last.
+		add_filter( 'rest_authentication_errors', function ( $result ) {
+			if ( ! is_wp_error( $result ) ) {
+				return $result;
+			}
+			$route = isset( $GLOBALS['wp']->query_vars['rest_route'] )
+				? (string) $GLOBALS['wp']->query_vars['rest_route']
+				: '';
+			if ( strpos( $route, '/hmo/v1/public-events' ) === 0 ) {
+				return null; // Clear the error; WP will use the route's own permission_callback.
+			}
+			return $result;
+		}, 99 );
 	}
 
 	public function register_routes(): void {
