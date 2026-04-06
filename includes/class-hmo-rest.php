@@ -27,6 +27,20 @@ class HMO_REST {
 		$this->access    = $access;
 	}
 
+	/**
+	 * Registers the Force Login bypass so the public-events endpoint remains
+	 * reachable by unauthenticated server-to-server requests (e.g. the GWU
+	 * shortcode fetching event data) even when the Force Login plugin is active.
+	 */
+	public static function register_force_login_bypass(): void {
+		add_filter( 'v_forcelogin_bypass', function ( $bypass, $url ) {
+			if ( strpos( $url, '/wp-json/hmo/v1/public-events' ) !== false ) {
+				return true;
+			}
+			return $bypass;
+		}, 10, 2 );
+	}
+
 	public function register_routes(): void {
 		$ns = self::NAMESPACE;
 

@@ -21,6 +21,9 @@ class HMO_Bootstrap {
 		$dashboard_svc  = new HMO_Dashboard_Service( $bridge, $access, $checklist_svc, $countdown_svc );
 		$alert_svc      = new HMO_Alert_Service();
 
+		// Allow public-events through Force Login (runs before the plugin checks).
+		HMO_REST::register_force_login_bypass();
+
 		// REST API.
 		$rest = new HMO_REST( $checklist_svc, $dashboard_svc, $access );
 		add_action( 'rest_api_init', array( $rest, 'register_routes' ) );
