@@ -56,9 +56,10 @@ class HMO_Updater {
 		add_filter( 'upgrader_source_selection',             array( $this, 'fix_source_dir' ), 10, 4 );
 		add_action( 'upgrader_process_complete',             array( $this, 'clear_cache' ), 10, 2 );
 
-		// Bust cache when admin visits the Marketing Ops settings page so the
-		// version check is always fresh on that page load.
-		add_action( 'load-hostlinks_page_hmo-settings', array( $this, 'bust_cache_on_page_load' ) );
+		// Bust cache when admin visits the Marketing Ops settings or dashboard
+		// page so the version check is always fresh on that page load.
+		add_action( 'load-hmo-dashboard_page_hmo-settings', array( $this, 'bust_cache_on_page_load' ) );
+		add_action( 'load-toplevel_page_hmo-dashboard',     array( $this, 'bust_cache_on_page_load' ) );
 	}
 
 	// ── Cache bust on admin page visit ────────────────────────────────────────
