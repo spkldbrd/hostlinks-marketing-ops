@@ -224,7 +224,8 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 		</p>
 	</div>
 
-	<!-- GWU Marketing Page Panel -->
+	<!-- GWU Marketing Page Panel — admin-only -->
+	<?php if ( current_user_can( 'manage_options' ) ) : ?>
 	<?php
 	$gwu_page_id  = $ops ? (int) $ops->gwu_page_id : 0;
 	$gwu_web_url  = trim( $event->eve_web_url ?? '' );
@@ -310,6 +311,8 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 		});
 	});
 	</script>
+
+	<?php endif; // manage_options ?>
 
 	<!-- Logistics Panel -->
 	<?php if ( $ops ) : ?>
