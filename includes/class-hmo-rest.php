@@ -39,16 +39,19 @@ class HMO_REST {
 	 *     leaving all other routes untouched.
 	 */
 	public static function register_force_login_bypass(): void {
-		// Force Login whitelist filter.
+		// Force Login whitelist filter — covers both public REST endpoints.
 		add_filter( 'v_forcelogin_bypass', function ( $bypass, $url ) {
-			if ( strpos( $url, '/wp-json/hmo/v1/public-events' ) !== false ) {
+			if (
+				strpos( $url, '/wp-json/hmo/v1/public-events' ) !== false ||
+				strpos( $url, '/wp-json/hmo/v1/past-events' )   !== false
+			) {
 				return true;
 			}
 			return $bypass;
 		}, 10, 2 );
 
-		// Catch-all: override any authentication error injected by any plugin
-		// for the public-events route.  Priority 99 ensures this runs last.
+		// Catch-all: override any authentication error for our two public routes.
+		// Priority 99 ensures this runs after all other plugins.
 		add_filter( 'rest_authentication_errors', function ( $result ) {
 			if ( ! is_wp_error( $result ) ) {
 				return $result;
@@ -56,8 +59,11 @@ class HMO_REST {
 			$route = isset( $GLOBALS['wp']->query_vars['rest_route'] )
 				? (string) $GLOBALS['wp']->query_vars['rest_route']
 				: '';
-			if ( strpos( $route, '/hmo/v1/public-events' ) === 0 ) {
-				return null; // Clear the error; WP will use the route's own permission_callback.
+			if (
+				strpos( $route, '/hmo/v1/public-events' ) === 0 ||
+				strpos( $route, '/hmo/v1/past-events' )   === 0
+			) {
+				return null;
 			}
 			return $result;
 		}, 99 );
@@ -175,6 +181,21 @@ class HMO_REST {
 			'methods'             => WP_REST_Server::READABLE,
 			'callback'            => array( $this, 'get_public_events' ),
 			'permission_callback' => '__return_true',
+		) );
+
+		// Past events archive — no authentication required.
+		register_rest_route( $ns, '/past-events', array(
+			'methods'             => WP_REST_Server::READABLE,
+			'callback'            => array( $this, 'get_past_events' ),
+			'permission_callback' => '__return_true',
+			'args'                => array(
+				'years' => array(
+					'default'           => 2,
+					'sanitize_callback' => function ( $val ) {
+						return max( 1, min( 10, (int) $val ) );
+					},
+				),
+			),
 		) );
 	}
 
@@ -397,6 +418,75 @@ class HMO_REST {
 		}
 
 		return new WP_REST_Response( array( 'events' => $events, 'meta' => $meta ), 200 );
+	}
+
+	/**
+	 * GET /hmo/v1/past-events?years=2
+	 *
+	 * Returns completed public events (newest first) for use in a past-events
+	 * archive shortcode on grantwritingusa.com.  Same privacy filters as
+	 * public-events; defaults to 2 years of history.
+	 */
+	public function get_past_events( WP_REST_Request $request ): WP_REST_Response {
+		global $wpdb;
+
+		$years = (int) $request->get_param( 'years' );
+		$today = current_time( 'Y-m-d' );
+		$since = gmdate( 'Y-m-d', strtotime( "-{$years} years" ) );
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT e.*, t.event_type_name
+				 FROM {$wpdb->prefix}event_details_list e
+				 LEFT JOIN {$wpdb->prefix}event_type t ON t.event_type_id = e.eve_type
+				 WHERE e.eve_status = 1
+				   AND e.eve_public_hide = 0
+				   AND e.eve_start < %s
+				   AND e.eve_start >= %s
+				   AND e.eve_location NOT LIKE %s
+				   AND e.eve_location NOT LIKE %s
+				   AND e.eve_location NOT LIKE %s
+				 ORDER BY e.eve_start DESC",
+				$today,
+				$since,
+				'%|PRIVATE%',
+				'%| PRIVATE%',
+				'%|private%'
+			),
+			ARRAY_A
+		);
+
+		$left_types  = array_map( 'intval', (array) get_option( 'hostlinks_pel_left_types',  array() ) );
+		$right_types = array_map( 'intval', (array) get_option( 'hostlinks_pel_right_types', array() ) );
+
+		$events = array();
+		foreach ( (array) $rows as $ev ) {
+			$type_id = (int) $ev['eve_type'];
+			if ( in_array( $type_id, $left_types, true ) ) {
+				$column = 'left';
+			} elseif ( in_array( $type_id, $right_types, true ) ) {
+				$column = 'right';
+			} else {
+				$column = '';
+			}
+
+			$events[] = array(
+				'id'          => (int) $ev['eve_id'],
+				'location'    => $ev['eve_location'],
+				'city'        => $ev['city'],
+				'state'       => $ev['state'],
+				'start'       => $ev['eve_start'],
+				'end'         => $ev['eve_end'],
+				'type_id'     => $type_id,
+				'type_name'   => $ev['event_type_name'],
+				'zoom'        => $ev['eve_zoom'],
+				'cvent_title' => $ev['cvent_event_title'],
+				'web_url'     => $ev['eve_web_url'],
+				'column'      => $column,
+			);
+		}
+
+		return new WP_REST_Response( array( 'events' => $events, 'years' => $years ), 200 );
 	}
 
 	// -------------------------------------------------------------------------
