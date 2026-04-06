@@ -42,8 +42,8 @@ class HMO_Bootstrap {
 		add_action( 'admin_enqueue_scripts', array( $assets, 'enqueue_admin' ) );
 		add_action( 'wp_enqueue_scripts',    array( $assets, 'enqueue_frontend' ) );
 
-		// Admin menu — Settings only.
-		$admin_menu = new HMO_Admin_Menu();
+		// Admin menu — Dashboard + Settings.
+		$admin_menu = new HMO_Admin_Menu( $dashboard_svc, $bridge, $checklist_svc, $countdown_svc );
 		add_action( 'admin_menu',            array( $admin_menu, 'register_menus' ), 20 );
 		add_action( 'admin_enqueue_scripts', array( $admin_menu, 'enqueue_media_on_settings' ) );
 
