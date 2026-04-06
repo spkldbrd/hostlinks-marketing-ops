@@ -413,9 +413,12 @@ class HMO_Page_Sync {
 		$user     = constant( self::CONST_USER );
 		$pass     = constant( self::CONST_PASS );
 
-		$response = wp_remote_get( $api_base . '/users/me', array(
+		// Add a cache-busting param and no-cache headers so caching plugins on the
+		// primary domain don't serve a stale unauthenticated response.
+		$response = wp_remote_get( $api_base . '/users/me?_=' . time(), array(
 			'headers' => array(
 				'Authorization' => 'Basic ' . base64_encode( $user . ':' . $pass ),
+				'Cache-Control' => 'no-cache',
 			),
 			'timeout' => 10,
 		) );
@@ -425,14 +428,21 @@ class HMO_Page_Sync {
 		}
 
 		$code = wp_remote_retrieve_response_code( $response );
-		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		$body = wp_remote_retrieve_body( $response );
+		$data = json_decode( $body, true );
 
-		if ( $code === 200 && ! empty( $data['name'] ) ) {
+		if ( $code === 200 && ! empty( $data['slug'] ) ) {
 			wp_send_json_success( array(
-				'message' => 'Connected! Authenticated as: ' . esc_html( $data['name'] ),
+				'message' => 'Connected! Authenticated as: ' . esc_html( $data['name'] ?? $data['slug'] ),
 			) );
+		} elseif ( $code === 401 ) {
+			wp_send_json_error( 'HTTP 401 — Authentication failed. Verify GWU_API_USER matches the WordPress username whose profile has the Application Password, and that GWU_API_PASS is the generated password value (not the password name).' );
+		} elseif ( $code === 200 ) {
+			// 200 but no user object — likely a caching layer or redirect served HTML.
+			$snippet = mb_substr( wp_strip_all_tags( $body ), 0, 120 );
+			wp_send_json_error( 'HTTP 200 but no user data returned — a caching layer may be intercepting the request. Response preview: ' . esc_html( $snippet ) );
 		} else {
-			wp_send_json_error( 'HTTP ' . $code . '. Check your Application Password and username.' );
+			wp_send_json_error( 'HTTP ' . $code . ' — unexpected response. Check GWU_PRIMARY_API URL and that the primary domain REST API is reachable.' );
 		}
 	}
 
