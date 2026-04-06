@@ -126,15 +126,28 @@ if ( isset( $_POST['hmo_save_tools'] ) ) {
 // Page template sections
 if ( isset( $_POST['hmo_save_page_template'] ) ) {
 	check_admin_referer( 'hmo_page_template', 'hmo_page_template_nonce' );
+
 	$sections    = HMO_Page_Template::get_sections();
+	$all_types   = HMO_Page_Template::get_event_types();
+	$active_type = sanitize_key( $_POST['hmo_tmpl_type'] ?? 'default' );
+	if ( ! array_key_exists( $active_type, $all_types ) ) {
+		$active_type = 'default';
+	}
+
+	// 'default' context maps to option key with no type prefix (backward-compatible).
+	$type_key_for_save = ( $active_type === 'default' ) ? '' : $active_type;
+
 	$posted_tmpl = isset( $_POST['hmo_tmpl'] ) && is_array( $_POST['hmo_tmpl'] )
 		? $_POST['hmo_tmpl'] : array();
+
 	foreach ( array_keys( $sections ) as $key ) {
 		if ( isset( $posted_tmpl[ $key ] ) ) {
-			HMO_Page_Template::save_section( $key, wp_unslash( $posted_tmpl[ $key ] ) );
+			HMO_Page_Template::save_section( $key, wp_unslash( $posted_tmpl[ $key ] ), $type_key_for_save );
 		}
 	}
-	$notice = '<div class="notice notice-success is-dismissible"><p>Page template sections saved.</p></div>';
+
+	$notice = '<div class="notice notice-success is-dismissible"><p>'
+		. esc_html( $all_types[ $active_type ] ) . ' template sections saved.</p></div>';
 }
 
 // ── Current state ─────────────────────────────────────────────────────────────

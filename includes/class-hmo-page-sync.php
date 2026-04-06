@@ -257,6 +257,9 @@ class HMO_Page_Sync {
 		$hotels  = trim( $ev['hotels']           ?? '' );
 		$special = trim( $ev['special_instructions'] ?? '' );
 
+		// Resolve event-type template context (writing / management / subaward / '').
+		$type_key = HMO_Page_Template::event_type_key( (int) ( $ev['eve_type'] ?? 0 ) );
+
 		$date_long = $this->format_date_range( $start, $end );
 		$hosted_by = $host ?: $venue;
 
@@ -286,16 +289,16 @@ class HMO_Page_Sync {
 		if ( $is_zoom ) {
 			$itinerary_html = HMO_Page_Template::render_section( 'itinerary_zoom', array(
 				'{{DATE_LONG}}' => esc_html( $date_long ),
-			) );
-			$format_html = HMO_Page_Template::render_section( 'format_zoom' );
+			), $type_key );
+			$format_html = HMO_Page_Template::render_section( 'format_zoom', array(), $type_key );
 		} else {
 			$itinerary_html = HMO_Page_Template::render_section( 'itinerary_inperson', array(
 				'{{DATE_LONG}}'  => esc_html( $date_long ),
 				'{{MAP_URL}}'    => esc_url( $map_url ),
 				'{{HOST_LINE}}' => $host_line,
 				'{{ADDR_BLOCK}}' => $addr_block,
-			) );
-			$format_html = HMO_Page_Template::render_section( 'format_inperson' );
+			), $type_key );
+			$format_html = HMO_Page_Template::render_section( 'format_inperson', array(), $type_key );
 		}
 
 		// Hotels section (dynamic — not template-editable).
@@ -315,31 +318,31 @@ class HMO_Page_Sync {
 		$c  = '';
 		$c .= $reg_button;
 		$c .= '<h2>Welcome!</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'welcome' );
+		$c .= HMO_Page_Template::render_section( 'welcome', array(), $type_key );
 		$c .= $itinerary_html;
 		$c .= $format_html;
 		$c .= $special_html;
 
 		$c .= '<h2>Tuition</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'tuition' );
+		$c .= HMO_Page_Template::render_section( 'tuition', array(), $type_key );
 
 		$c .= '<h2>COVID Guidelines</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'covid' );
+		$c .= HMO_Page_Template::render_section( 'covid', array(), $type_key );
 
 		$c .= '<h2>CEU Credits</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'ceu' );
+		$c .= HMO_Page_Template::render_section( 'ceu', array(), $type_key );
 
 		$c .= '<h2>Payment Policy</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'payment' );
+		$c .= HMO_Page_Template::render_section( 'payment', array(), $type_key );
 
 		$c .= '<h2>Purchase Orders</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'purchase_orders' );
+		$c .= HMO_Page_Template::render_section( 'purchase_orders', array(), $type_key );
 
 		$c .= '<h2>Cancel Policy</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'cancel' );
+		$c .= HMO_Page_Template::render_section( 'cancel', array(), $type_key );
 
 		$c .= '<h2>Questions?</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'questions' );
+		$c .= HMO_Page_Template::render_section( 'questions', array(), $type_key );
 
 		$c .= '<h2>Ready to enroll?</h2>' . "\n";
 		$c .= '<p>Great &mdash; it\'s easy!</p>' . "\n";

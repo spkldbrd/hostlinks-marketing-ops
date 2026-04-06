@@ -9,6 +9,19 @@ if ( ! defined( 'ABSPATH' ) ) {
  * GWU marketing pages.  Each section is stored as a WP option so admins
  * can edit the boilerplate text without touching PHP.
  *
+ * Templates are scoped to four event-type contexts:
+ *   default    — fallback for any event type that has no custom template
+ *   writing    — Grant Writing events (eve_type = 1)
+ *   management — Grant Management events (eve_type = 2)
+ *   subaward   — Subaward events (eve_type = 3)
+ *
+ * Option key format:
+ *   Default context : hmo_page_tmpl_{section}
+ *   Type context    : hmo_page_tmpl_{type}_{section}   e.g. hmo_page_tmpl_writing_welcome
+ *
+ * At render time get_section_content() checks the type-specific option first,
+ * then falls back to the default option, then to the hard-coded default string.
+ *
  * Token reference — tokens replaced at render time with live event data:
  *   {{DATE_LONG}}   — Formatted date range, e.g. "April 30-May 1, 2026"
  *   {{MAP_URL}}     — Google Maps URL for the venue address
@@ -18,17 +31,42 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class HMO_Page_Template {
 
-	const OPT_PREFIX = 'hmo_page_tmpl_';
+	const OPT_PREFIX   = 'hmo_page_tmpl_';
+	const TYPE_DEFAULT = 'default';
+
+	// -------------------------------------------------------------------------
+	// Event type registry
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Returns all supported template context keys and their display labels.
+	 */
+	public static function get_event_types(): array {
+		return array(
+			'default'    => 'Default (All Types)',
+			'writing'    => 'Writing',
+			'management' => 'Management',
+			'subaward'   => 'Subaward',
+		);
+	}
+
+	/**
+	 * Maps an eve_type integer to a template context key.
+	 * Returns '' (treated as default) for unknown types.
+	 */
+	public static function event_type_key( int $eve_type ): string {
+		$map = array(
+			1 => 'writing',
+			2 => 'management',
+			3 => 'subaward',
+		);
+		return $map[ $eve_type ] ?? '';
+	}
 
 	// -------------------------------------------------------------------------
 	// Section registry
 	// -------------------------------------------------------------------------
 
-	/**
-	 * Returns all editable section definitions.
-	 *
-	 * @return array[] Each entry: key, label, description, tokens (array of token => hint).
-	 */
 	public static function get_sections(): array {
 		return array(
 			'welcome' => array(
@@ -152,13 +190,42 @@ class HMO_Page_Template {
 	}
 
 	// -------------------------------------------------------------------------
+	// Option key helper
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Returns the WP option name for a section, respecting the type context.
+	 *
+	 * @param string $section_key Section key (e.g. 'welcome').
+	 * @param string $type_key    Context key ('writing', 'management', 'subaward', or '' / 'default').
+	 */
+	public static function get_option_key( string $section_key, string $type_key = '' ): string {
+		if ( $type_key && $type_key !== self::TYPE_DEFAULT ) {
+			return self::OPT_PREFIX . sanitize_key( $type_key ) . '_' . $section_key;
+		}
+		return self::OPT_PREFIX . $section_key;
+	}
+
+	// -------------------------------------------------------------------------
 	// Read / write
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Returns the current content for a section: saved option or default.
+	 * Returns the active content for a section:
+	 *   1. Type-specific saved option (if type_key given and option exists).
+	 *   2. Default saved option.
+	 *   3. Hard-coded default string.
+	 *
+	 * @param string $key      Section key.
+	 * @param string $type_key Event type context key, or '' for default.
 	 */
-	public static function get_section_content( string $key ): string {
+	public static function get_section_content( string $key, string $type_key = '' ): string {
+		if ( $type_key && $type_key !== self::TYPE_DEFAULT ) {
+			$saved = get_option( self::get_option_key( $key, $type_key ), null );
+			if ( $saved !== null && $saved !== '' ) {
+				return $saved;
+			}
+		}
 		$saved = get_option( self::OPT_PREFIX . $key, null );
 		if ( $saved !== null && $saved !== '' ) {
 			return $saved;
@@ -167,21 +234,29 @@ class HMO_Page_Template {
 	}
 
 	/**
-	 * Saves a single section's content. Content is sanitized as post HTML.
+	 * Returns the raw saved value for a specific type context with no fallback.
+	 * Used to populate the admin editor (empty = no override, inherits default).
 	 */
-	public static function save_section( string $key, string $content ): void {
+	public static function get_type_raw( string $key, string $type_key ): string {
+		return get_option( self::get_option_key( $key, $type_key ), '' );
+	}
+
+	/**
+	 * Saves a section's content for a given type context.
+	 */
+	public static function save_section( string $key, string $content, string $type_key = '' ): void {
 		$sections = self::get_sections();
 		if ( ! isset( $sections[ $key ] ) ) {
 			return;
 		}
-		update_option( self::OPT_PREFIX . $key, wp_kses_post( $content ), false );
+		update_option( self::get_option_key( $key, $type_key ), wp_kses_post( $content ), false );
 	}
 
 	/**
-	 * Resets a single section to its default by deleting the saved option.
+	 * Resets a section to its default by deleting the saved option for the given type context.
 	 */
-	public static function reset_section( string $key ): void {
-		delete_option( self::OPT_PREFIX . $key );
+	public static function reset_section( string $key, string $type_key = '' ): void {
+		delete_option( self::get_option_key( $key, $type_key ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -189,14 +264,15 @@ class HMO_Page_Template {
 	// -------------------------------------------------------------------------
 
 	/**
-	 * Replace {{TOKEN}} placeholders in a section's content with live values.
+	 * Returns a section's content with {{TOKEN}} placeholders replaced.
+	 * Falls back through type → default → hard-coded default.
 	 *
 	 * @param string $key      Section key.
-	 * @param array  $tokens   Assoc array of '{{TOKEN}}' => 'replacement string'.
-	 * @return string HTML with tokens substituted.
+	 * @param array  $tokens   '{{TOKEN}}' => 'replacement' map.
+	 * @param string $type_key Event type context key.
 	 */
-	public static function render_section( string $key, array $tokens = array() ): string {
-		$content = self::get_section_content( $key );
+	public static function render_section( string $key, array $tokens = array(), string $type_key = '' ): string {
+		$content = self::get_section_content( $key, $type_key );
 		if ( ! empty( $tokens ) ) {
 			$content = str_replace( array_keys( $tokens ), array_values( $tokens ), $content );
 		}
@@ -219,17 +295,24 @@ class HMO_Page_Template {
 		}
 
 		$key      = sanitize_key( $_POST['section_key'] ?? '' );
+		$type_key = sanitize_key( $_POST['type_key']    ?? '' );
 		$sections = self::get_sections();
 
 		if ( ! isset( $sections[ $key ] ) ) {
 			wp_send_json_error( 'Invalid section key.' );
 		}
 
-		self::reset_section( $key );
+		$valid_types = self::get_event_types();
+		if ( $type_key && ! array_key_exists( $type_key, $valid_types ) ) {
+			wp_send_json_error( 'Invalid type key.' );
+		}
+
+		self::reset_section( $key, $type_key === self::TYPE_DEFAULT ? '' : $type_key );
 
 		wp_send_json_success( array(
-			'default' => self::get_default( $key ),
-			'message' => 'Section reset to default.',
+			'message' => $type_key && $type_key !== self::TYPE_DEFAULT
+				? 'Type override cleared — section will now use the Default template.'
+				: 'Section reset to default.',
 		) );
 	}
 }
