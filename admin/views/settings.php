@@ -123,6 +123,20 @@ if ( isset( $_POST['hmo_save_tools'] ) ) {
 	$notice = '<div class="notice notice-success is-dismissible"><p>Tools links saved.</p></div>';
 }
 
+// Page template sections
+if ( isset( $_POST['hmo_save_page_template'] ) ) {
+	check_admin_referer( 'hmo_page_template', 'hmo_page_template_nonce' );
+	$sections    = HMO_Page_Template::get_sections();
+	$posted_tmpl = isset( $_POST['hmo_tmpl'] ) && is_array( $_POST['hmo_tmpl'] )
+		? $_POST['hmo_tmpl'] : array();
+	foreach ( array_keys( $sections ) as $key ) {
+		if ( isset( $posted_tmpl[ $key ] ) ) {
+			HMO_Page_Template::save_section( $key, wp_unslash( $posted_tmpl[ $key ] ) );
+		}
+	}
+	$notice = '<div class="notice notice-success is-dismissible"><p>Page template sections saved.</p></div>';
+}
+
 // ── Current state ─────────────────────────────────────────────────────────────
 
 $access_svc           = new HMO_Access_Service();
@@ -186,6 +200,7 @@ $tabs = array(
 	'user-access'   => 'User Access',
 	'tools'         => 'Tools Links',
 	'page-sync'     => 'GWU Page Sync',
+	'page-template' => 'Page Template',
 );
 ?>
 <div class="wrap">
@@ -1783,6 +1798,14 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 	<li>The new page URL is saved back to the event&#8217;s <em>WEB URL</em> field in Hostlinks.</li>
 	<li>The <code>[public_event_list]</code> shortcode on grantwritingusa.com immediately shows a working &#8220;details&#8221; link for the event.</li>
 </ol>
+
+<!-- ======================================================================
+     TAB: PAGE TEMPLATE
+     ====================================================================== -->
+<?php elseif ( $active_tab === 'page-template' ) : ?>
+
+<h2>Page Template Editor</h2>
+<?php include __DIR__ . '/page-template-tab.php'; ?>
 
 <?php endif; ?>
 </div>

@@ -224,6 +224,93 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 		</p>
 	</div>
 
+	<!-- GWU Marketing Page Panel -->
+	<?php
+	$gwu_page_id  = $ops ? (int) $ops->gwu_page_id : 0;
+	$gwu_web_url  = trim( $event->eve_web_url ?? '' );
+	$sync_nonce   = wp_create_nonce( 'hmo_regenerate_page' );
+	$sync_enabled = HMO_Page_Sync::is_configured();
+	?>
+	<div class="hmo-section hmo-gwu-page" data-event-id="<?php echo (int) $event->eve_id; ?>">
+		<h2>GWU Marketing Page</h2>
+		<table class="form-table">
+			<tr>
+				<th>Marketing Page URL</th>
+				<td>
+					<?php if ( $gwu_web_url ) : ?>
+						<a href="<?php echo esc_url( $gwu_web_url ); ?>" target="_blank">
+							<?php echo esc_html( $gwu_web_url ); ?>
+						</a>
+					<?php else : ?>
+						<em style="color:#888;">Not set</em>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
+				<th>GWU Page ID</th>
+				<td>
+					<?php echo $gwu_page_id > 0 ? (int) $gwu_page_id : '<em style="color:#888;">Not linked</em>'; ?>
+				</td>
+			</tr>
+		</table>
+		<?php if ( $sync_enabled ) : ?>
+			<p>
+				<button
+					type="button"
+					class="button button-primary hmo-gwu-regen"
+					data-event-id="<?php echo (int) $event->eve_id; ?>"
+					data-nonce="<?php echo esc_attr( $sync_nonce ); ?>">
+					<?php echo $gwu_page_id > 0 ? 'Regenerate GWU Page' : 'Create GWU Page'; ?>
+				</button>
+				<span class="hmo-gwu-regen-status" style="margin-left:10px;font-style:italic;"></span>
+			</p>
+			<p style="color:#666;font-size:13px;margin-top:0;">
+				<?php if ( $gwu_page_id > 0 ) : ?>
+					Regenerating will update the existing page's title and content using the current template.
+				<?php else : ?>
+					Creates a new marketing page on grantwritingusa.com and saves the URL to this event.
+				<?php endif; ?>
+			</p>
+		<?php else : ?>
+			<p style="color:#888;font-size:13px;">
+				GWU Page Sync is not configured. Add the required constants to
+				<code>wp-config.php</code> — see <a href="<?php echo esc_url( admin_url( 'admin.php?page=hmo-settings&tab=page-sync' ) ); ?>">Settings → GWU Page Sync</a>.
+			</p>
+		<?php endif; ?>
+	</div>
+
+	<script>
+	jQuery(function($){
+		$('.hmo-gwu-regen').on('click', function(){
+			var btn    = $(this);
+			var status = btn.closest('.hmo-gwu-page').find('.hmo-gwu-regen-status');
+
+			btn.prop('disabled', true).text('Syncing…');
+			status.css('color','').text('');
+
+			$.post(ajaxurl, {
+				action      : 'hmo_regenerate_event_page',
+				_ajax_nonce : btn.data('nonce'),
+				event_id    : btn.data('event-id')
+			}, function(resp){
+				btn.prop('disabled', false);
+				if ( resp.success ) {
+					btn.text('Regenerate GWU Page');
+					status.css('color','green').html(
+						resp.data.message + ' &mdash; <a href="' + resp.data.url + '" target="_blank">View page</a>'
+					);
+				} else {
+					btn.text('Regenerate GWU Page');
+					status.css('color','red').text('Error: ' + (resp.data || 'Unknown'));
+				}
+			}).fail(function(){
+				btn.prop('disabled', false).text('Regenerate GWU Page');
+				status.css('color','red').text('Request failed. Please try again.');
+			});
+		});
+	});
+	</script>
+
 	<!-- Logistics Panel -->
 	<?php if ( $ops ) : ?>
 	<div class="hmo-section hmo-logistics">

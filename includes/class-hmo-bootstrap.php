@@ -31,6 +31,7 @@ class HMO_Bootstrap {
 		HMO_Checklist_Service::register_ajax();
 		HMO_Dashboard_Service::register_ajax();
 		HMO_Page_Sync::register_ajax();
+		HMO_Page_Template::register_ajax();
 
 		// Front-end shortcodes.
 		$shortcodes = new HMO_Shortcodes( $access, $dashboard_svc, $checklist_svc, $countdown_svc, $bridge, $alert_svc );
