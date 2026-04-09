@@ -31,6 +31,21 @@
 	var pinnedLat   = null;
 	var pinnedLng   = null;
 
+	// ── County name formatter ──────────────────────────────────────────────
+	// Strips trailing geographic suffixes so "Denver County" → "Denver".
+	var _suffixes = [
+		' City and Borough', ' Census Area', ' Municipality',
+		' Municipio', ' Borough', ' Parish', ' County'
+	];
+	function countyLabel(name) {
+		for (var i = 0; i < _suffixes.length; i++) {
+			if (name.slice(-_suffixes[i].length) === _suffixes[i]) {
+				return name.slice(0, -_suffixes[i].length);
+			}
+		}
+		return name;
+	}
+
 	// ── Radius slider ─────────────────────────────────────────────────────
 	// Update only the number span — no surrounding DOM changes → no flicker.
 	sliderRad.addEventListener('input', function() {
@@ -96,7 +111,7 @@
 			var cls = parseInt(c.netmig_2025) >= 0 ? 'hmo-netmig-pos' : 'hmo-netmig-neg';
 			return '<tr>' +
 				'<td>' + esc(c.state_abbr) + '</td>' +
-				'<td>' + esc(c.county_name) + '</td>' +
+				'<td>' + esc(countyLabel(c.county_name)) + '</td>' +
 				'<td class="hmo-num">' + formatNum(c.pop_2025) + '</td>' +
 				'<td class="hmo-num ' + cls + '">' + formatNetmig(c.netmig_2025) + '</td>' +
 				'<td class="hmo-num">' + parseFloat(c.distance_miles).toFixed(1) + '</td>' +
@@ -123,22 +138,8 @@
 	btnCopy.addEventListener('click', function() {
 		if (!currentData.length) return;
 
-		// Strip common US county-name suffixes so "Denver County" → "Denver"
-		var suffixes = [
-			' County', ' Parish', ' Borough', ' Census Area',
-			' Municipality', ' City and Borough', ' Municipio'
-		];
-		function stripSuffix(name) {
-			for (var i = 0; i < suffixes.length; i++) {
-				if (name.slice(-suffixes[i].length) === suffixes[i]) {
-					return name.slice(0, -suffixes[i].length);
-				}
-			}
-			return name;
-		}
-
 		var text = currentData.map(function(c) {
-			return stripSuffix(c.county_name) + ', ' + c.state_abbr;
+			return countyLabel(c.county_name) + ', ' + c.state_abbr;
 		}).join('\n');
 
 		var btn = this;
@@ -175,12 +176,18 @@
 	// ── CSV Export ────────────────────────────────────────────────────────
 	btnExport.addEventListener('click', function() {
 		if (!currentData.length) return;
-		var cols   = ['state_abbr','county_name','pop_2025','netmig_2025','distance_miles'];
 		var header = ['State','County','Population','Net Migration','Distance (mi)'];
 		var lines  = [header.join(',')].concat(currentData.map(function(c) {
-			return cols.map(function(k) {
-				var v = c[k];
-				if (typeof v === 'string' && (v.includes(',') || v.includes('"'))) {
+			var row = [
+				c.state_abbr,
+				countyLabel(c.county_name),
+				c.pop_2025,
+				c.netmig_2025,
+				parseFloat(c.distance_miles).toFixed(1)
+			];
+			return row.map(function(v) {
+				v = String(v);
+				if (v.includes(',') || v.includes('"')) {
 					v = '"' + v.replace(/"/g, '""') + '"';
 				}
 				return v;

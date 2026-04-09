@@ -129,6 +129,9 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.10.7 =
+* Maps tool: county name suffix (County, Parish, Borough, etc.) is now stripped in the results table, CSV export, and Copy List — all three show "Denver, CO" format consistently.
+
 = 1.10.6 =
 * Maps tool: fixed Copy List button on HTTP sites — navigator.clipboard is only available on HTTPS; now falls back to execCommand copy before attempting the Clipboard API.
 * Maps tool: updated Google Places autocomplete to use PlaceAutocompleteElement (new API) with legacy Autocomplete as fallback, eliminating the deprecation console warning.
