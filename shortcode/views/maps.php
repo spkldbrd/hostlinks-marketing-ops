@@ -43,10 +43,13 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 
 	<!-- ── Controls ────────────────────────────────────────────────────── -->
 	<div class="hmo-maps-controls">
-		<div class="hmo-maps-control-group">
+		<div class="hmo-maps-control-group hmo-maps-location-wrap">
 			<label for="hmo-maps-location" class="hmo-maps-label">City, State</label>
 			<input type="text" id="hmo-maps-location" class="hmo-maps-input"
-				placeholder="e.g. Denver, CO" autocomplete="off">
+				placeholder="e.g. Denver, CO" autocomplete="off" aria-autocomplete="list"
+				aria-haspopup="listbox" aria-controls="hmo-maps-suggestions">
+			<ul id="hmo-maps-suggestions" class="hmo-maps-suggestions" role="listbox"
+				style="display:none;" aria-label="City suggestions"></ul>
 		</div>
 
 		<div class="hmo-maps-control-group hmo-maps-slider-group">
@@ -144,10 +147,6 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 		radVal.textContent = this.value;
 	});
 
-	// Enter key in location field triggers lookup
-	inputLoc.addEventListener('keydown', function(e) {
-		if (e.key === 'Enter') btnLookup.click();
-	});
 
 	// Lookup
 	btnLookup.addEventListener('click', function() {
@@ -270,7 +269,134 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 		URL.revokeObjectURL(url);
 	});
 
-	// Helpers
+	// ── Autocomplete (Nominatim typeahead) ───────────────────────────────
+	var stateAbbr = {
+		'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR',
+		'California':'CA','Colorado':'CO','Connecticut':'CT','Delaware':'DE',
+		'Florida':'FL','Georgia':'GA','Hawaii':'HI','Idaho':'ID',
+		'Illinois':'IL','Indiana':'IN','Iowa':'IA','Kansas':'KS',
+		'Kentucky':'KY','Louisiana':'LA','Maine':'ME','Maryland':'MD',
+		'Massachusetts':'MA','Michigan':'MI','Minnesota':'MN','Mississippi':'MS',
+		'Missouri':'MO','Montana':'MT','Nebraska':'NE','Nevada':'NV',
+		'New Hampshire':'NH','New Jersey':'NJ','New Mexico':'NM','New York':'NY',
+		'North Carolina':'NC','North Dakota':'ND','Ohio':'OH','Oklahoma':'OK',
+		'Oregon':'OR','Pennsylvania':'PA','Rhode Island':'RI','South Carolina':'SC',
+		'South Dakota':'SD','Tennessee':'TN','Texas':'TX','Utah':'UT',
+		'Vermont':'VT','Virginia':'VA','Washington':'WA','West Virginia':'WV',
+		'Wisconsin':'WI','Wyoming':'WY','District of Columbia':'DC'
+	};
+
+	var acList      = document.getElementById('hmo-maps-suggestions');
+	var acTimer     = null;
+	var acResults   = [];
+	var acActive    = -1;
+
+	function acShow(items) {
+		acResults = items;
+		acActive  = -1;
+		acList.innerHTML = '';
+		if (!items.length) { acHide(); return; }
+		items.forEach(function(text, i) {
+			var li = document.createElement('li');
+			li.textContent  = text;
+			li.className    = 'hmo-maps-suggestion-item';
+			li.setAttribute('role', 'option');
+			li.setAttribute('data-idx', i);
+			li.addEventListener('mousedown', function(e) {
+				e.preventDefault(); // keep focus on input
+				acSelect(i);
+			});
+			acList.appendChild(li);
+		});
+		acList.style.display = '';
+	}
+
+	function acHide() {
+		acList.style.display = 'none';
+		acList.innerHTML = '';
+		acResults = [];
+		acActive  = -1;
+	}
+
+	function acSelect(idx) {
+		if (acResults[idx]) {
+			inputLoc.value = acResults[idx];
+		}
+		acHide();
+	}
+
+	function acHighlight(idx) {
+		var items = acList.querySelectorAll('.hmo-maps-suggestion-item');
+		items.forEach(function(el, i) {
+			el.classList.toggle('hmo-maps-suggestion-item--active', i === idx);
+		});
+	}
+
+	inputLoc.addEventListener('input', function() {
+		var q = this.value.trim();
+		clearTimeout(acTimer);
+		if (q.length < 2) { acHide(); return; }
+
+		acTimer = setTimeout(function() {
+			var url = 'https://nominatim.openstreetmap.org/search' +
+				'?q=' + encodeURIComponent(q) +
+				'&format=json&limit=6&countrycodes=us&addressdetails=1';
+			fetch(url, { headers: { 'User-Agent': 'HostlinksMarketingOps/1.0' } })
+				.then(function(r) { return r.json(); })
+				.then(function(data) {
+					var seen    = {};
+					var options = [];
+					(data || []).forEach(function(item) {
+						var addr  = item.address || {};
+						var city  = addr.city || addr.town || addr.village ||
+									addr.hamlet || addr.county || item.name;
+						var state = addr.state || '';
+						var abbr  = stateAbbr[state] || state;
+						if (!city || !abbr) return;
+						var label = city + ', ' + abbr;
+						if (seen[label]) return;
+						seen[label] = true;
+						options.push(label);
+					});
+					acShow(options);
+				})
+				.catch(function() { acHide(); });
+		}, 320);
+	});
+
+	// Keyboard navigation (up/down/enter/escape)
+	inputLoc.addEventListener('keydown', function(e) {
+		var items = acList.querySelectorAll('.hmo-maps-suggestion-item');
+		if (e.key === 'Enter') {
+			if (acActive >= 0 && items.length) {
+				e.preventDefault();
+				acSelect(acActive);
+				btnLookup.click();
+			} else {
+				btnLookup.click();
+			}
+			return;
+		}
+		if (!items.length) return;
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			acActive = Math.min(acActive + 1, items.length - 1);
+			acHighlight(acActive);
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			acActive = Math.max(acActive - 1, 0);
+			acHighlight(acActive);
+		} else if (e.key === 'Escape') {
+			acHide();
+		}
+	});
+
+	// Dismiss when clicking outside
+	document.addEventListener('click', function(e) {
+		if (e.target !== inputLoc) acHide();
+	});
+
+	// ── Helpers
 	function clearResults() {
 		summary.style.display = 'none';
 		results.style.display = 'none';

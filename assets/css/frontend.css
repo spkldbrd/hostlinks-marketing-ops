@@ -3349,3 +3349,52 @@
 .wp-dark-mode-active .hmo-maps-table td { border-bottom-color: hsl(215 20% 22%); color: hsl(210 15% 85%); }
 .wp-dark-mode-active .hmo-maps-table tr:hover td { background: hsl(215 20% 16%); }
 .wp-dark-mode-active .hmo-maps-results-title { color: hsl(210 20% 88%); }
+
+/* ── Maps autocomplete suggestions ───────────────────────────────────── */
+.hmo-maps-location-wrap { position: relative; }
+.hmo-maps-suggestions {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	right: 0;
+	z-index: 999;
+	margin: 2px 0 0;
+	padding: 0;
+	list-style: none;
+	background: #fff;
+	border: 1px solid hsl(210 20% 78%);
+	border-radius: 6px;
+	box-shadow: 0 4px 16px hsl(215 25% 20% / .12);
+	max-height: 220px;
+	overflow-y: auto;
+}
+.hmo-maps-suggestion-item {
+	padding: 9px 14px;
+	font-size: 0.9rem;
+	color: hsl(215 20% 18%);
+	cursor: pointer;
+	border-bottom: 1px solid hsl(210 15% 93%);
+	transition: background .1s;
+}
+.hmo-maps-suggestion-item:last-child { border-bottom: none; }
+.hmo-maps-suggestion-item:hover,
+.hmo-maps-suggestion-item--active {
+	background: hsl(199 60% 94%);
+	color: hsl(199 70% 30%);
+}
+
+/* Dark mode */
+.wp-dark-mode-active .hmo-maps-suggestions {
+	background: hsl(215 20% 16%);
+	border-color: hsl(215 20% 30%);
+	box-shadow: 0 4px 16px hsl(215 30% 5% / .4);
+}
+.wp-dark-mode-active .hmo-maps-suggestion-item {
+	color: hsl(210 15% 88%);
+	border-bottom-color: hsl(215 20% 24%);
+}
+.wp-dark-mode-active .hmo-maps-suggestion-item:hover,
+.wp-dark-mode-active .hmo-maps-suggestion-item--active {
+	background: hsl(199 40% 18%);
+	color: hsl(199 60% 75%);
+}
