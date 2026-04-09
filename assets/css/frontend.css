@@ -56,6 +56,25 @@
 	opacity: 1;
 }
 
+/* Close-tab button ? matches header nav link appearance */
+.hmo-maps-close-btn {
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	color: #fff !important;
+	font-size: 0.9rem;
+	opacity: 0.92;
+	white-space: nowrap;
+	transition: opacity 0.15s;
+	font-family: inherit;
+	line-height: inherit;
+}
+.hmo-maps-close-btn:hover {
+	opacity: 1;
+	text-decoration: underline;
+}
+
 .hmo-header-nav__sep {
 	color: hsla(0 0% 100% / 0.45);
 	user-select: none;
@@ -3289,36 +3308,35 @@
 .hmo-maps-btn:hover  { background: hsl(199 70% 38%); }
 .hmo-maps-btn:active { background: hsl(199 70% 32%); }
 
+/* -- Right column: outer card fills full height -------------- */
+.hmo-maps-right { display: flex; flex-direction: column; }
+.hmo-maps-right-panel { flex: 1; }
+
 /* -- Right column pending (pre-lookup greyed) --------------- */
-.hmo-maps-right--pending .hmo-maps-stat-card {
-	opacity: 0.38;
-	pointer-events: none;
-}
-.hmo-maps-right--pending .hmo-maps-stat-value {
-	color: hsl(215 15% 65%);
-}
+.hmo-maps-right--pending .hmo-maps-stat-card,
 .hmo-maps-right--pending .hmo-maps-action-bar {
-	opacity: 0.38;
+	opacity: 0.35;
 	pointer-events: none;
 }
 
-/* -- Stat cards (right column) ------------------------------ */
+/* -- Nested stat cards inside right panel ------------------- */
 .hmo-maps-stat-grid {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
 	gap: 12px;
+	margin-bottom: 16px;
 }
 .hmo-maps-stat-card {
-	background: #fff;
-	border: 1px solid hsl(210 20% 86%);
+	background: hsl(210 20% 97%);
+	border: 1px solid hsl(210 20% 88%);
 	border-radius: 8px;
-	padding: 20px 16px;
+	padding: 18px 14px;
 	text-align: center;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	min-height: 110px;
+	min-height: 100px;
 }
 .hmo-maps-stat-card--soon {
 	color: hsl(215 15% 62%);
@@ -3326,7 +3344,7 @@
 	font-style: italic;
 }
 .hmo-maps-stat-label {
-	font-size: 0.72rem;
+	font-size: 0.68rem;
 	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: .07em;
@@ -3340,7 +3358,7 @@
 	line-height: 1;
 }
 .hmo-maps-stat-sub {
-	font-size: 0.72rem;
+	font-size: 0.68rem;
 	color: hsl(215 15% 55%);
 	margin-top: 4px;
 }
@@ -3352,10 +3370,10 @@
 	color: hsl(0 60% 38%);
 	padding: 10px 16px;
 	border-radius: 6px;
-	margin-bottom: 16px;
+	margin-top: 14px;
 	font-size: 0.9rem;
 }
-.hmo-maps-spinner { display: flex; align-items: center; gap: 6px; padding: 10px 0; }
+.hmo-maps-spinner { display: flex; align-items: center; gap: 6px; padding: 10px 0; margin-top: 10px; }
 .hmo-maps-spinner-dot {
 	width: 10px; height: 10px;
 	border-radius: 50%;
@@ -3366,12 +3384,13 @@
 .hmo-maps-spinner-dot:nth-child(3) { animation-delay: .4s; }
 @keyframes hmo-bounce { 0%,80%,100%{transform:scale(.6);opacity:.5} 40%{transform:scale(1);opacity:1} }
 
-/* -- Action bar (Copy + CSV rows, inside right column) ----- */
+/* -- Action bar (Copy + CSV rows) --------------------------- */
 .hmo-maps-action-bar {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	margin-top: 12px;
+	padding-top: 14px;
+	border-top: 1px solid hsl(215 15% 90%);
 }
 .hmo-maps-action-row {
 	display: flex;
@@ -3389,14 +3408,18 @@
 	flex-shrink: 0;
 }
 
-/* -- Results ------------------------------------------------ */
-.hmo-maps-results { margin-top: 4px; }
-.hmo-maps-summary-meta { font-size: 0.82rem; color: hsl(215 15% 48%); margin-bottom: 12px; }
-.hmo-maps-results-title {
-	font-size: 1rem;
-	font-weight: 700;
-	color: hsl(215 20% 22%);
-	margin: 0 0 10px;
+/* -- County Detail card ------------------------------------- */
+.hmo-maps-results { margin-top: 0; }
+.hmo-maps-results-header {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 12px;
+	margin-bottom: 14px;
+}
+.hmo-maps-summary-meta {
+	font-size: 0.82rem;
+	color: hsl(215 15% 48%);
 }
 
 /* -- Table -------------------------------------------------- */
@@ -3510,8 +3533,8 @@
 	color: hsl(210 15% 88%);
 }
 .wp-dark-mode-active .hmo-maps-stat-card {
-	background: hsl(215 20% 14%);
-	border-color: hsl(215 20% 24%);
+	background: hsl(215 20% 11%);
+	border-color: hsl(215 20% 22%);
 }
 .wp-dark-mode-active .hmo-maps-stat-value { color: hsl(210 20% 90%); }
 .wp-dark-mode-active .hmo-maps-table th { background: hsl(215 20% 14%); color: hsl(210 15% 70%); }

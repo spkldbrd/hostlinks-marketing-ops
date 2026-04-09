@@ -129,6 +129,9 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.11.1 =
+* Maps tool: replaced header nav bar with isolated close-tab UX — shows "× Close Tab" (calls window.close()) when opened as a new tab, falls back to "← Return to Hostlinks" when navigated to directly. Removes Task Management and Reports links from Maps header to keep the tool focused and users anchored to their event.
+
 = 1.11.0 =
 * Maps tool: full layout redesign — two-column layout (controls left, stats/actions right), right column always visible with greyed pending state until first lookup, stat cards (Counties + coming soon placeholder), Copy List and Download CSV action rows moved into right column below cards, Lookup button smaller and left-aligned, radius slider at 70% width, action rows right-aligned with icon-text-button order, Copy List button fixed width during text swap.
 

@@ -130,6 +130,7 @@ if ( isset( $_POST['hmo_save_maps'] ) ) {
 	update_option( 'hmo_maps_census_api_key',  sanitize_text_field( $_POST['hmo_maps_census_api_key'] ?? '' ) );
 	update_option( 'hmo_maps_google_api_key',  sanitize_text_field( $_POST['hmo_maps_google_api_key'] ?? '' ) );
 	update_option( 'hmo_maps_sync_frequency',  sanitize_key( $_POST['hmo_maps_sync_frequency'] ?? 'monthly' ) );
+	update_option( 'hmo_maps_page_heading',    sanitize_text_field( $_POST['hmo_maps_page_heading'] ?? '' ) );
 	$notice = '<div class="notice notice-success is-dismissible"><p>Maps settings saved.</p></div>';
 }
 
@@ -1839,6 +1840,7 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 	$maps_api_key        = get_option( 'hmo_maps_census_api_key', '' );
 	$maps_google_api_key = get_option( 'hmo_maps_google_api_key', '' );
 	$maps_frequency      = get_option( 'hmo_maps_sync_frequency', 'monthly' );
+	$maps_page_heading   = get_option( 'hmo_maps_page_heading', '' );
 	$maps_init_date = get_option( 'hmo_maps_centroids_initialized', '' );
 	$maps_sync_date = get_option( 'hmo_maps_last_sync', '' );
 	$centroid_count = HMO_Maps_DB::centroids_count();
@@ -1877,6 +1879,15 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 <form method="post" action="">
 	<?php wp_nonce_field( 'hmo_save_maps' ); ?>
 	<table class="form-table" role="presentation">
+		<tr>
+			<th><label for="hmo_maps_page_heading">Page Heading</label></th>
+			<td>
+				<input type="text" id="hmo_maps_page_heading" name="hmo_maps_page_heading"
+					value="<?php echo esc_attr( $maps_page_heading ); ?>" class="regular-text"
+					placeholder="Marketing Maps">
+				<p class="description">Text displayed in the blue header bar on the Maps tool page. Defaults to <strong>Marketing Maps</strong> if left blank.</p>
+			</td>
+		</tr>
 		<tr>
 			<th><label for="hmo_maps_google_api_key">Google Maps API Key</label></th>
 			<td>

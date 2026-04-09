@@ -8,6 +8,30 @@
 	var nonce     = hmoMapsConfig.nonce;
 	var useGoogle = hmoMapsConfig.hasGoogleKey;
 
+	// ── Close-tab logic ───────────────────────────────────────────────────
+	// Show "× Close Tab" instead of "← Return to Hostlinks" when this tab
+	// has no back-history (i.e. it was opened fresh from another tab).
+	(function() {
+		var closeBtn  = document.getElementById('hmo-maps-close-btn');
+		var closeLink = document.getElementById('hmo-maps-close-link');
+		if (!closeBtn || !closeLink) return;
+
+		if (window.history.length <= 1) {
+			closeLink.style.display = 'none';
+			closeBtn.style.display  = '';
+		}
+
+		closeBtn.addEventListener('click', function() {
+			window.close();
+			// If window.close() is blocked (tab was not script-opened),
+			// fall back to showing the return link after a short delay.
+			setTimeout(function() {
+				closeBtn.style.display  = 'none';
+				closeLink.style.display = '';
+			}, 400);
+		});
+	}());
+
 	// ── DOM refs ─────────────────────────────────────────────────────────
 	var btnLookup  = document.getElementById('hmo-maps-lookup-btn');
 	var btnExport  = document.getElementById('hmo-maps-export-btn');
