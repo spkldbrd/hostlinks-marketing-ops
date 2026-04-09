@@ -3216,7 +3216,7 @@
 .hmo-maps-main {
 	display: flex;
 	gap: 24px;
-	align-items: flex-start;
+	align-items: stretch;
 	margin-bottom: 20px;
 }
 .hmo-maps-left {
@@ -3225,6 +3225,9 @@
 	display: flex;
 	flex-direction: column;
 	gap: 14px;
+}
+.hmo-maps-left .hmo-detail-panel {
+	flex: 1;
 }
 .hmo-maps-right {
 	flex: 1 1 50%;

@@ -129,6 +129,9 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.11.3 =
+* Maps tool: left and right cards now match height — align-items changed to stretch and left panel set to flex: 1.
+
 = 1.11.2 =
 * Maps tool: event context awareness — when Maps is opened from an event's Tools card, the event name and ID are passed as URL params, displayed as a pill badge in the Maps header bar, and made available in hmoMapsConfig.eventId / eventName for future features.
 
