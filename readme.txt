@@ -129,6 +129,9 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.10.8 =
+* Maps tool: reverted PlaceAutocompleteElement attempt — it is a web component that cannot wrap an existing input, so it silently broke autocomplete. Back to legacy Autocomplete class which remains fully functional.
+
 = 1.10.7 =
 * Maps tool: county name suffix (County, Parish, Borough, etc.) is now stripped in the results table, CSV export, and Copy List — all three show "Denver, CO" format consistently.
 

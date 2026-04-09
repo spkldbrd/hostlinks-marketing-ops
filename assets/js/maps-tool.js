@@ -206,45 +206,20 @@
 	// ════════════════════════════════════════════════════════════════════
 
 	function initGoogleAutocomplete() {
-		// Use PlaceAutocompleteElement if available (new API),
-		// otherwise fall back to the legacy Autocomplete class.
-		if (
-			google.maps.places.PlaceAutocompleteElement &&
-			typeof google.maps.places.PlaceAutocompleteElement === 'function'
-		) {
-			// New API — inject a <gmp-placeautocomplete> element that wraps our input
-			var pac = new google.maps.places.PlaceAutocompleteElement({
-				inputElement: inputLoc,
-				componentRestrictions: { country: 'us' },
-				types: ['(cities)']
-			});
-			if (acList) acList.style.display = 'none';
+		var ac = new google.maps.places.Autocomplete(inputLoc, {
+			types:                 ['(cities)'],
+			componentRestrictions: { country: 'us' },
+			fields:                ['geometry', 'name', 'address_components']
+		});
+		if (acList) acList.style.display = 'none';
 
-			pac.addEventListener('gmp-placeselect', function(e) {
-				var place = e.place;
-				place.fetchFields({ fields: ['location'] }).then(function() {
-					pinnedLat = place.location.lat();
-					pinnedLng = place.location.lng();
-					runLookup();
-				});
-			});
-		} else {
-			// Legacy Autocomplete (still functional, just deprecated for new accounts)
-			var ac = new google.maps.places.Autocomplete(inputLoc, {
-				types:                ['(cities)'],
-				componentRestrictions: { country: 'us' },
-				fields:               ['geometry', 'name', 'address_components']
-			});
-			if (acList) acList.style.display = 'none';
-
-			ac.addListener('place_changed', function() {
-				var place = ac.getPlace();
-				if (!place.geometry || !place.geometry.location) { return; }
-				pinnedLat = place.geometry.location.lat();
-				pinnedLng = place.geometry.location.lng();
-				runLookup();
-			});
-		}
+		ac.addListener('place_changed', function() {
+			var place = ac.getPlace();
+			if (!place.geometry || !place.geometry.location) { return; }
+			pinnedLat = place.geometry.location.lat();
+			pinnedLng = place.geometry.location.lng();
+			runLookup();
+		});
 
 		inputLoc.addEventListener('input', function() {
 			pinnedLat = null;
