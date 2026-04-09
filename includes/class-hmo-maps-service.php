@@ -251,32 +251,38 @@ class HMO_Maps_Service {
 			wp_send_json_error( 'Please enter a city and state.' );
 		}
 
-		// 1. Geocode via Census Geocoder (no API key required).
+		// 1. Geocode via Nominatim (OpenStreetMap) — free, no key required,
+		//    works correctly for city+state inputs like "Denver, CO".
 		$geo_url = add_query_arg(
 			array(
-				'address'   => rawurlencode( $location ),
-				'benchmark' => 'Public_AR_Current',
-				'format'    => 'json',
+				'q'            => rawurlencode( $location ),
+				'format'       => 'json',
+				'limit'        => 1,
+				'countrycodes' => 'us',
 			),
-			'https://geocoding.geo.census.gov/geocoder/locations/onelineaddress'
+			'https://nominatim.openstreetmap.org/search'
 		);
 
-		$response = wp_remote_get( $geo_url, array( 'timeout' => 15 ) );
+		$response = wp_remote_get( $geo_url, array(
+			'timeout' => 15,
+			'headers' => array(
+				// Nominatim policy requires a descriptive User-Agent.
+				'User-Agent' => 'HostlinksMarketingOps/1.0 (WordPress plugin)',
+			),
+		) );
 
 		if ( is_wp_error( $response ) ) {
 			wp_send_json_error( 'Geocoder request failed: ' . $response->get_error_message() );
 		}
 
-		$body = json_decode( wp_remote_retrieve_body( $response ), true );
-		$matches = $body['result']['addressMatches'] ?? array();
+		$results = json_decode( wp_remote_retrieve_body( $response ), true );
 
-		if ( empty( $matches ) ) {
-			wp_send_json_error( 'Location not found. Try a more specific city and state (e.g. "Denver, CO").' );
+		if ( empty( $results ) || ! isset( $results[0]['lat'] ) ) {
+			wp_send_json_error( 'Location not found. Try "City, State" format — e.g. "Denver, CO" or "Chicago, IL".' );
 		}
 
-		$coords = $matches[0]['coordinates'] ?? array();
-		$center_lat = (float) ( $coords['y'] ?? 0 );
-		$center_lng = (float) ( $coords['x'] ?? 0 );
+		$center_lat = (float) $results[0]['lat'];
+		$center_lng = (float) $results[0]['lon'];
 
 		if ( ! $center_lat || ! $center_lng ) {
 			wp_send_json_error( 'Could not extract coordinates from geocoder response.' );

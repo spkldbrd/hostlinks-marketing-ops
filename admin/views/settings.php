@@ -1868,7 +1868,7 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 <p>
 	Configure the radius-lookup tool and load the geographic and demographic data into the database.
 	The tool uses the bundled Gazetteer and Census PEP data files — no live API calls are needed for initialization or stats.
-	Geocoding (converting a city+state to coordinates) uses the free Census Geocoder and requires no API key.
+	Geocoding (converting a city+state to coordinates) uses the free Nominatim (OpenStreetMap) service — no API key required.
 </p>
 
 <form method="post" action="">

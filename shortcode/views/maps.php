@@ -5,7 +5,7 @@
  * Variables available in scope (passed from HMO_Shortcodes::render_maps_tool):
  *   $access  — HMO_Access_Service instance
  *   $nonce   — wp_create_nonce('hmo_maps_lookup')
- *   $ajax_url — admin_url('admin-ajax.php')
+ *   $ajax_url  — admin_url('admin-ajax.php')
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
