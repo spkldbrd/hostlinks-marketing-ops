@@ -129,6 +129,9 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.10.4 =
+* Maps tool: added display_maps_tool to SHORTCODES registry so frontend.css (blue header bar and all HMO styles) is properly enqueued on the Maps page.
+
 = 1.10.3 =
 * Maps tool: removed county map (deferred for future release).
 * Maps tool: fixed slider flicker — radius value is now a fixed-width flex sibling of the label, not inline text, so digit count changes (75→100) never cause a layout reflow.

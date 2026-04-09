@@ -25,6 +25,7 @@ class HMO_Access_Service {
 		'hmo_event_detail'       => 'Event Detail',
 		'hmo_task_editor'        => 'Task Template Editor',
 		'hmo_event_report'       => 'Event Journey Report',
+		'display_maps_tool'      => 'Marketing Maps',
 	);
 
 	const MODES = array( 'public', 'logged_in', 'approved_viewers' );
