@@ -20,7 +20,6 @@
 	var results   = document.getElementById('hmo-maps-results');
 	var tbody     = document.getElementById('hmo-maps-tbody');
 	var acList    = document.getElementById('hmo-maps-suggestions');
-	var mapHint   = document.getElementById('hmo-maps-map-hint');
 
 	if (!btnLookup || !inputLoc) { return; }
 
@@ -73,10 +72,6 @@
 	// ── Results rendering ─────────────────────────────────────────────────
 	function renderResults(data) {
 		currentData = data.counties || [];
-
-		// Highlight map counties by FIPS
-		var fipsList = currentData.map(function(c) { return c.fips; });
-		highlightCounties(fipsList);
 
 		document.getElementById('hmo-maps-total-pop').textContent    = formatNum(data.total_pop);
 		document.getElementById('hmo-maps-total-netmig').textContent = formatNetmig(data.total_netmig);
@@ -143,78 +138,6 @@
 		document.body.appendChild(a); a.click();
 		document.body.removeChild(a); URL.revokeObjectURL(url);
 	});
-
-	// ════════════════════════════════════════════════════════════════════
-	// US County Map  (D3 v7 + topojson + us-atlas)
-	// ════════════════════════════════════════════════════════════════════
-
-	var _mapReady      = false;  // true once the base map is drawn
-	var _pendingFips   = null;   // FIPS list waiting for map to finish loading
-
-	function initMap() {
-		var svg = d3.select('#hmo-maps-svg');
-		if (!svg.node()) return;
-
-		d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-albers-10m.json')
-		.then(function(us) {
-			var path = d3.geoPath();
-
-			// County fills
-			svg.append('g')
-				.attr('class', 'hmo-map-counties')
-				.selectAll('path')
-				.data(topojson.feature(us, us.objects.counties).features)
-				.join('path')
-				.attr('class', 'hmo-map-county')
-				.attr('d', path);
-
-			// State borders on top
-			svg.append('path')
-				.datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
-				.attr('class', 'hmo-map-state-border')
-				.attr('d', path);
-
-			_mapReady = true;
-
-			// If a lookup finished before the map loaded, apply highlights now.
-			if (_pendingFips !== null) {
-				_applyHighlight(_pendingFips);
-				_pendingFips = null;
-			}
-		})
-		.catch(function() {
-			// Map failed to load — silently hide the container.
-			var wrap = document.getElementById('hmo-maps-map-wrap');
-			if (wrap) wrap.style.display = 'none';
-		});
-	}
-
-	function highlightCounties(fipsList) {
-		if (!_mapReady) {
-			// Store until map finishes loading.
-			_pendingFips = fipsList;
-			return;
-		}
-		_applyHighlight(fipsList);
-	}
-
-	function _applyHighlight(fipsList) {
-		// Our DB FIPS is zero-padded string ("08031"); us-atlas d.id is an integer (8031).
-		var fipsSet = {};
-		fipsList.forEach(function(f) { fipsSet[parseInt(f, 10)] = true; });
-
-		d3.selectAll('.hmo-map-county').attr('class', function(d) {
-			return fipsSet[d.id] ? 'hmo-map-county hmo-map-county--active' : 'hmo-map-county';
-		});
-
-		// Hide the "enter a location" hint once we have results.
-		if (mapHint) mapHint.style.display = 'none';
-	}
-
-	// Start loading the map immediately so it's ready before the first lookup.
-	if (typeof d3 !== 'undefined' && typeof topojson !== 'undefined') {
-		initMap();
-	}
 
 	// ════════════════════════════════════════════════════════════════════
 	// Autocomplete — Google Places (preferred) or Nominatim (fallback)

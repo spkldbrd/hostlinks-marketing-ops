@@ -3215,14 +3215,24 @@
 }
 .hmo-maps-input:focus { outline: none; border-color: hsl(199 70% 50%); box-shadow: 0 0 0 3px hsl(199 70% 50% / .15); }
 
-/* Radius row — fixed-width number prevents layout shift (slider flicker fix) */
+/* Radius row — number is a flex sibling of the label, NOT inline inside it.
+   This prevents any layout reflow of the slider when digit count changes. */
 .hmo-maps-radius-wrap { max-width: 480px; }
+.hmo-maps-radius-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 5px;
+}
+.hmo-maps-radius-header .hmo-maps-field-label { margin-bottom: 0; }
 .hmo-maps-radius-num {
 	display: inline-block;
-	min-width: 3ch;
+	width: 40px;           /* wide enough for "500" — never changes → no reflow */
+	text-align: right;
 	font-variant-numeric: tabular-nums;
 	color: hsl(10 75% 48%);
 	font-weight: 700;
+	flex-shrink: 0;
 }
 .hmo-maps-slider {
 	-webkit-appearance: none;
@@ -3234,8 +3244,8 @@
 	background: hsl(210 20% 78%);
 	outline: none;
 	cursor: pointer;
-	margin-top: 6px;
-	/* No transition — prevents thumb flicker on drag */
+	/* No margin-top — radius-header provides spacing via margin-bottom */
+	/* No transition — avoids thumb flicker on drag */
 }
 .hmo-maps-slider::-webkit-slider-thumb {
 	-webkit-appearance: none;
@@ -3266,49 +3276,6 @@
 }
 .hmo-maps-btn:hover  { background: hsl(199 70% 38%); }
 .hmo-maps-btn:active { background: hsl(199 70% 32%); }
-
-/* ── US County Map ────────────────────────────────────────── */
-.hmo-maps-map-wrap {
-	position: relative;
-	margin-bottom: 24px;
-	border: 1px solid hsl(210 15% 86%);
-	border-radius: 6px;
-	overflow: hidden;
-	background: #f5f5f5;
-}
-#hmo-maps-svg {
-	display: block;
-	width: 100%;
-	height: auto;
-}
-/* County paths */
-.hmo-map-county {
-	fill: #d9d9d9;
-	stroke: #bbb;
-	stroke-width: 0.3px;
-	transition: fill .25s;
-}
-.hmo-map-county--active {
-	fill: #c0392b;
-	stroke: #922b21;
-	stroke-width: 0.5px;
-}
-/* State borders overlay */
-.hmo-map-state-border {
-	fill: none;
-	stroke: #666;
-	stroke-width: 0.8px;
-}
-.hmo-maps-map-hint {
-	position: absolute;
-	bottom: 10px;
-	left: 0; right: 0;
-	text-align: center;
-	font-size: 0.8rem;
-	color: hsl(215 15% 52%);
-	pointer-events: none;
-	margin: 0;
-}
 
 /* ── Error & Spinner ──────────────────────────────────────── */
 .hmo-maps-error {
@@ -3436,13 +3403,6 @@
 	color: hsl(210 15% 90%);
 }
 .wp-dark-mode-active .hmo-maps-slider { background: hsl(215 20% 28%); }
-.wp-dark-mode-active .hmo-maps-map-wrap {
-	background: hsl(215 20% 12%);
-	border-color: hsl(215 20% 24%);
-}
-.wp-dark-mode-active .hmo-map-county        { fill: #3a3a3a; stroke: #555; }
-.wp-dark-mode-active .hmo-map-county--active { fill: #c0392b; stroke: #922b21; }
-.wp-dark-mode-active .hmo-map-state-border   { stroke: #888; }
 .wp-dark-mode-active .hmo-maps-summary-card {
 	background: hsl(215 20% 14%);
 	border-color: hsl(215 20% 24%);

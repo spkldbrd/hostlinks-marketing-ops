@@ -129,6 +129,10 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.10.3 =
+* Maps tool: removed county map (deferred for future release).
+* Maps tool: fixed slider flicker — radius value is now a fixed-width flex sibling of the label, not inline text, so digit count changes (75→100) never cause a layout reflow.
+
 = 1.10.2 =
 * Maps tool: redesigned layout to vertical stack (Big Radius style) — location input full width, radius slider below labeled value.
 * Maps tool: fixed slider flicker caused by layout reflow when value width changes; radius number now uses tabular-nums with fixed min-width.

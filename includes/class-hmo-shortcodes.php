@@ -484,11 +484,7 @@ class HMO_Shortcodes {
 			);
 		}
 
-		// D3 v7 + topojson for the US county map.
-		wp_enqueue_script( 'hmo-d3',       'https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js',                          array(),              '7',   true );
-		wp_enqueue_script( 'hmo-topojson', 'https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js', array( 'hmo-d3' ),    '3',   true );
-
-		$deps = array( 'hmo-d3', 'hmo-topojson' );
+		$deps = array();
 		if ( $google_api_key ) { $deps[] = 'google-places-api'; }
 
 		wp_register_script(

@@ -53,10 +53,10 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 		</div>
 
 		<div class="hmo-maps-radius-wrap">
-			<label for="hmo-maps-radius" class="hmo-maps-field-label">
-				Set radius size in miles:
+			<div class="hmo-maps-radius-header">
+				<label for="hmo-maps-radius" class="hmo-maps-field-label">Set radius size in miles:</label>
 				<strong id="hmo-maps-radius-val" class="hmo-maps-radius-num">100</strong>
-			</label>
+			</div>
 			<input type="range" id="hmo-maps-radius" class="hmo-maps-slider"
 				min="25" max="500" step="25" value="100">
 		</div>
@@ -72,12 +72,6 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 		<span class="hmo-maps-spinner-dot"></span>
 		<span class="hmo-maps-spinner-dot"></span>
 		<span class="hmo-maps-spinner-dot"></span>
-	</div>
-
-	<!-- ── US County Map ────────────────────────────────────────────── -->
-	<div class="hmo-maps-map-wrap" id="hmo-maps-map-wrap">
-		<svg id="hmo-maps-svg" viewBox="0 0 960 600" aria-label="US county map"></svg>
-		<p id="hmo-maps-map-hint" class="hmo-maps-map-hint">Enter a location above to highlight counties within your radius.</p>
 	</div>
 
 	<!-- ── Summary Dashboard ───────────────────────────────────────── -->
