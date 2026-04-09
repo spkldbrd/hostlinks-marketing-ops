@@ -123,6 +123,14 @@ if ( isset( $_POST['hmo_save_tools'] ) ) {
 	$notice = '<div class="notice notice-success is-dismissible"><p>Tools links saved.</p></div>';
 }
 
+// Maps settings save
+if ( isset( $_POST['hmo_save_maps'] ) ) {
+	check_admin_referer( 'hmo_save_maps' );
+	update_option( 'hmo_maps_census_api_key',  sanitize_text_field( $_POST['hmo_maps_census_api_key'] ?? '' ) );
+	update_option( 'hmo_maps_sync_frequency',  sanitize_key( $_POST['hmo_maps_sync_frequency'] ?? 'monthly' ) );
+	$notice = '<div class="notice notice-success is-dismissible"><p>Maps settings saved.</p></div>';
+}
+
 // Page template sections
 if ( isset( $_POST['hmo_save_page_template'] ) ) {
 	check_admin_referer( 'hmo_page_template', 'hmo_page_template_nonce' );
@@ -212,6 +220,7 @@ $tabs = array(
 	'page-links'    => 'Page Links',
 	'user-access'   => 'User Access',
 	'tools'         => 'Tools Links',
+	'maps'          => 'Maps',
 	'page-sync'     => 'GWU Page Sync',
 	'page-template' => 'Page Template',
 );
@@ -1819,6 +1828,152 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 
 <h2>Page Template Editor</h2>
 <?php include __DIR__ . '/page-template-tab.php'; ?>
+
+<!-- ======================================================================
+     TAB: MAPS
+     ====================================================================== -->
+<?php elseif ( $active_tab === 'maps' ) :
+	$maps_api_key   = get_option( 'hmo_maps_census_api_key', '' );
+	$maps_frequency = get_option( 'hmo_maps_sync_frequency', 'monthly' );
+	$maps_init_date = get_option( 'hmo_maps_centroids_initialized', '' );
+	$maps_sync_date = get_option( 'hmo_maps_last_sync', '' );
+	$centroid_count = HMO_Maps_DB::centroids_count();
+	$stats_count    = HMO_Maps_DB::stats_count();
+?>
+
+<h2 style="margin-top:0;">Maps Tool Settings</h2>
+<p>
+	Configure the radius-lookup tool and load the geographic and demographic data into the database.
+	The tool uses the bundled Gazetteer and Census PEP data files — no live API calls are needed for initialization or stats.
+	Geocoding (converting a city+state to coordinates) uses the free Census Geocoder and requires no API key.
+</p>
+
+<form method="post" action="">
+	<?php wp_nonce_field( 'hmo_save_maps' ); ?>
+	<table class="form-table" role="presentation">
+		<tr>
+			<th><label for="hmo_maps_census_api_key">Census API Key</label></th>
+			<td>
+				<input type="text" id="hmo_maps_census_api_key" name="hmo_maps_census_api_key"
+					value="<?php echo esc_attr( $maps_api_key ); ?>" class="regular-text">
+				<p class="description">Optional. Reserved for future use with live Census Data API endpoints.</p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="hmo_maps_sync_frequency">Sync Frequency</label></th>
+			<td>
+				<select id="hmo_maps_sync_frequency" name="hmo_maps_sync_frequency">
+					<option value="monthly"   <?php selected( $maps_frequency, 'monthly' ); ?>>Monthly</option>
+					<option value="quarterly" <?php selected( $maps_frequency, 'quarterly' ); ?>>Quarterly</option>
+					<option value="annually"  <?php selected( $maps_frequency, 'annually' ); ?>>Annually</option>
+				</select>
+				<p class="description">How often stats should be refreshed. Currently informational only.</p>
+			</td>
+		</tr>
+	</table>
+	<?php submit_button( 'Save Maps Settings', 'primary', 'hmo_save_maps' ); ?>
+</form>
+
+<hr style="margin:28px 0;">
+
+<h2>Data Status</h2>
+<table class="widefat" style="max-width:580px;margin-bottom:20px;">
+	<tbody>
+		<tr>
+			<th style="width:220px;">County Centroids</th>
+			<td>
+				<?php if ( $centroid_count > 0 ) : ?>
+					<span style="color:#007017;font-weight:600;">&#10003; <?php echo number_format( $centroid_count ); ?> counties loaded</span>
+					<?php if ( $maps_init_date ) : ?>
+					<br><small style="color:#888;">Last initialized: <?php echo esc_html( $maps_init_date ); ?></small>
+					<?php endif; ?>
+				<?php else : ?>
+					<span style="color:#d63638;font-weight:600;">&#10007; Not initialized</span>
+				<?php endif; ?>
+			</td>
+		</tr>
+		<tr>
+			<th>Population Stats</th>
+			<td>
+				<?php if ( $stats_count > 0 ) : ?>
+					<span style="color:#007017;font-weight:600;">&#10003; <?php echo number_format( $stats_count ); ?> counties synced</span>
+					<?php if ( $maps_sync_date ) : ?>
+					<br><small style="color:#888;">Last synced: <?php echo esc_html( $maps_sync_date ); ?></small>
+					<?php endif; ?>
+				<?php else : ?>
+					<span style="color:#d63638;font-weight:600;">&#10007; Not synced</span>
+				<?php endif; ?>
+			</td>
+		</tr>
+	</tbody>
+</table>
+
+<p>
+	<button type="button" class="button button-secondary" id="hmo-maps-init-btn">
+		&#9654; Initialize Centroids
+	</button>
+	<span id="hmo-maps-init-status" style="margin-left:12px;font-size:13px;"></span>
+</p>
+<p style="margin-top:8px;">
+	<button type="button" class="button button-secondary" id="hmo-maps-sync-btn">
+		&#9654; Sync Stats Now
+	</button>
+	<span id="hmo-maps-sync-status" style="margin-left:12px;font-size:13px;"></span>
+</p>
+
+<p class="description" style="margin-top:12px;">
+	<strong>Initialize Centroids</strong> — imports county geographic centers (~3,200 rows) from the bundled Gazetteer file. Run once; safe to re-run to refresh.<br>
+	<strong>Sync Stats</strong> — imports 2025 population and net migration data from the bundled Census PEP file. Re-run whenever you update the data file.
+</p>
+
+<script>
+(function() {
+	var ajaxUrl = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+	var initNonce = <?php echo wp_json_encode( wp_create_nonce( 'hmo_maps_init_centroids' ) ); ?>;
+	var syncNonce = <?php echo wp_json_encode( wp_create_nonce( 'hmo_maps_sync_stats' ) ); ?>;
+
+	function runAction(btn, statusEl, action, nonce, label) {
+		btn.disabled = true;
+		btn.textContent = '⏳ Running…';
+		statusEl.style.color = '#888';
+		statusEl.textContent = 'Processing — this may take a moment…';
+
+		var fd = new FormData();
+		fd.append('action', action);
+		fd.append('_ajax_nonce', nonce);
+
+		fetch(ajaxUrl, { method: 'POST', body: fd })
+			.then(function(r) { return r.json(); })
+			.then(function(res) {
+				btn.disabled = false;
+				btn.textContent = '✓ ' + label;
+				if (res.success) {
+					statusEl.style.color = '#007017';
+					statusEl.textContent = 'Done! ' + res.data.rows.toLocaleString() + ' rows processed.';
+				} else {
+					statusEl.style.color = '#d63638';
+					statusEl.textContent = 'Error: ' + (res.data || 'Unknown error.');
+				}
+			})
+			.catch(function() {
+				btn.disabled = false;
+				btn.textContent = '▶ ' + label;
+				statusEl.style.color = '#d63638';
+				statusEl.textContent = 'Request failed. Please try again.';
+			});
+	}
+
+	document.getElementById('hmo-maps-init-btn').addEventListener('click', function() {
+		runAction(this, document.getElementById('hmo-maps-init-status'),
+			'hmo_maps_init_centroids', initNonce, 'Initialize Centroids');
+	});
+
+	document.getElementById('hmo-maps-sync-btn').addEventListener('click', function() {
+		runAction(this, document.getElementById('hmo-maps-sync-status'),
+			'hmo_maps_sync_stats', syncNonce, 'Sync Stats Now');
+	});
+})();
+</script>
 
 <?php endif; ?>
 </div>

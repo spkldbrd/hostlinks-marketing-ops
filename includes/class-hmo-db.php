@@ -136,6 +136,9 @@ class HMO_DB {
 			KEY activity_type (activity_type)
 		) $charset_collate;";
 		dbDelta( $sql );
+
+		// ── Maps tool tables ──────────────────────────────────────────────────
+		HMO_Maps_DB::create_tables();
 	}
 
 	// =========================================================================

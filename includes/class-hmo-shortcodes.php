@@ -47,6 +47,7 @@ class HMO_Shortcodes {
 		add_shortcode( 'hmo_event_detail',       array( $this, 'render_event_detail' ) );
 		add_shortcode( 'hmo_task_editor',        array( $this, 'render_task_editor' ) );
 		add_shortcode( 'hmo_event_report',       array( $this, 'render_event_report' ) );
+		add_shortcode( 'display_maps_tool',      array( $this, 'render_maps_tool' ) );
 	}
 
 	// -------------------------------------------------------------------------
@@ -459,5 +460,15 @@ class HMO_Shortcodes {
 		}
 
 		return array( $rows, $pagination );
+	}
+
+	// ── Maps Tool shortcode ───────────────────────────────────────────────────
+
+	public function render_maps_tool(): string {
+		ob_start();
+		$ajax_url = admin_url( 'admin-ajax.php' );
+		$nonce    = wp_create_nonce( 'hmo_maps_lookup' );
+		include HMO_PLUGIN_DIR . 'shortcode/views/maps.php';
+		return ob_get_clean();
 	}
 }

@@ -3,7 +3,7 @@
  * Plugin Name: Hostlinks Marketing Ops
  * Plugin URI:  https://digitalsolution.com
  * Description: Companion plugin for Hostlinks that adds marketer dashboards, per-event checklist workflow, countdowns, and marketer-only access to assigned events.
- * Version:     1.9.8
+ * Version:     1.10.0
  * Author:      Digital Solution
  * Author URI:  https://digitalsolution.com
  * License:     GPL2
@@ -14,13 +14,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'HMO_VERSION',    '1.9.8' );
+define( 'HMO_VERSION',    '1.10.0' );
 define( 'HMO_DB_VERSION', '1.3.5' );
 define( 'HMO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'HMO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'HMO_PLUGIN_FILE', __FILE__ );
 
 require_once HMO_PLUGIN_DIR . 'includes/class-hmo-db.php';
+require_once HMO_PLUGIN_DIR . 'includes/class-hmo-maps-db.php';
+require_once HMO_PLUGIN_DIR . 'includes/class-hmo-maps-service.php';
 require_once HMO_PLUGIN_DIR . 'includes/class-hmo-hostlinks-bridge.php';
 require_once HMO_PLUGIN_DIR . 'includes/class-hmo-page-urls.php';
 require_once HMO_PLUGIN_DIR . 'includes/class-hmo-checklist-templates.php';
