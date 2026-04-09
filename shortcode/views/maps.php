@@ -13,7 +13,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Access is checked by the shortcode renderer before this view is included.
+
+$_maps_task_url   = HMO_Page_URLs::get_task_editor();
+$_maps_report_url = HMO_Page_URLs::get_event_report();
+$_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::current_user_is_marketing_admin();
 ?>
+
+<div class="hostlinks-page hmo-frontend hmo-maps-page">
+
+<!-- Blue header bar — same as Dashboard / My Classes -->
+<div class="hmo-dashboard-header">
+	<span class="hmo-dashboard-header__title">Marketing Maps</span>
+	<nav class="hmo-header-nav">
+		<a href="<?php echo esc_url( Hostlinks_Page_URLs::get_upcoming() ); ?>" class="hmo-header-nav__link">
+			&larr; Return to Hostlinks
+		</a>
+		<?php if ( $_maps_task_url && $_maps_is_mgr ) : ?>
+		<span class="hmo-header-nav__sep" aria-hidden="true">|</span>
+		<a href="<?php echo esc_url( $_maps_task_url ); ?>" class="hmo-header-nav__link">Task Management</a>
+		<?php endif; ?>
+		<?php if ( $_maps_report_url && $_maps_is_mgr ) : ?>
+		<span class="hmo-header-nav__sep" aria-hidden="true">|</span>
+		<a href="<?php echo esc_url( $_maps_report_url ); ?>" class="hmo-header-nav__link">Reports</a>
+		<?php endif; ?>
+	</nav>
+</div>
 
 <div class="hmo-maps-wrap" id="hmo-maps-wrap">
 
@@ -278,3 +302,5 @@ if ( ! defined( 'ABSPATH' ) ) {
 	}
 })();
 </script>
+
+</div><!-- .hmo-maps-page -->
