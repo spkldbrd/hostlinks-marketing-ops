@@ -1,18 +1,14 @@
 /**
  * Marketing Maps tool — front-end logic.
- * Data injected via wp_localize_script as `hmoMapsConfig`.
- *
- * Autocomplete strategy:
- *   - If hmoMapsConfig.hasGoogleKey is true AND the google.maps.places library
- *     has loaded, use Google Places Autocomplete (best results).
- *   - Otherwise fall back to Nominatim (OpenStreetMap) typeahead.
+ * Injected data: hmoMapsConfig  (ajaxUrl, nonce, hasGoogleKey)
+ * Dependencies:  D3 v7, topojson-client (enqueued by render_maps_tool)
  */
 (function() {
-	var ajaxUrl     = hmoMapsConfig.ajaxUrl;
-	var nonce       = hmoMapsConfig.nonce;
-	var useGoogle   = hmoMapsConfig.hasGoogleKey;
+	var ajaxUrl   = hmoMapsConfig.ajaxUrl;
+	var nonce     = hmoMapsConfig.nonce;
+	var useGoogle = hmoMapsConfig.hasGoogleKey;
 
-	// ── DOM refs ────────────────────────────────────────────────────────
+	// ── DOM refs ─────────────────────────────────────────────────────────
 	var btnLookup = document.getElementById('hmo-maps-lookup-btn');
 	var btnExport = document.getElementById('hmo-maps-export-btn');
 	var inputLoc  = document.getElementById('hmo-maps-location');
@@ -24,25 +20,24 @@
 	var results   = document.getElementById('hmo-maps-results');
 	var tbody     = document.getElementById('hmo-maps-tbody');
 	var acList    = document.getElementById('hmo-maps-suggestions');
+	var mapHint   = document.getElementById('hmo-maps-map-hint');
 
-	if (!btnLookup || !inputLoc || !acList) { return; }
+	if (!btnLookup || !inputLoc) { return; }
 
-	// ── State ───────────────────────────────────────────────────────────
+	// ── State ─────────────────────────────────────────────────────────────
 	var currentData = [];
 	var sortCol     = 'distance_miles';
 	var sortDir     = 1;
+	var pinnedLat   = null;
+	var pinnedLng   = null;
 
-	// Geocoords captured from autocomplete selection.
-	// When set, the server skips Nominatim and uses these directly.
-	var pinnedLat = null;
-	var pinnedLng = null;
-
-	// ── Radius slider ───────────────────────────────────────────────────
+	// ── Radius slider ─────────────────────────────────────────────────────
+	// Update only the number span — no surrounding DOM changes → no flicker.
 	sliderRad.addEventListener('input', function() {
 		radVal.textContent = this.value;
 	});
 
-	// ── Lookup ──────────────────────────────────────────────────────────
+	// ── Lookup ────────────────────────────────────────────────────────────
 	function runLookup() {
 		var location = inputLoc.value.trim();
 		if (!location) { showError('Please enter a city and state.'); return; }
@@ -55,9 +50,6 @@
 		fd.append('nonce',    nonce);
 		fd.append('location', location);
 		fd.append('radius',   sliderRad.value);
-
-		// If we have pinned coords from autocomplete, send them so the
-		// server can skip its own Nominatim round-trip entirely.
 		if (pinnedLat !== null && pinnedLng !== null) {
 			fd.append('lat', pinnedLat);
 			fd.append('lng', pinnedLng);
@@ -78,9 +70,14 @@
 
 	btnLookup.addEventListener('click', runLookup);
 
-	// ── Results rendering ───────────────────────────────────────────────
+	// ── Results rendering ─────────────────────────────────────────────────
 	function renderResults(data) {
 		currentData = data.counties || [];
+
+		// Highlight map counties by FIPS
+		var fipsList = currentData.map(function(c) { return c.fips; });
+		highlightCounties(fipsList);
+
 		document.getElementById('hmo-maps-total-pop').textContent    = formatNum(data.total_pop);
 		document.getElementById('hmo-maps-total-netmig').textContent = formatNetmig(data.total_netmig);
 		document.getElementById('hmo-maps-county-count').textContent = data.count.toLocaleString();
@@ -111,7 +108,7 @@
 		}).join('');
 	}
 
-	// ── Column sorting ──────────────────────────────────────────────────
+	// ── Column sorting ────────────────────────────────────────────────────
 	document.getElementById('hmo-maps-table').addEventListener('click', function(e) {
 		var th = e.target.closest('th[data-col]');
 		if (!th || !currentData.length) return;
@@ -125,7 +122,7 @@
 		renderTable();
 	});
 
-	// ── CSV Export ──────────────────────────────────────────────────────
+	// ── CSV Export ────────────────────────────────────────────────────────
 	btnExport.addEventListener('click', function() {
 		if (!currentData.length) return;
 		var cols   = ['state_abbr','county_name','pop_2025','netmig_2025','distance_miles'];
@@ -148,6 +145,78 @@
 	});
 
 	// ════════════════════════════════════════════════════════════════════
+	// US County Map  (D3 v7 + topojson + us-atlas)
+	// ════════════════════════════════════════════════════════════════════
+
+	var _mapReady      = false;  // true once the base map is drawn
+	var _pendingFips   = null;   // FIPS list waiting for map to finish loading
+
+	function initMap() {
+		var svg = d3.select('#hmo-maps-svg');
+		if (!svg.node()) return;
+
+		d3.json('https://cdn.jsdelivr.net/npm/us-atlas@3/counties-albers-10m.json')
+		.then(function(us) {
+			var path = d3.geoPath();
+
+			// County fills
+			svg.append('g')
+				.attr('class', 'hmo-map-counties')
+				.selectAll('path')
+				.data(topojson.feature(us, us.objects.counties).features)
+				.join('path')
+				.attr('class', 'hmo-map-county')
+				.attr('d', path);
+
+			// State borders on top
+			svg.append('path')
+				.datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+				.attr('class', 'hmo-map-state-border')
+				.attr('d', path);
+
+			_mapReady = true;
+
+			// If a lookup finished before the map loaded, apply highlights now.
+			if (_pendingFips !== null) {
+				_applyHighlight(_pendingFips);
+				_pendingFips = null;
+			}
+		})
+		.catch(function() {
+			// Map failed to load — silently hide the container.
+			var wrap = document.getElementById('hmo-maps-map-wrap');
+			if (wrap) wrap.style.display = 'none';
+		});
+	}
+
+	function highlightCounties(fipsList) {
+		if (!_mapReady) {
+			// Store until map finishes loading.
+			_pendingFips = fipsList;
+			return;
+		}
+		_applyHighlight(fipsList);
+	}
+
+	function _applyHighlight(fipsList) {
+		// Our DB FIPS is zero-padded string ("08031"); us-atlas d.id is an integer (8031).
+		var fipsSet = {};
+		fipsList.forEach(function(f) { fipsSet[parseInt(f, 10)] = true; });
+
+		d3.selectAll('.hmo-map-county').attr('class', function(d) {
+			return fipsSet[d.id] ? 'hmo-map-county hmo-map-county--active' : 'hmo-map-county';
+		});
+
+		// Hide the "enter a location" hint once we have results.
+		if (mapHint) mapHint.style.display = 'none';
+	}
+
+	// Start loading the map immediately so it's ready before the first lookup.
+	if (typeof d3 !== 'undefined' && typeof topojson !== 'undefined') {
+		initMap();
+	}
+
+	// ════════════════════════════════════════════════════════════════════
 	// Autocomplete — Google Places (preferred) or Nominatim (fallback)
 	// ════════════════════════════════════════════════════════════════════
 
@@ -157,9 +226,7 @@
 			componentRestrictions: { country: 'us' },
 			fields:               ['geometry', 'name', 'address_components']
 		});
-
-		// Hide our custom dropdown — Google renders its own pac-container.
-		acList.style.display = 'none';
+		if (acList) acList.style.display = 'none';
 
 		ac.addListener('place_changed', function() {
 			var place = ac.getPlace();
@@ -169,7 +236,6 @@
 			runLookup();
 		});
 
-		// Clear pins if the user edits the field after a selection.
 		inputLoc.addEventListener('input', function() {
 			pinnedLat = null;
 			pinnedLng = null;
@@ -198,13 +264,10 @@
 		var acActive = -1;
 
 		inputLoc.addEventListener('input', function() {
-			pinnedLat = null;
-			pinnedLng = null;
-
+			pinnedLat = null; pinnedLng = null;
 			var q = this.value.trim();
 			clearTimeout(acTimer);
 			if (q.length < 2) { acHide(); return; }
-
 			acTimer = setTimeout(function() {
 				var nomUrl = 'https://nominatim.openstreetmap.org/search' +
 					'?q=' + encodeURIComponent(q) +
@@ -212,12 +275,11 @@
 				fetch(nomUrl)
 				.then(function(r) { return r.json(); })
 				.then(function(data) {
-					var seen  = {};
-					var items = [];
+					var seen = {}, items = [];
 					(data || []).forEach(function(item) {
-						var addr = item.address || {};
-						var city = addr.city || addr.town || addr.village || addr.hamlet ||
-						           addr.suburb || addr.neighbourhood || addr.borough;
+						var addr  = item.address || {};
+						var city  = addr.city || addr.town || addr.village || addr.hamlet ||
+						            addr.suburb || addr.neighbourhood || addr.borough;
 						var state = addr.state || '';
 						var abbr  = STATE_ABBR[state] || state;
 						if (!city || !abbr) return;
@@ -233,8 +295,7 @@
 		});
 
 		function acShow(items) {
-			acItems  = items;
-			acActive = -1;
+			acItems = items; acActive = -1;
 			acList.innerHTML = '';
 			if (!items.length) { acHide(); return; }
 			items.forEach(function(item, i) {
@@ -242,10 +303,7 @@
 				li.textContent = item.label;
 				li.className   = 'hmo-maps-suggestion-item';
 				li.setAttribute('role', 'option');
-				li.addEventListener('mousedown', function(e) {
-					e.preventDefault();
-					acCommit(i);
-				});
+				li.addEventListener('mousedown', function(e) { e.preventDefault(); acCommit(i); });
 				acList.appendChild(li);
 			});
 			acList.style.display = '';
@@ -254,18 +312,14 @@
 		function acHide() {
 			acList.style.display = 'none';
 			acList.innerHTML = '';
-			acItems  = [];
-			acActive = -1;
+			acItems = []; acActive = -1;
 		}
 
 		function acCommit(i) {
-			var item = acItems[i];
-			if (!item) return;
+			var item = acItems[i]; if (!item) return;
 			inputLoc.value = item.label;
-			pinnedLat = item.lat;
-			pinnedLng = item.lng;
-			acHide();
-			runLookup();
+			pinnedLat = item.lat; pinnedLng = item.lng;
+			acHide(); runLookup();
 		}
 
 		function acHighlight(i) {
@@ -277,45 +331,32 @@
 		inputLoc.addEventListener('keydown', function(e) {
 			var len = acItems.length;
 			if (e.key === 'Enter') {
-				if (acActive >= 0 && len) { e.preventDefault(); acCommit(acActive); }
-				else { runLookup(); }
+				if (acActive >= 0 && len) { e.preventDefault(); acCommit(acActive); } else { runLookup(); }
 				return;
 			}
 			if (!len) return;
-			if (e.key === 'ArrowDown') {
-				e.preventDefault();
-				acActive = Math.min(acActive + 1, len - 1);
-				acHighlight(acActive);
-			} else if (e.key === 'ArrowUp') {
-				e.preventDefault();
-				acActive = Math.max(acActive - 1, 0);
-				acHighlight(acActive);
-			} else if (e.key === 'Escape') {
-				acHide();
-			}
+			if (e.key === 'ArrowDown')  { e.preventDefault(); acActive = Math.min(acActive + 1, len - 1); acHighlight(acActive); }
+			else if (e.key === 'ArrowUp')   { e.preventDefault(); acActive = Math.max(acActive - 1, 0); acHighlight(acActive); }
+			else if (e.key === 'Escape')    { acHide(); }
 		});
 
-		document.addEventListener('click', function(e) {
-			if (e.target !== inputLoc) acHide();
-		});
+		document.addEventListener('click', function(e) { if (e.target !== inputLoc) acHide(); });
 	}
 
-	// Boot the correct autocomplete engine.
+	// Boot autocomplete.
 	if (useGoogle && typeof google !== 'undefined' && google.maps && google.maps.places) {
 		initGoogleAutocomplete();
 	} else if (useGoogle) {
-		// Google script hasn't fired yet — wait for it then init.
 		var _poll = setInterval(function() {
 			if (typeof google !== 'undefined' && google.maps && google.maps.places) {
-				clearInterval(_poll);
-				initGoogleAutocomplete();
+				clearInterval(_poll); initGoogleAutocomplete();
 			}
 		}, 100);
 	} else {
 		initNominatimAutocomplete();
 	}
 
-	// ── Helpers ─────────────────────────────────────────────────────────
+	// ── Helpers ───────────────────────────────────────────────────────────
 	function clearResults() {
 		summary.style.display = 'none';
 		results.style.display = 'none';

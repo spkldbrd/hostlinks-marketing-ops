@@ -3173,68 +3173,142 @@
    MAPS TOOL — [display_maps_tool] shortcode
    ============================================================ */
 
+/* ── Wrapper & intro ──────────────────────────────────────── */
 .hmo-maps-wrap {
-	max-width: 1000px;
+	max-width: 980px;
 	margin: 0 auto;
 	font-size: 0.93rem;
 }
+.hmo-maps-intro {
+	color: hsl(215 15% 35%);
+	margin: 0 0 18px;
+	line-height: 1.55;
+}
+.hmo-maps-intro small { color: hsl(215 15% 52%); }
 
-/* ── Controls ──────────────────────────────────────────────── */
+/* ── Controls (vertical stack) ────────────────────────────── */
 .hmo-maps-controls {
 	display: flex;
-	flex-wrap: wrap;
-	align-items: flex-end;
-	gap: 16px;
+	flex-direction: column;
+	gap: 12px;
 	margin-bottom: 20px;
-	background: hsl(210 20% 97%);
-	border: 1px solid hsl(210 20% 88%);
-	border-radius: 8px;
-	padding: 16px 20px;
 }
-.hmo-maps-control-group { display: flex; flex-direction: column; gap: 6px; }
-.hmo-maps-label { font-size: 0.82rem; font-weight: 600; color: hsl(215 20% 38%); text-transform: uppercase; letter-spacing: .03em; }
+.hmo-maps-field-label {
+	display: block;
+	font-weight: 600;
+	font-size: 0.92rem;
+	color: hsl(215 20% 22%);
+	margin-bottom: 5px;
+}
+.hmo-maps-location-wrap { position: relative; }
 .hmo-maps-input {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
 	height: 38px;
-	min-width: 220px;
 	padding: 0 12px;
-	border: 1px solid hsl(210 20% 78%);
-	border-radius: 6px;
-	font-size: 0.93rem;
+	border: 1px solid hsl(210 20% 70%);
+	border-radius: 4px;
+	font-size: 0.95rem;
 	background: #fff;
 	color: hsl(215 20% 15%);
 }
 .hmo-maps-input:focus { outline: none; border-color: hsl(199 70% 50%); box-shadow: 0 0 0 3px hsl(199 70% 50% / .15); }
 
-.hmo-maps-slider-group { flex: 1; min-width: 180px; }
+/* Radius row — fixed-width number prevents layout shift (slider flicker fix) */
+.hmo-maps-radius-wrap { max-width: 480px; }
+.hmo-maps-radius-num {
+	display: inline-block;
+	min-width: 3ch;
+	font-variant-numeric: tabular-nums;
+	color: hsl(10 75% 48%);
+	font-weight: 700;
+}
 .hmo-maps-slider {
 	-webkit-appearance: none;
 	appearance: none;
+	display: block;
 	width: 100%;
 	height: 6px;
 	border-radius: 4px;
-	background: hsl(210 20% 82%);
+	background: hsl(210 20% 78%);
 	outline: none;
 	cursor: pointer;
+	margin-top: 6px;
+	/* No transition — prevents thumb flicker on drag */
 }
-.hmo-maps-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: hsl(199 70% 45%); cursor: pointer; }
-.hmo-maps-slider::-moz-range-thumb    { width: 18px; height: 18px; border: none; border-radius: 50%; background: hsl(199 70% 45%); cursor: pointer; }
+.hmo-maps-slider::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	width: 18px; height: 18px;
+	border-radius: 50%;
+	background: hsl(199 70% 45%);
+	cursor: pointer;
+}
+.hmo-maps-slider::-moz-range-thumb {
+	width: 18px; height: 18px;
+	border: none; border-radius: 50%;
+	background: hsl(199 70% 45%);
+	cursor: pointer;
+}
 
-.hmo-maps-btn-group { justify-content: flex-end; }
 .hmo-maps-btn {
-	height: 38px;
-	padding: 0 24px;
+	display: inline-block;
+	height: 36px;
+	padding: 0 28px;
 	background: hsl(199 70% 45%);
 	color: #fff;
 	font-weight: 700;
 	font-size: 0.92rem;
 	border: none;
-	border-radius: 6px;
+	border-radius: 4px;
 	cursor: pointer;
 	transition: background .15s;
-	white-space: nowrap;
 }
 .hmo-maps-btn:hover  { background: hsl(199 70% 38%); }
 .hmo-maps-btn:active { background: hsl(199 70% 32%); }
+
+/* ── US County Map ────────────────────────────────────────── */
+.hmo-maps-map-wrap {
+	position: relative;
+	margin-bottom: 24px;
+	border: 1px solid hsl(210 15% 86%);
+	border-radius: 6px;
+	overflow: hidden;
+	background: #f5f5f5;
+}
+#hmo-maps-svg {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+/* County paths */
+.hmo-map-county {
+	fill: #d9d9d9;
+	stroke: #bbb;
+	stroke-width: 0.3px;
+	transition: fill .25s;
+}
+.hmo-map-county--active {
+	fill: #c0392b;
+	stroke: #922b21;
+	stroke-width: 0.5px;
+}
+/* State borders overlay */
+.hmo-map-state-border {
+	fill: none;
+	stroke: #666;
+	stroke-width: 0.8px;
+}
+.hmo-maps-map-hint {
+	position: absolute;
+	bottom: 10px;
+	left: 0; right: 0;
+	text-align: center;
+	font-size: 0.8rem;
+	color: hsl(215 15% 52%);
+	pointer-events: none;
+	margin: 0;
+}
 
 /* ── Error & Spinner ──────────────────────────────────────── */
 .hmo-maps-error {
@@ -3321,23 +3395,54 @@
 .hmo-netmig-neg { color: hsl(0 60% 45%); }
 
 @media (max-width: 600px) {
-	.hmo-maps-controls { flex-direction: column; }
-	.hmo-maps-slider-group { min-width: 100%; }
 	.hmo-maps-summary-cards { grid-template-columns: 1fr; }
 }
 
-/* ── Dark mode overrides ──────────────────────────────────── */
-.wp-dark-mode-active .hmo-maps-controls {
-	background: hsl(215 20% 14%);
-	border-color: hsl(215 20% 24%);
+/* ── Autocomplete suggestions ─────────────────────────────── */
+.hmo-maps-suggestions {
+	position: absolute;
+	top: 100%;
+	left: 0; right: 0;
+	z-index: 9999;
+	margin: 2px 0 0;
+	padding: 0;
+	list-style: none;
+	background: #fff;
+	border: 1px solid hsl(210 20% 78%);
+	border-radius: 4px;
+	box-shadow: 0 4px 16px hsl(215 25% 20% / .12);
+	max-height: 240px;
+	overflow-y: auto;
 }
-.wp-dark-mode-active .hmo-maps-label { color: hsl(210 15% 65%); }
+.hmo-maps-suggestion-item {
+	padding: 9px 14px;
+	font-size: 0.9rem;
+	color: hsl(215 20% 18%);
+	cursor: pointer;
+	border-bottom: 1px solid hsl(210 15% 93%);
+}
+.hmo-maps-suggestion-item:last-child { border-bottom: none; }
+.hmo-maps-suggestion-item:hover,
+.hmo-maps-suggestion-item--active {
+	background: hsl(199 60% 94%);
+	color: hsl(199 70% 30%);
+}
+
+/* ── Dark mode ────────────────────────────────────────────── */
+.wp-dark-mode-active .hmo-maps-field-label { color: hsl(210 15% 78%); }
 .wp-dark-mode-active .hmo-maps-input {
 	background: hsl(215 20% 18%);
 	border-color: hsl(215 20% 30%);
 	color: hsl(210 15% 90%);
 }
 .wp-dark-mode-active .hmo-maps-slider { background: hsl(215 20% 28%); }
+.wp-dark-mode-active .hmo-maps-map-wrap {
+	background: hsl(215 20% 12%);
+	border-color: hsl(215 20% 24%);
+}
+.wp-dark-mode-active .hmo-map-county        { fill: #3a3a3a; stroke: #555; }
+.wp-dark-mode-active .hmo-map-county--active { fill: #c0392b; stroke: #922b21; }
+.wp-dark-mode-active .hmo-map-state-border   { stroke: #888; }
 .wp-dark-mode-active .hmo-maps-summary-card {
 	background: hsl(215 20% 14%);
 	border-color: hsl(215 20% 24%);
@@ -3349,45 +3454,9 @@
 .wp-dark-mode-active .hmo-maps-table td { border-bottom-color: hsl(215 20% 22%); color: hsl(210 15% 85%); }
 .wp-dark-mode-active .hmo-maps-table tr:hover td { background: hsl(215 20% 16%); }
 .wp-dark-mode-active .hmo-maps-results-title { color: hsl(210 20% 88%); }
-
-/* ── Maps autocomplete suggestions ───────────────────────────────────── */
-.hmo-maps-location-wrap { position: relative; }
-.hmo-maps-suggestions {
-	position: absolute;
-	top: 100%;
-	left: 0;
-	right: 0;
-	z-index: 999;
-	margin: 2px 0 0;
-	padding: 0;
-	list-style: none;
-	background: #fff;
-	border: 1px solid hsl(210 20% 78%);
-	border-radius: 6px;
-	box-shadow: 0 4px 16px hsl(215 25% 20% / .12);
-	max-height: 220px;
-	overflow-y: auto;
-}
-.hmo-maps-suggestion-item {
-	padding: 9px 14px;
-	font-size: 0.9rem;
-	color: hsl(215 20% 18%);
-	cursor: pointer;
-	border-bottom: 1px solid hsl(210 15% 93%);
-	transition: background .1s;
-}
-.hmo-maps-suggestion-item:last-child { border-bottom: none; }
-.hmo-maps-suggestion-item:hover,
-.hmo-maps-suggestion-item--active {
-	background: hsl(199 60% 94%);
-	color: hsl(199 70% 30%);
-}
-
-/* Dark mode */
 .wp-dark-mode-active .hmo-maps-suggestions {
 	background: hsl(215 20% 16%);
 	border-color: hsl(215 20% 30%);
-	box-shadow: 0 4px 16px hsl(215 30% 5% / .4);
 }
 .wp-dark-mode-active .hmo-maps-suggestion-item {
 	color: hsl(210 15% 88%);

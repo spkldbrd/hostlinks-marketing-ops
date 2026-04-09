@@ -129,6 +129,11 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.10.2 =
+* Maps tool: redesigned layout to vertical stack (Big Radius style) — location input full width, radius slider below labeled value.
+* Maps tool: fixed slider flicker caused by layout reflow when value width changes; radius number now uses tabular-nums with fixed min-width.
+* Maps tool: added interactive US county map (D3 v7 + us-atlas TopoJSON) — counties within the selected radius highlight red after each lookup.
+
 = 1.10.1 =
 * Maps tool: fixed inline JavaScript syntax error caused by WordPress the_content filter entity-encoding && operators — moved all JS to external enqueued file (assets/js/maps-tool.js).
 * Maps tool: switched city autocomplete from Nominatim to Google Places API for fast, accurate partial-text matching; Google Maps API key field added to Maps settings tab.

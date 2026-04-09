@@ -1,20 +1,10 @@
 <?php
 /**
  * Front-end view for [display_maps_tool].
- *
- * Variables available in scope (passed from HMO_Shortcodes::render_maps_tool):
- *   $access  — HMO_Access_Service instance
- *
- * JavaScript is loaded as an external file (assets/js/maps-tool.js) via
- * wp_enqueue_script so it never passes through the_content filter pipeline,
- * which would entity-encode && operators to &#038;&#038;.
+ * JavaScript loaded as external enqueued file (assets/js/maps-tool.js).
  */
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
-
-// Access is checked by the shortcode renderer before this view is included.
+if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 $_maps_task_url   = HMO_Page_URLs::get_task_editor();
 $_maps_report_url = HMO_Page_URLs::get_event_report();
@@ -23,7 +13,7 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 
 <div class="hostlinks-page hmo-frontend hmo-maps-page">
 
-<!-- Blue header bar — same as Dashboard / My Classes -->
+<!-- Blue header bar -->
 <div class="hmo-dashboard-header">
 	<span class="hmo-dashboard-header__title">Marketing Maps</span>
 	<nav class="hmo-header-nav">
@@ -43,10 +33,18 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 
 <div class="hmo-maps-wrap" id="hmo-maps-wrap">
 
-	<!-- ── Controls ────────────────────────────────────────────────────── -->
+	<p class="hmo-maps-intro">
+		Begin typing your city and choose a location from the suggestions, then set a radius and click Lookup.<br>
+		<small>Counties are included if their population center falls within the selected radius.</small>
+	</p>
+
+	<!-- ── Controls (vertical stack, Big Radius style) ──────────────── -->
 	<div class="hmo-maps-controls">
-		<div class="hmo-maps-control-group hmo-maps-location-wrap">
-			<label for="hmo-maps-location" class="hmo-maps-label">City, State</label>
+
+		<div class="hmo-maps-location-wrap">
+			<label for="hmo-maps-location" class="hmo-maps-field-label">
+				Select center location (enter city or county name):
+			</label>
 			<input type="text" id="hmo-maps-location" class="hmo-maps-input"
 				placeholder="e.g. Denver, CO" autocomplete="off" aria-autocomplete="list"
 				aria-haspopup="listbox" aria-controls="hmo-maps-suggestions">
@@ -54,29 +52,35 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 				style="display:none;" aria-label="City suggestions"></ul>
 		</div>
 
-		<div class="hmo-maps-control-group hmo-maps-slider-group">
-			<label for="hmo-maps-radius" class="hmo-maps-label">
-				Radius: <strong id="hmo-maps-radius-val">100</strong> miles
+		<div class="hmo-maps-radius-wrap">
+			<label for="hmo-maps-radius" class="hmo-maps-field-label">
+				Set radius size in miles:
+				<strong id="hmo-maps-radius-val" class="hmo-maps-radius-num">100</strong>
 			</label>
 			<input type="range" id="hmo-maps-radius" class="hmo-maps-slider"
 				min="25" max="500" step="25" value="100">
 		</div>
 
-		<div class="hmo-maps-control-group hmo-maps-btn-group">
-			<button type="button" id="hmo-maps-lookup-btn" class="hmo-maps-btn">
-				Lookup
-			</button>
+		<div>
+			<button type="button" id="hmo-maps-lookup-btn" class="hmo-maps-btn">Lookup</button>
 		</div>
+
 	</div>
 
-	<div id="hmo-maps-error" class="hmo-maps-error" style="display:none;"></div>
+	<div id="hmo-maps-error"   class="hmo-maps-error"   style="display:none;"></div>
 	<div id="hmo-maps-spinner" class="hmo-maps-spinner" style="display:none;" aria-label="Loading">
 		<span class="hmo-maps-spinner-dot"></span>
 		<span class="hmo-maps-spinner-dot"></span>
 		<span class="hmo-maps-spinner-dot"></span>
 	</div>
 
-	<!-- ── Summary Dashboard ───────────────────────────────────────────── -->
+	<!-- ── US County Map ────────────────────────────────────────────── -->
+	<div class="hmo-maps-map-wrap" id="hmo-maps-map-wrap">
+		<svg id="hmo-maps-svg" viewBox="0 0 960 600" aria-label="US county map"></svg>
+		<p id="hmo-maps-map-hint" class="hmo-maps-map-hint">Enter a location above to highlight counties within your radius.</p>
+	</div>
+
+	<!-- ── Summary Dashboard ───────────────────────────────────────── -->
 	<div id="hmo-maps-summary" class="hmo-maps-summary" style="display:none;">
 		<div class="hmo-maps-summary-meta" id="hmo-maps-summary-meta"></div>
 		<div class="hmo-maps-summary-cards">
@@ -98,10 +102,10 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 		</div>
 	</div>
 
-	<!-- ── Results Table ───────────────────────────────────────────────── -->
+	<!-- ── Results Table ───────────────────────────────────────────── -->
 	<div id="hmo-maps-results" class="hmo-maps-results" style="display:none;">
 		<div class="hmo-maps-results-header">
-			<h3 class="hmo-maps-results-title">Results</h3>
+			<h3 class="hmo-maps-results-title">County Detail</h3>
 			<button type="button" id="hmo-maps-export-btn" class="hmo-maps-export-btn">
 				&#8659; Download CSV
 			</button>
@@ -110,10 +114,10 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 			<table class="hmo-maps-table" id="hmo-maps-table">
 				<thead>
 					<tr>
-						<th data-col="state_abbr" class="sortable">State <span class="sort-icon">&#8597;</span></th>
-						<th data-col="county_name" class="sortable">County <span class="sort-icon">&#8597;</span></th>
-						<th data-col="pop_2025" class="sortable">Population <span class="sort-icon">&#8597;</span></th>
-						<th data-col="netmig_2025" class="sortable">Net Migration <span class="sort-icon">&#8597;</span></th>
+						<th data-col="state_abbr"     class="sortable">State <span class="sort-icon">&#8597;</span></th>
+						<th data-col="county_name"    class="sortable">County <span class="sort-icon">&#8597;</span></th>
+						<th data-col="pop_2025"       class="sortable">Population <span class="sort-icon">&#8597;</span></th>
+						<th data-col="netmig_2025"    class="sortable">Net Migration <span class="sort-icon">&#8597;</span></th>
 						<th data-col="distance_miles" class="sortable">Distance (mi) <span class="sort-icon">&#8597;</span></th>
 					</tr>
 				</thead>
