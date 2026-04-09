@@ -124,37 +124,41 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 
 <script>
 (function() {
-	var ajaxUrl  = <?php echo wp_json_encode( $ajax_url ); ?>;
-	var nonce    = <?php echo wp_json_encode( $nonce ); ?>;
+	var ajaxUrl = <?php echo wp_json_encode( $ajax_url ); ?>;
+	var nonce   = <?php echo wp_json_encode( $nonce ); ?>;
 
-	var btnLookup  = document.getElementById('hmo-maps-lookup-btn');
-	var btnExport  = document.getElementById('hmo-maps-export-btn');
-	var inputLoc   = document.getElementById('hmo-maps-location');
-	var sliderRad  = document.getElementById('hmo-maps-radius');
-	var radVal     = document.getElementById('hmo-maps-radius-val');
-	var errBox     = document.getElementById('hmo-maps-error');
-	var spinner    = document.getElementById('hmo-maps-spinner');
-	var summary    = document.getElementById('hmo-maps-summary');
-	var results    = document.getElementById('hmo-maps-results');
-	var tbody      = document.getElementById('hmo-maps-tbody');
+	// ── DOM refs ────────────────────────────────────────────────────────
+	var btnLookup = document.getElementById('hmo-maps-lookup-btn');
+	var btnExport = document.getElementById('hmo-maps-export-btn');
+	var inputLoc  = document.getElementById('hmo-maps-location');
+	var sliderRad = document.getElementById('hmo-maps-radius');
+	var radVal    = document.getElementById('hmo-maps-radius-val');
+	var errBox    = document.getElementById('hmo-maps-error');
+	var spinner   = document.getElementById('hmo-maps-spinner');
+	var summary   = document.getElementById('hmo-maps-summary');
+	var results   = document.getElementById('hmo-maps-results');
+	var tbody     = document.getElementById('hmo-maps-tbody');
+	var acList    = document.getElementById('hmo-maps-suggestions');
 
+	// ── State ───────────────────────────────────────────────────────────
 	var currentData = [];
 	var sortCol     = 'distance_miles';
-	var sortDir     = 1; // 1 = asc, -1 = desc
+	var sortDir     = 1;
 
-	// Radius slider display
+	// Geocoords captured from autocomplete selection.
+	// When set, the server skips Nominatim and uses these directly.
+	var pinnedLat = null;
+	var pinnedLng = null;
+
+	// ── Radius slider ───────────────────────────────────────────────────
 	sliderRad.addEventListener('input', function() {
 		radVal.textContent = this.value;
 	});
 
-
-	// Lookup
-	btnLookup.addEventListener('click', function() {
+	// ── Lookup ──────────────────────────────────────────────────────────
+	function runLookup() {
 		var location = inputLoc.value.trim();
-		if (!location) {
-			showError('Please enter a city and state.');
-			return;
-		}
+		if (!location) { showError('Please enter a city and state.'); return; }
 		clearResults();
 		showSpinner(true);
 		hideError();
@@ -165,112 +169,102 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 		fd.append('location', location);
 		fd.append('radius',   sliderRad.value);
 
+		// If we have pinned coords from autocomplete, send them so the
+		// server can skip its own Nominatim round-trip entirely.
+		if (pinnedLat !== null && pinnedLng !== null) {
+			fd.append('lat', pinnedLat);
+			fd.append('lng', pinnedLng);
+		}
+
 		fetch(ajaxUrl, { method: 'POST', body: fd })
 			.then(function(r) { return r.json(); })
 			.then(function(res) {
 				showSpinner(false);
-				if (!res.success) {
-					showError(res.data || 'An error occurred.');
-					return;
-				}
+				if (!res.success) { showError(res.data || 'An error occurred.'); return; }
 				renderResults(res.data);
 			})
 			.catch(function() {
 				showSpinner(false);
 				showError('Request failed. Please try again.');
 			});
-	});
+	}
 
+	btnLookup.addEventListener('click', runLookup);
+
+	// ── Results rendering ───────────────────────────────────────────────
 	function renderResults(data) {
 		currentData = data.counties || [];
-
-		// Summary cards
 		document.getElementById('hmo-maps-total-pop').textContent    = formatNum(data.total_pop);
 		document.getElementById('hmo-maps-total-netmig').textContent = formatNetmig(data.total_netmig);
 		document.getElementById('hmo-maps-county-count').textContent = data.count.toLocaleString();
 		document.getElementById('hmo-maps-summary-meta').textContent =
 			data.location + ' · ' + data.radius + '-mile radius';
-
 		summary.style.display = '';
 		results.style.display = '';
-
 		renderTable();
 	}
 
 	function renderTable() {
 		var sorted = currentData.slice().sort(function(a, b) {
-			var av = a[sortCol];
-			var bv = b[sortCol];
+			var av = a[sortCol], bv = b[sortCol];
 			if (!isNaN(parseFloat(av)) && !isNaN(parseFloat(bv))) {
 				return sortDir * (parseFloat(av) - parseFloat(bv));
 			}
 			return sortDir * String(av).localeCompare(String(bv));
 		});
-
-		var rows = sorted.map(function(c) {
-			var netmigClass = c.netmig_2025 >= 0 ? 'hmo-netmig-pos' : 'hmo-netmig-neg';
+		tbody.innerHTML = sorted.map(function(c) {
+			var cls = parseInt(c.netmig_2025) >= 0 ? 'hmo-netmig-pos' : 'hmo-netmig-neg';
 			return '<tr>' +
 				'<td>' + esc(c.state_abbr) + '</td>' +
 				'<td>' + esc(c.county_name) + '</td>' +
 				'<td class="hmo-num">' + formatNum(c.pop_2025) + '</td>' +
-				'<td class="hmo-num ' + netmigClass + '">' + formatNetmig(c.netmig_2025) + '</td>' +
+				'<td class="hmo-num ' + cls + '">' + formatNetmig(c.netmig_2025) + '</td>' +
 				'<td class="hmo-num">' + parseFloat(c.distance_miles).toFixed(1) + '</td>' +
 				'</tr>';
-		});
-		tbody.innerHTML = rows.join('');
+		}).join('');
 	}
 
-	// Column sorting
+	// ── Column sorting ──────────────────────────────────────────────────
 	document.getElementById('hmo-maps-table').addEventListener('click', function(e) {
 		var th = e.target.closest('th[data-col]');
 		if (!th || !currentData.length) return;
 		var col = th.getAttribute('data-col');
-		if (sortCol === col) {
-			sortDir *= -1;
-		} else {
-			sortCol = col;
-			sortDir = (col === 'distance_miles') ? 1 : -1;
-		}
-		// Update icons
+		sortDir = (sortCol === col) ? sortDir * -1 : (col === 'distance_miles' ? 1 : -1);
+		sortCol = col;
 		document.querySelectorAll('#hmo-maps-table th.sortable').forEach(function(el) {
-			var icon = el.querySelector('.sort-icon');
-			if (el === th) {
-				icon.innerHTML = sortDir === 1 ? '&#8593;' : '&#8595;';
-			} else {
-				icon.innerHTML = '&#8597;';
-			}
+			el.querySelector('.sort-icon').innerHTML =
+				el === th ? (sortDir === 1 ? '&#8593;' : '&#8595;') : '&#8597;';
 		});
 		renderTable();
 	});
 
-	// CSV Export
+	// ── CSV Export ──────────────────────────────────────────────────────
 	btnExport.addEventListener('click', function() {
 		if (!currentData.length) return;
-		var cols = ['state_abbr','county_name','pop_2025','netmig_2025','distance_miles'];
+		var cols   = ['state_abbr','county_name','pop_2025','netmig_2025','distance_miles'];
 		var header = ['State','County','Population','Net Migration','Distance (mi)'];
-		var lines = [header.join(',')];
-		currentData.forEach(function(c) {
-			lines.push(cols.map(function(k) {
+		var lines  = [header.join(',')].concat(currentData.map(function(c) {
+			return cols.map(function(k) {
 				var v = c[k];
 				if (typeof v === 'string' && (v.includes(',') || v.includes('"'))) {
 					v = '"' + v.replace(/"/g, '""') + '"';
 				}
 				return v;
-			}).join(','));
-		});
+			}).join(',');
+		}));
 		var blob = new Blob([lines.join('\n')], { type: 'text/csv' });
 		var url  = URL.createObjectURL(blob);
 		var a    = document.createElement('a');
-		a.href     = url;
-		a.download = 'maps-results.csv';
-		document.body.appendChild(a);
-		a.click();
-		document.body.removeChild(a);
-		URL.revokeObjectURL(url);
+		a.href = url; a.download = 'maps-results.csv';
+		document.body.appendChild(a); a.click();
+		document.body.removeChild(a); URL.revokeObjectURL(url);
 	});
 
-	// ── Autocomplete (Nominatim typeahead) ───────────────────────────────
-	var stateAbbr = {
+	// ── Autocomplete — Nominatim city typeahead ─────────────────────────
+	// Each suggestion stores {label, lat, lng} so selecting one pins the
+	// coordinates and lets the server skip geocoding entirely.
+
+	var STATE_ABBR = {
 		'Alabama':'AL','Alaska':'AK','Arizona':'AZ','Arkansas':'AR',
 		'California':'CA','Colorado':'CO','Connecticut':'CT','Delaware':'DE',
 		'Florida':'FL','Georgia':'GA','Hawaii':'HI','Idaho':'ID',
@@ -286,25 +280,61 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 		'Wisconsin':'WI','Wyoming':'WY','District of Columbia':'DC'
 	};
 
-	var acList      = document.getElementById('hmo-maps-suggestions');
-	var acTimer     = null;
-	var acResults   = [];
-	var acActive    = -1;
+	var acTimer   = null;
+	var acItems   = []; // [{label, lat, lng}, ...]
+	var acActive  = -1;
+
+	// Clear pinned coords whenever the user edits the field manually
+	inputLoc.addEventListener('input', function() {
+		pinnedLat = null;
+		pinnedLng = null;
+
+		var q = this.value.trim();
+		clearTimeout(acTimer);
+		if (q.length < 2) { acHide(); return; }
+
+		acTimer = setTimeout(function() {
+			fetch(
+				'https://nominatim.openstreetmap.org/search' +
+				'?q=' + encodeURIComponent(q) +
+				'&format=json&limit=7&countrycodes=us&addressdetails=1',
+				{ headers: { 'User-Agent': 'HostlinksMarketingOps/1.0' } }
+			)
+			.then(function(r) { return r.json(); })
+			.then(function(data) {
+				var seen  = {};
+				var items = [];
+				(data || []).forEach(function(item) {
+					var addr  = item.address || {};
+					var city  = addr.city || addr.town || addr.village ||
+								addr.hamlet || addr.county || item.name;
+					var state = addr.state || '';
+					var abbr  = STATE_ABBR[state] || state;
+					if (!city || !abbr) return;
+					var label = city + ', ' + abbr;
+					if (seen[label]) return;
+					seen[label] = true;
+					items.push({ label: label, lat: parseFloat(item.lat), lng: parseFloat(item.lon) });
+				});
+				acShow(items);
+			})
+			.catch(function() { acHide(); });
+		}, 320);
+	});
 
 	function acShow(items) {
-		acResults = items;
-		acActive  = -1;
+		acItems  = items;
+		acActive = -1;
 		acList.innerHTML = '';
 		if (!items.length) { acHide(); return; }
-		items.forEach(function(text, i) {
+		items.forEach(function(item, i) {
 			var li = document.createElement('li');
-			li.textContent  = text;
-			li.className    = 'hmo-maps-suggestion-item';
+			li.textContent = item.label;
+			li.className   = 'hmo-maps-suggestion-item';
 			li.setAttribute('role', 'option');
-			li.setAttribute('data-idx', i);
 			li.addEventListener('mousedown', function(e) {
-				e.preventDefault(); // keep focus on input
-				acSelect(i);
+				e.preventDefault();
+				acCommit(i);
 			});
 			acList.appendChild(li);
 		});
@@ -314,73 +344,39 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 	function acHide() {
 		acList.style.display = 'none';
 		acList.innerHTML = '';
-		acResults = [];
-		acActive  = -1;
+		acItems  = [];
+		acActive = -1;
 	}
 
-	function acSelect(idx) {
-		if (acResults[idx]) {
-			inputLoc.value = acResults[idx];
-		}
+	// Select item i: pin coords, set input label, hide list, fire lookup
+	function acCommit(i) {
+		var item = acItems[i];
+		if (!item) return;
+		inputLoc.value = item.label;
+		pinnedLat = item.lat;
+		pinnedLng = item.lng;
 		acHide();
+		runLookup(); // immediate — no extra button click needed
 	}
 
-	function acHighlight(idx) {
-		var items = acList.querySelectorAll('.hmo-maps-suggestion-item');
-		items.forEach(function(el, i) {
-			el.classList.toggle('hmo-maps-suggestion-item--active', i === idx);
+	function acHighlight(i) {
+		acList.querySelectorAll('.hmo-maps-suggestion-item').forEach(function(el, idx) {
+			el.classList.toggle('hmo-maps-suggestion-item--active', idx === i);
 		});
 	}
 
-	inputLoc.addEventListener('input', function() {
-		var q = this.value.trim();
-		clearTimeout(acTimer);
-		if (q.length < 2) { acHide(); return; }
-
-		acTimer = setTimeout(function() {
-			var url = 'https://nominatim.openstreetmap.org/search' +
-				'?q=' + encodeURIComponent(q) +
-				'&format=json&limit=6&countrycodes=us&addressdetails=1';
-			fetch(url, { headers: { 'User-Agent': 'HostlinksMarketingOps/1.0' } })
-				.then(function(r) { return r.json(); })
-				.then(function(data) {
-					var seen    = {};
-					var options = [];
-					(data || []).forEach(function(item) {
-						var addr  = item.address || {};
-						var city  = addr.city || addr.town || addr.village ||
-									addr.hamlet || addr.county || item.name;
-						var state = addr.state || '';
-						var abbr  = stateAbbr[state] || state;
-						if (!city || !abbr) return;
-						var label = city + ', ' + abbr;
-						if (seen[label]) return;
-						seen[label] = true;
-						options.push(label);
-					});
-					acShow(options);
-				})
-				.catch(function() { acHide(); });
-		}, 320);
-	});
-
-	// Keyboard navigation (up/down/enter/escape)
+	// Keyboard: arrows navigate, Enter commits or falls through to lookup
 	inputLoc.addEventListener('keydown', function(e) {
-		var items = acList.querySelectorAll('.hmo-maps-suggestion-item');
+		var len = acItems.length;
 		if (e.key === 'Enter') {
-			if (acActive >= 0 && items.length) {
-				e.preventDefault();
-				acSelect(acActive);
-				btnLookup.click();
-			} else {
-				btnLookup.click();
-			}
+			if (acActive >= 0 && len) { e.preventDefault(); acCommit(acActive); }
+			else { runLookup(); }
 			return;
 		}
-		if (!items.length) return;
+		if (!len) return;
 		if (e.key === 'ArrowDown') {
 			e.preventDefault();
-			acActive = Math.min(acActive + 1, items.length - 1);
+			acActive = Math.min(acActive + 1, len - 1);
 			acHighlight(acActive);
 		} else if (e.key === 'ArrowUp') {
 			e.preventDefault();
@@ -391,41 +387,25 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 		}
 	});
 
-	// Dismiss when clicking outside
 	document.addEventListener('click', function(e) {
 		if (e.target !== inputLoc) acHide();
 	});
 
-	// ── Helpers
+	// ── Helpers ─────────────────────────────────────────────────────────
 	function clearResults() {
 		summary.style.display = 'none';
 		results.style.display = 'none';
 		tbody.innerHTML = '';
 		currentData = [];
 	}
-	function showSpinner(show) {
-		spinner.style.display = show ? '' : 'none';
-	}
-	function showError(msg) {
-		errBox.textContent = msg;
-		errBox.style.display = '';
-	}
-	function hideError() {
-		errBox.style.display = 'none';
-	}
+	function showSpinner(v) { spinner.style.display = v ? '' : 'none'; }
+	function showError(msg) { errBox.textContent = msg; errBox.style.display = ''; }
+	function hideError()    { errBox.style.display = 'none'; }
 	function esc(s) {
-		return String(s)
-			.replace(/&/g, '&amp;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;');
+		return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 	}
-	function formatNum(n) {
-		return parseInt(n, 10).toLocaleString();
-	}
-	function formatNetmig(n) {
-		var v = parseInt(n, 10);
-		return (v >= 0 ? '+' : '') + v.toLocaleString();
-	}
+	function formatNum(n)    { return parseInt(n, 10).toLocaleString(); }
+	function formatNetmig(n) { var v = parseInt(n,10); return (v>=0?'+':'') + v.toLocaleString(); }
 })();
 </script>
 

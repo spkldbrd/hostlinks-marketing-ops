@@ -254,41 +254,50 @@ class HMO_Maps_Service {
 			wp_send_json_error( 'Please enter a city and state.' );
 		}
 
-		// 1. Geocode via Nominatim (OpenStreetMap) — free, no key required,
-		//    works correctly for city+state inputs like "Denver, CO".
-		$geo_url = add_query_arg(
-			array(
-				'q'            => rawurlencode( $location ),
-				'format'       => 'json',
-				'limit'        => 1,
-				'countrycodes' => 'us',
-			),
-			'https://nominatim.openstreetmap.org/search'
-		);
+		// 1. Use pre-resolved coordinates from the autocomplete if the client
+		//    already called Nominatim and pinned a lat/lng. This skips an extra
+		//    geocoder round-trip and makes the lookup instant.
+		$pinned_lat = isset( $_POST['lat'] ) ? (float) $_POST['lat'] : 0;
+		$pinned_lng = isset( $_POST['lng'] ) ? (float) $_POST['lng'] : 0;
 
-		$response = wp_remote_get( $geo_url, array(
-			'timeout' => 15,
-			'headers' => array(
-				// Nominatim policy requires a descriptive User-Agent.
-				'User-Agent' => 'HostlinksMarketingOps/1.0 (WordPress plugin)',
-			),
-		) );
+		if ( $pinned_lat && $pinned_lng ) {
+			$center_lat = $pinned_lat;
+			$center_lng = $pinned_lng;
+		} else {
+			// Fallback: geocode server-side via Nominatim (manual entry path).
+			$geo_url = add_query_arg(
+				array(
+					'q'            => rawurlencode( $location ),
+					'format'       => 'json',
+					'limit'        => 1,
+					'countrycodes' => 'us',
+				),
+				'https://nominatim.openstreetmap.org/search'
+			);
 
-		if ( is_wp_error( $response ) ) {
-			wp_send_json_error( 'Geocoder request failed: ' . $response->get_error_message() );
-		}
+			$response = wp_remote_get( $geo_url, array(
+				'timeout' => 15,
+				'headers' => array(
+					'User-Agent' => 'HostlinksMarketingOps/1.0 (WordPress plugin)',
+				),
+			) );
 
-		$results = json_decode( wp_remote_retrieve_body( $response ), true );
+			if ( is_wp_error( $response ) ) {
+				wp_send_json_error( 'Geocoder request failed: ' . $response->get_error_message() );
+			}
 
-		if ( empty( $results ) || ! isset( $results[0]['lat'] ) ) {
-			wp_send_json_error( 'Location not found. Try "City, State" format — e.g. "Denver, CO" or "Chicago, IL".' );
-		}
+			$geo_results = json_decode( wp_remote_retrieve_body( $response ), true );
 
-		$center_lat = (float) $results[0]['lat'];
-		$center_lng = (float) $results[0]['lon'];
+			if ( empty( $geo_results ) || ! isset( $geo_results[0]['lat'] ) ) {
+				wp_send_json_error( 'Location not found. Try "City, State" format — e.g. "Denver, CO" or "Chicago, IL".' );
+			}
 
-		if ( ! $center_lat || ! $center_lng ) {
-			wp_send_json_error( 'Could not extract coordinates from geocoder response.' );
+			$center_lat = (float) $geo_results[0]['lat'];
+			$center_lng = (float) $geo_results[0]['lon'];
+
+			if ( ! $center_lat || ! $center_lng ) {
+				wp_send_json_error( 'Could not extract coordinates from geocoder response.' );
+			}
 		}
 
 		// 2. Haversine radius query joining centroids to stats.
