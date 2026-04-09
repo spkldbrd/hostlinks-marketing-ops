@@ -12,10 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-if ( ! HMO_Access_Service::can_view_shortcode( 'display_maps_tool' ) ) {
-	echo '<p class="hmo-access-denied">Access denied. Please log in with a Hostlinks account to use this tool.</p>';
-	return;
-}
+// Access is checked by the shortcode renderer before this view is included.
 ?>
 
 <div class="hmo-maps-wrap" id="hmo-maps-wrap">

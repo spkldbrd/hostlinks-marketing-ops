@@ -39,6 +39,9 @@ class HMO_Maps_Service {
 		}
 		check_ajax_referer( 'hmo_maps_init_centroids' );
 
+		// Ensure tables exist (in case the admin hasn't run the DB upgrade yet).
+		HMO_Maps_DB::create_tables();
+
 		@set_time_limit( 180 );
 
 		$file = self::DATA_DIR . self::GAZ_FILE;
@@ -130,6 +133,9 @@ class HMO_Maps_Service {
 			wp_send_json_error( 'Unauthorized', 403 );
 		}
 		check_ajax_referer( 'hmo_maps_sync_stats' );
+
+		// Ensure tables exist (in case the admin hasn't run the DB upgrade yet).
+		HMO_Maps_DB::create_tables();
 
 		@set_time_limit( 180 );
 
@@ -233,7 +239,8 @@ class HMO_Maps_Service {
 		check_ajax_referer( 'hmo_maps_lookup', 'nonce' );
 
 		// Access check — same gate as the shortcode.
-		if ( ! HMO_Access_Service::can_view_shortcode( 'display_maps_tool' ) ) {
+		$access = new HMO_Access_Service();
+		if ( ! $access->can_view_shortcode( 'display_maps_tool' ) ) {
 			wp_send_json_error( 'Access denied.' );
 		}
 

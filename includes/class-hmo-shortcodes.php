@@ -465,6 +465,9 @@ class HMO_Shortcodes {
 	// ── Maps Tool shortcode ───────────────────────────────────────────────────
 
 	public function render_maps_tool(): string {
+		if ( ! $this->access->can_view_shortcode( 'display_maps_tool' ) ) {
+			return '<p class="hmo-access-denied">Access denied. Please log in with a Hostlinks account to use this tool.</p>';
+		}
 		ob_start();
 		$ajax_url = admin_url( 'admin-ajax.php' );
 		$nonce    = wp_create_nonce( 'hmo_maps_lookup' );
