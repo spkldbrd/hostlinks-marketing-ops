@@ -244,6 +244,9 @@ class HMO_Maps_Service {
 			wp_send_json_error( 'Access denied.' );
 		}
 
+		// Ensure tables exist (triggers on first load after plugin update).
+		HMO_Maps_DB::create_tables();
+
 		$location = sanitize_text_field( $_POST['location'] ?? '' );
 		$radius   = max( 25, min( 500, (int) ( $_POST['radius'] ?? 100 ) ) );
 
