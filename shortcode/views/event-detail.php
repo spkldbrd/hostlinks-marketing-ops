@@ -249,15 +249,26 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 			<p class="hmo-tools-card__empty">No tools configured.</p>
 			<?php else : ?>
 			<ul class="hmo-tools-list">
-				<?php foreach ( $_tools as $_tool ) :
-					$_t_url      = esc_url( $_tool['url'] ?? '' );
-					$_t_name     = esc_html( $_tool['name'] ?? '' );
-					$_t_icon_url = esc_url( $_tool['icon'] ?? '' );
-					if ( ! $_t_url || ! $_t_name ) { continue; }
-				?>
-				<li class="hmo-tools-list__item">
-					<a href="<?php echo $_t_url; ?>" target="_blank" rel="noopener"
-						class="hmo-tools-list__link">
+			<?php
+			$_maps_base = HMO_Page_URLs::get_maps_tool();
+			foreach ( $_tools as $_tool ) :
+				$_t_url      = $_tool['url'] ?? '';
+				$_t_name     = esc_html( $_tool['name'] ?? '' );
+				$_t_icon_url = esc_url( $_tool['icon'] ?? '' );
+				if ( ! $_t_url || ! $_t_name ) { continue; }
+
+				// If this tool points to the Maps page, append event context as query params.
+				if ( $_maps_base && strpos( $_t_url, parse_url( $_maps_base, PHP_URL_PATH ) ) !== false ) {
+					$_t_url = add_query_arg( array(
+						'hmo_eid'   => $event->eve_id,
+						'hmo_ename' => $event->cvent_event_title ?: $event->eve_location,
+					), $_t_url );
+				}
+				$_t_url = esc_url( $_t_url );
+			?>
+			<li class="hmo-tools-list__item">
+				<a href="<?php echo $_t_url; ?>" target="_blank" rel="noopener"
+					class="hmo-tools-list__link">
 						<?php if ( $_t_icon_url ) : ?>
 						<img src="<?php echo $_t_icon_url; ?>" class="hmo-tools-list__icon" alt="" aria-hidden="true">
 						<?php endif; ?>

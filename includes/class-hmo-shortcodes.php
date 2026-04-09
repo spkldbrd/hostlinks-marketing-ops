@@ -498,6 +498,8 @@ class HMO_Shortcodes {
 			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
 			'nonce'        => wp_create_nonce( 'hmo_maps_lookup' ),
 			'hasGoogleKey' => ! empty( $google_api_key ),
+			'eventId'      => intval( $_GET['hmo_eid'] ?? 0 ),
+			'eventName'    => sanitize_text_field( $_GET['hmo_ename'] ?? '' ),
 		) );
 		wp_enqueue_script( 'hmo-maps-tool' );
 

@@ -56,6 +56,20 @@
 	opacity: 1;
 }
 
+/* Event context badge in Maps header bar */
+.hmo-maps-event-badge {
+	font-size: 0.8rem;
+	font-weight: 500;
+	color: hsla(0 0% 100% / 0.75);
+	background: hsla(0 0% 100% / 0.15);
+	border: 1px solid hsla(0 0% 100% / 0.25);
+	border-radius: 20px;
+	padding: 2px 10px;
+	white-space: nowrap;
+	margin-left: 4px;
+	flex-shrink: 0;
+}
+
 /* Close-tab button ? matches header nav link appearance */
 .hmo-maps-close-btn {
 	background: none;

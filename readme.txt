@@ -129,6 +129,9 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.11.2 =
+* Maps tool: event context awareness — when Maps is opened from an event's Tools card, the event name and ID are passed as URL params, displayed as a pill badge in the Maps header bar, and made available in hmoMapsConfig.eventId / eventName for future features.
+
 = 1.11.1 =
 * Maps tool: replaced header nav bar with isolated close-tab UX — shows "× Close Tab" (calls window.close()) when opened as a new tab, falls back to "← Return to Hostlinks" when navigated to directly. Removes Task Management and Reports links from Maps header to keep the tool focused and users anchored to their event.
 

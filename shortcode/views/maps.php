@@ -13,6 +13,7 @@ $_maps_heading    = get_option( 'hmo_maps_page_heading', '' );
 if ( empty( trim( $_maps_heading ) ) ) {
 	$_maps_heading = 'Marketing Maps';
 }
+$_maps_event_name = sanitize_text_field( $_GET['hmo_ename'] ?? '' );
 ?>
 
 <div class="hostlinks-page hmo-frontend hmo-maps-page">
@@ -20,6 +21,9 @@ if ( empty( trim( $_maps_heading ) ) ) {
 <!-- Blue header bar -->
 <div class="hmo-dashboard-header">
 	<span class="hmo-dashboard-header__title"><?php echo esc_html( $_maps_heading ); ?></span>
+	<?php if ( $_maps_event_name ) : ?>
+	<span class="hmo-maps-event-badge"><?php echo esc_html( $_maps_event_name ); ?></span>
+	<?php endif; ?>
 	<nav class="hmo-header-nav">
 		<!-- Fallback: shown when tab was not opened fresh (direct URL / bookmarked) -->
 		<a href="<?php echo esc_url( Hostlinks_Page_URLs::get_upcoming() ); ?>"
