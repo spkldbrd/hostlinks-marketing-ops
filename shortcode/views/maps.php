@@ -100,9 +100,14 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 	<div id="hmo-maps-results" class="hmo-maps-results" style="display:none;">
 		<div class="hmo-maps-results-header">
 			<h3 class="hmo-maps-results-title">County Detail</h3>
-			<button type="button" id="hmo-maps-export-btn" class="hmo-maps-export-btn">
-				&#8659; Download CSV
-			</button>
+			<div class="hmo-maps-results-actions">
+				<button type="button" id="hmo-maps-copy-btn" class="hmo-maps-copy-btn">
+					&#9112; Copy List
+				</button>
+				<button type="button" id="hmo-maps-export-btn" class="hmo-maps-export-btn">
+					&#8659; Download CSV
+				</button>
+			</div>
 		</div>
 		<div class="hmo-maps-table-wrap">
 			<table class="hmo-maps-table" id="hmo-maps-table">

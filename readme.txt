@@ -129,6 +129,9 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.10.5 =
+* Maps tool: added "Copy List" button that copies all result counties to clipboard as plain text in "City, ST" format (one per line, county suffixes stripped).
+
 = 1.10.4 =
 * Maps tool: added display_maps_tool to SHORTCODES registry so frontend.css (blue header bar and all HMO styles) is properly enqueued on the Maps page.
 

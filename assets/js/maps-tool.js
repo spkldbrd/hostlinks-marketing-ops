@@ -11,6 +11,7 @@
 	// ── DOM refs ─────────────────────────────────────────────────────────
 	var btnLookup = document.getElementById('hmo-maps-lookup-btn');
 	var btnExport = document.getElementById('hmo-maps-export-btn');
+	var btnCopy   = document.getElementById('hmo-maps-copy-btn');
 	var inputLoc  = document.getElementById('hmo-maps-location');
 	var sliderRad = document.getElementById('hmo-maps-radius');
 	var radVal    = document.getElementById('hmo-maps-radius-val');
@@ -115,6 +116,51 @@
 				el === th ? (sortDir === 1 ? '\u2191' : '\u2193') : '\u2195';
 		});
 		renderTable();
+	});
+
+	// ── Copy List ─────────────────────────────────────────────────────────
+	// Copies results as plain text: "Denver, CO" (one per line, suffix stripped)
+	btnCopy.addEventListener('click', function() {
+		if (!currentData.length) return;
+
+		// Strip common US county-name suffixes so "Denver County" → "Denver"
+		var suffixes = [
+			' County', ' Parish', ' Borough', ' Census Area',
+			' Municipality', ' City and Borough', ' Municipio'
+		];
+		function stripSuffix(name) {
+			for (var i = 0; i < suffixes.length; i++) {
+				if (name.slice(-suffixes[i].length) === suffixes[i]) {
+					return name.slice(0, -suffixes[i].length);
+				}
+			}
+			return name;
+		}
+
+		var text = currentData.map(function(c) {
+			return stripSuffix(c.county_name) + ', ' + c.state_abbr;
+		}).join('\n');
+
+		var btn = this;
+		navigator.clipboard.writeText(text).then(function() {
+			btn.textContent = '\u2713 Copied!';
+			btn.classList.add('hmo-maps-copy-btn--done');
+			setTimeout(function() {
+				btn.innerHTML = '&#9112; Copy List';
+				btn.classList.remove('hmo-maps-copy-btn--done');
+			}, 2000);
+		}).catch(function() {
+			// Fallback for older browsers
+			var ta = document.createElement('textarea');
+			ta.value = text;
+			ta.style.position = 'fixed'; ta.style.opacity = '0';
+			document.body.appendChild(ta);
+			ta.select();
+			document.execCommand('copy');
+			document.body.removeChild(ta);
+			btn.textContent = '\u2713 Copied!';
+			setTimeout(function() { btn.innerHTML = '&#9112; Copy List'; }, 2000);
+		});
 	});
 
 	// ── CSV Export ────────────────────────────────────────────────────────

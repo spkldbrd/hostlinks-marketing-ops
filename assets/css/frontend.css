@@ -3315,8 +3315,23 @@
 
 /* ── Results Table ────────────────────────────────────────── */
 .hmo-maps-results {}
-.hmo-maps-results-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.hmo-maps-results-title  { margin: 0; font-size: 1rem; font-weight: 700; color: hsl(215 25% 22%); }
+.hmo-maps-results-header  { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.hmo-maps-results-title   { margin: 0; font-size: 1rem; font-weight: 700; color: hsl(215 25% 22%); }
+.hmo-maps-results-actions { display: flex; gap: 8px; align-items: center; }
+.hmo-maps-copy-btn {
+	font-size: 0.82rem;
+	padding: 5px 14px;
+	background: hsl(215 50% 50%);
+	color: #fff;
+	border: none;
+	border-radius: 5px;
+	cursor: pointer;
+	font-weight: 600;
+	transition: background .15s;
+}
+.hmo-maps-copy-btn:hover         { background: hsl(215 50% 42%); }
+.hmo-maps-copy-btn--done         { background: hsl(145 45% 40%); }
+.hmo-maps-copy-btn--done:hover   { background: hsl(145 45% 40%); }
 .hmo-maps-export-btn {
 	font-size: 0.82rem;
 	padding: 5px 14px;
