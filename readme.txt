@@ -129,6 +129,9 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.11.0 =
+* Maps tool: full layout redesign — two-column layout (controls left, stats/actions right), right column always visible with greyed pending state until first lookup, stat cards (Counties + coming soon placeholder), Copy List and Download CSV action rows moved into right column below cards, Lookup button smaller and left-aligned, radius slider at 70% width, action rows right-aligned with icon-text-button order, Copy List button fixed width during text swap.
+
 = 1.10.8 =
 * Maps tool: reverted PlaceAutocompleteElement attempt — it is a web component that cannot wrap an existing input, so it silently broke autocomplete. Back to legacy Autocomplete class which remains fully functional.
 

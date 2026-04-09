@@ -9,18 +9,18 @@
 	var useGoogle = hmoMapsConfig.hasGoogleKey;
 
 	// ── DOM refs ─────────────────────────────────────────────────────────
-	var btnLookup = document.getElementById('hmo-maps-lookup-btn');
-	var btnExport = document.getElementById('hmo-maps-export-btn');
-	var btnCopy   = document.getElementById('hmo-maps-copy-btn');
-	var inputLoc  = document.getElementById('hmo-maps-location');
-	var sliderRad = document.getElementById('hmo-maps-radius');
-	var radVal    = document.getElementById('hmo-maps-radius-val');
-	var errBox    = document.getElementById('hmo-maps-error');
-	var spinner   = document.getElementById('hmo-maps-spinner');
-	var summary   = document.getElementById('hmo-maps-summary');
-	var results   = document.getElementById('hmo-maps-results');
-	var tbody     = document.getElementById('hmo-maps-tbody');
-	var acList    = document.getElementById('hmo-maps-suggestions');
+	var btnLookup  = document.getElementById('hmo-maps-lookup-btn');
+	var btnExport  = document.getElementById('hmo-maps-export-btn');
+	var btnCopy    = document.getElementById('hmo-maps-copy-btn');
+	var inputLoc   = document.getElementById('hmo-maps-location');
+	var sliderRad  = document.getElementById('hmo-maps-radius');
+	var radVal     = document.getElementById('hmo-maps-radius-val');
+	var errBox     = document.getElementById('hmo-maps-error');
+	var spinner    = document.getElementById('hmo-maps-spinner');
+	var rightPanel = document.getElementById('hmo-maps-right');
+	var results    = document.getElementById('hmo-maps-results');
+	var tbody      = document.getElementById('hmo-maps-tbody');
+	var acList     = document.getElementById('hmo-maps-suggestions');
 
 	if (!btnLookup || !inputLoc) { return; }
 
@@ -89,12 +89,11 @@
 	function renderResults(data) {
 		currentData = data.counties || [];
 
-		document.getElementById('hmo-maps-total-pop').textContent    = formatNum(data.total_pop);
-		document.getElementById('hmo-maps-total-netmig').textContent = formatNetmig(data.total_netmig);
 		document.getElementById('hmo-maps-county-count').textContent = data.count.toLocaleString();
 		document.getElementById('hmo-maps-summary-meta').textContent =
 			data.location + ' \u00b7 ' + data.radius + '-mile radius';
-		summary.style.display = '';
+
+		rightPanel.classList.remove('hmo-maps-right--pending');
 		results.style.display = '';
 		renderTable();
 	}
@@ -343,7 +342,7 @@
 
 	// ── Helpers ───────────────────────────────────────────────────────────
 	function clearResults() {
-		summary.style.display = 'none';
+		rightPanel.classList.add('hmo-maps-right--pending');
 		results.style.display = 'none';
 		tbody.innerHTML = '';
 		currentData = [];
