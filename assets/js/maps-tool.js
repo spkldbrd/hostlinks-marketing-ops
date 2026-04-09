@@ -142,25 +142,34 @@
 		}).join('\n');
 
 		var btn = this;
-		navigator.clipboard.writeText(text).then(function() {
+
+		function markCopied() {
 			btn.textContent = '\u2713 Copied!';
 			btn.classList.add('hmo-maps-copy-btn--done');
 			setTimeout(function() {
 				btn.innerHTML = '&#9112; Copy List';
 				btn.classList.remove('hmo-maps-copy-btn--done');
 			}, 2000);
-		}).catch(function() {
-			// Fallback for older browsers
+		}
+
+		function execFallback() {
 			var ta = document.createElement('textarea');
 			ta.value = text;
-			ta.style.position = 'fixed'; ta.style.opacity = '0';
+			ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
 			document.body.appendChild(ta);
-			ta.select();
-			document.execCommand('copy');
+			ta.focus(); ta.select();
+			try { document.execCommand('copy'); } catch(e) {}
 			document.body.removeChild(ta);
-			btn.textContent = '\u2713 Copied!';
-			setTimeout(function() { btn.innerHTML = '&#9112; Copy List'; }, 2000);
-		});
+			markCopied();
+		}
+
+		// navigator.clipboard only exists in secure contexts (HTTPS).
+		// Fall back to execCommand for HTTP sites.
+		if (navigator.clipboard && navigator.clipboard.writeText) {
+			navigator.clipboard.writeText(text).then(markCopied).catch(execFallback);
+		} else {
+			execFallback();
+		}
 	});
 
 	// ── CSV Export ────────────────────────────────────────────────────────
@@ -190,20 +199,45 @@
 	// ════════════════════════════════════════════════════════════════════
 
 	function initGoogleAutocomplete() {
-		var ac = new google.maps.places.Autocomplete(inputLoc, {
-			types:                ['(cities)'],
-			componentRestrictions: { country: 'us' },
-			fields:               ['geometry', 'name', 'address_components']
-		});
-		if (acList) acList.style.display = 'none';
+		// Use PlaceAutocompleteElement if available (new API),
+		// otherwise fall back to the legacy Autocomplete class.
+		if (
+			google.maps.places.PlaceAutocompleteElement &&
+			typeof google.maps.places.PlaceAutocompleteElement === 'function'
+		) {
+			// New API — inject a <gmp-placeautocomplete> element that wraps our input
+			var pac = new google.maps.places.PlaceAutocompleteElement({
+				inputElement: inputLoc,
+				componentRestrictions: { country: 'us' },
+				types: ['(cities)']
+			});
+			if (acList) acList.style.display = 'none';
 
-		ac.addListener('place_changed', function() {
-			var place = ac.getPlace();
-			if (!place.geometry || !place.geometry.location) { return; }
-			pinnedLat = place.geometry.location.lat();
-			pinnedLng = place.geometry.location.lng();
-			runLookup();
-		});
+			pac.addEventListener('gmp-placeselect', function(e) {
+				var place = e.place;
+				place.fetchFields({ fields: ['location'] }).then(function() {
+					pinnedLat = place.location.lat();
+					pinnedLng = place.location.lng();
+					runLookup();
+				});
+			});
+		} else {
+			// Legacy Autocomplete (still functional, just deprecated for new accounts)
+			var ac = new google.maps.places.Autocomplete(inputLoc, {
+				types:                ['(cities)'],
+				componentRestrictions: { country: 'us' },
+				fields:               ['geometry', 'name', 'address_components']
+			});
+			if (acList) acList.style.display = 'none';
+
+			ac.addListener('place_changed', function() {
+				var place = ac.getPlace();
+				if (!place.geometry || !place.geometry.location) { return; }
+				pinnedLat = place.geometry.location.lat();
+				pinnedLng = place.geometry.location.lng();
+				runLookup();
+			});
+		}
 
 		inputLoc.addEventListener('input', function() {
 			pinnedLat = null;

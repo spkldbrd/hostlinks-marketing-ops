@@ -129,6 +129,10 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.10.6 =
+* Maps tool: fixed Copy List button on HTTP sites — navigator.clipboard is only available on HTTPS; now falls back to execCommand copy before attempting the Clipboard API.
+* Maps tool: updated Google Places autocomplete to use PlaceAutocompleteElement (new API) with legacy Autocomplete as fallback, eliminating the deprecation console warning.
+
 = 1.10.5 =
 * Maps tool: added "Copy List" button that copies all result counties to clipboard as plain text in "City, ST" format (one per line, county suffixes stripped).
 
