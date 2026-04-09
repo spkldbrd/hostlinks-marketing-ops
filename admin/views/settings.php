@@ -37,7 +37,8 @@ if ( isset( $_POST['hmo_save_page_urls'] ) ) {
 		sanitize_text_field( $_POST['hmo_url_my_classes']         ?? '' ),
 		sanitize_text_field( $_POST['hmo_url_event_detail']       ?? '' ),
 		sanitize_text_field( $_POST['hmo_url_task_editor']        ?? '' ),
-		sanitize_text_field( $_POST['hmo_url_event_report']       ?? '' )
+		sanitize_text_field( $_POST['hmo_url_event_report']       ?? '' ),
+		sanitize_text_field( $_POST['hmo_url_maps_tool']          ?? '' )
 	);
 	$notice = '<div class="notice notice-success is-dismissible"><p>Page links saved.</p></div>';
 }
@@ -802,6 +803,7 @@ $tabs = array(
 			'event_detail'       => array( 'label' => 'Event Detail',           'shortcode' => '[hmo_event_detail]',       'field' => 'hmo_url_event_detail' ),
 			'task_editor'        => array( 'label' => 'Task Template Editor',   'shortcode' => '[hmo_task_editor]',        'field' => 'hmo_url_task_editor' ),
 			'event_report'       => array( 'label' => 'Event Journey Report',   'shortcode' => '[hmo_event_report]',       'field' => 'hmo_url_event_report' ),
+			'maps_tool'          => array( 'label' => 'Maps Tool',               'shortcode' => '[display_maps_tool]',      'field' => 'hmo_url_maps_tool' ),
 		);
 		$source_labels = array(
 			'override' => '<span style="color:#007017;">&#10003; Manual override</span>',
@@ -1842,6 +1844,27 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 ?>
 
 <h2 style="margin-top:0;">Maps Tool Settings</h2>
+
+<div style="background:hsl(199 60% 96%);border:1px solid hsl(199 50% 78%);border-radius:7px;padding:14px 18px;margin-bottom:22px;display:flex;align-items:flex-start;gap:14px;">
+	<span style="font-size:1.4rem;line-height:1;margin-top:2px;">&#128506;</span>
+	<div>
+		<strong>Shortcode:</strong> <code>[display_maps_tool]</code><br>
+		<span style="font-size:0.88rem;color:hsl(215 20% 38%);">
+			Place this shortcode on any WordPress page to display the Maps radius-lookup tool.
+			Only Hostlinks users with access will see the tool; others receive an &ldquo;Access Denied&rdquo; message.
+		</span>
+		<?php
+		$maps_page_url = HMO_Page_URLs::get_maps_tool();
+		if ( $maps_page_url ) : ?>
+		<br><a href="<?php echo esc_url( $maps_page_url ); ?>" target="_blank" style="font-size:0.88rem;">
+			&#8599; Open Maps Tool page
+		</a>
+		<?php else : ?>
+		<br><span style="font-size:0.82rem;color:hsl(0 60% 45%);">Page URL not set — add it in the <a href="<?php echo esc_url( add_query_arg( 'tab', 'page-links', menu_page_url( 'hostlinks-marketing-ops', false ) ) ); ?>">Page Links</a> tab.</span>
+		<?php endif; ?>
+	</div>
+</div>
+
 <p>
 	Configure the radius-lookup tool and load the geographic and demographic data into the database.
 	The tool uses the bundled Gazetteer and Census PEP data files — no live API calls are needed for initialization or stats.

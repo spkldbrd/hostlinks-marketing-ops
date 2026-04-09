@@ -42,6 +42,10 @@ class HMO_Page_URLs {
 		return self::resolve( 'event_report', 'hmo_event_report', '' );
 	}
 
+	public static function get_maps_tool(): string {
+		return self::resolve( 'maps_tool', 'display_maps_tool', '' );
+	}
+
 	// ── Settings helpers ───────────────────────────────────────────────────────
 
 	public static function get_overrides(): array {
@@ -52,10 +56,11 @@ class HMO_Page_URLs {
 			'event_detail'       => '',
 			'task_editor'        => '',
 			'event_report'       => '',
+			'maps_tool'          => '',
 		) );
 	}
 
-	public static function save_overrides( string $dashboard_selector = '', string $dashboard = '', string $my_classes = '', string $event_detail = '', string $task_editor = '', string $event_report = '' ): void {
+	public static function save_overrides( string $dashboard_selector = '', string $dashboard = '', string $my_classes = '', string $event_detail = '', string $task_editor = '', string $event_report = '', string $maps_tool = '' ): void {
 		update_option( self::OPTION_KEY, array(
 			'dashboard_selector' => esc_url_raw( trim( $dashboard_selector ) ),
 			'dashboard'          => esc_url_raw( trim( $dashboard ) ),
@@ -63,6 +68,7 @@ class HMO_Page_URLs {
 			'event_detail'       => esc_url_raw( trim( $event_detail ) ),
 			'task_editor'        => esc_url_raw( trim( $task_editor ) ),
 			'event_report'       => esc_url_raw( trim( $event_report ) ),
+			'maps_tool'          => esc_url_raw( trim( $maps_tool ) ),
 		) );
 		self::clear_cache();
 	}
@@ -76,6 +82,7 @@ class HMO_Page_URLs {
 		delete_transient( 'hmo_page_url_event_detail' );
 		delete_transient( 'hmo_page_url_task_editor' );
 		delete_transient( 'hmo_page_url_event_report' );
+		delete_transient( 'hmo_page_url_maps_tool' );
 	}
 
 	// ── Detection status (used by the settings UI) ─────────────────────────────
@@ -92,6 +99,7 @@ class HMO_Page_URLs {
 			'event_detail'       => 'hmo_event_detail',
 			'task_editor'        => 'hmo_task_editor',
 			'event_report'       => 'hmo_event_report',
+			'maps_tool'          => 'display_maps_tool',
 		);
 
 		$status = array();
