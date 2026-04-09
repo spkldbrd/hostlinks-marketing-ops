@@ -247,15 +247,6 @@ class HMO_Maps_Service {
 		// Ensure tables exist (triggers on first load after plugin update).
 		HMO_Maps_DB::create_tables();
 
-		// #region agent log
-		global $wpdb;
-		$_dbg_log = WP_CONTENT_DIR . '/../debug-cbac62.log';
-		$_dbg_centroid_count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}hmo_maps_county_centroids" );
-		$_dbg_stats_count    = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}hmo_maps_county_stats" );
-		$_dbg_payload = json_encode(['sessionId'=>'cbac62','location'=>'maps-service.php:ajax_lookup','message'=>'SERVER_LOOKUP_CALLED','hypothesisId'=>'E','timestamp'=>round(microtime(true)*1000),'data'=>['location'=>sanitize_text_field($_POST['location']??''),'radius'=>intval($_POST['radius']??0),'lat'=>floatval($_POST['lat']??0),'lng'=>floatval($_POST['lng']??0),'nonce_ok'=>(bool)wp_verify_nonce($_POST['nonce']??'','hmo_maps_lookup'),'centroid_rows'=>$_dbg_centroid_count,'stats_rows'=>$_dbg_stats_count]]);
-		file_put_contents( $_dbg_log, $_dbg_payload . "\n", FILE_APPEND | LOCK_EX );
-		// #endregion
-
 		$location = sanitize_text_field( $_POST['location'] ?? '' );
 		$radius   = max( 25, min( 500, (int) ( $_POST['radius'] ?? 100 ) ) );
 

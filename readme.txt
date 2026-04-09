@@ -129,6 +129,18 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.10.1 =
+* Maps tool: fixed inline JavaScript syntax error caused by WordPress the_content filter entity-encoding && operators — moved all JS to external enqueued file (assets/js/maps-tool.js).
+* Maps tool: switched city autocomplete from Nominatim to Google Places API for fast, accurate partial-text matching; Google Maps API key field added to Maps settings tab.
+* Maps tool: Nominatim autocomplete retained as automatic fallback when no Google key is configured.
+* Cleaned up all debug instrumentation and temporary debug files from v1.10.0 investigation.
+
+= 1.10.0 =
+* New Maps tool ([display_maps_tool]): radius-based US population and net migration lookup using local MySQL cache.
+* Admin settings tab for Maps: Initialize Centroids, Sync Stats Now, Census API key, sync frequency.
+* Blue header bar with nav links on Maps tool page.
+* Maps tool listed in Page Links settings.
+
 = 1.6.7 =
 * Refactored event notes to store in hmo_event_ops.event_note column (proper relational storage).
 * upsert_event_ops() now returns bool so callers can detect DB write failures.

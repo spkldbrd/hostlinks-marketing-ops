@@ -128,6 +128,7 @@ if ( isset( $_POST['hmo_save_tools'] ) ) {
 if ( isset( $_POST['hmo_save_maps'] ) ) {
 	check_admin_referer( 'hmo_save_maps' );
 	update_option( 'hmo_maps_census_api_key',  sanitize_text_field( $_POST['hmo_maps_census_api_key'] ?? '' ) );
+	update_option( 'hmo_maps_google_api_key',  sanitize_text_field( $_POST['hmo_maps_google_api_key'] ?? '' ) );
 	update_option( 'hmo_maps_sync_frequency',  sanitize_key( $_POST['hmo_maps_sync_frequency'] ?? 'monthly' ) );
 	$notice = '<div class="notice notice-success is-dismissible"><p>Maps settings saved.</p></div>';
 }
@@ -1835,8 +1836,9 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
      TAB: MAPS
      ====================================================================== -->
 <?php elseif ( $active_tab === 'maps' ) :
-	$maps_api_key   = get_option( 'hmo_maps_census_api_key', '' );
-	$maps_frequency = get_option( 'hmo_maps_sync_frequency', 'monthly' );
+	$maps_api_key        = get_option( 'hmo_maps_census_api_key', '' );
+	$maps_google_api_key = get_option( 'hmo_maps_google_api_key', '' );
+	$maps_frequency      = get_option( 'hmo_maps_sync_frequency', 'monthly' );
 	$maps_init_date = get_option( 'hmo_maps_centroids_initialized', '' );
 	$maps_sync_date = get_option( 'hmo_maps_last_sync', '' );
 	$centroid_count = HMO_Maps_DB::centroids_count();
@@ -1868,12 +1870,29 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 <p>
 	Configure the radius-lookup tool and load the geographic and demographic data into the database.
 	The tool uses the bundled Gazetteer and Census PEP data files — no live API calls are needed for initialization or stats.
-	Geocoding (converting a city+state to coordinates) uses the free Nominatim (OpenStreetMap) service — no API key required.
+	City autocomplete uses <strong>Google Places API</strong> (paste your key below). The Lookup button also works without autocomplete
+	by falling back to OpenStreetMap geocoding.
 </p>
 
 <form method="post" action="">
 	<?php wp_nonce_field( 'hmo_save_maps' ); ?>
 	<table class="form-table" role="presentation">
+		<tr>
+			<th><label for="hmo_maps_google_api_key">Google Maps API Key</label></th>
+			<td>
+				<input type="text" id="hmo_maps_google_api_key" name="hmo_maps_google_api_key"
+					value="<?php echo esc_attr( $maps_google_api_key ); ?>" class="regular-text">
+				<p class="description">
+					Required for city autocomplete. Paste your Google Maps Platform key here —
+					enable <strong>Places API</strong> in your Google Cloud Console.
+					<?php if ( empty( $maps_google_api_key ) ) : ?>
+					<br><span style="color:#d63638;">&#9888; No key set — autocomplete will fall back to basic search.</span>
+					<?php else : ?>
+					<br><span style="color:#00a32a;">&#10003; Key saved.</span>
+					<?php endif; ?>
+				</p>
+			</td>
+		</tr>
 		<tr>
 			<th><label for="hmo_maps_census_api_key">Census API Key</label></th>
 			<td>

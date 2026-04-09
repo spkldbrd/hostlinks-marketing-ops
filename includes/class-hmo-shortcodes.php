@@ -468,9 +468,37 @@ class HMO_Shortcodes {
 		if ( ! $this->access->can_view_shortcode( 'display_maps_tool' ) ) {
 			return '<p class="hmo-access-denied">Access denied. Please log in with a Hostlinks account to use this tool.</p>';
 		}
+
+		// Enqueue the maps JS as an external file so it bypasses the
+		// the_content filter pipeline (which would entity-encode && operators).
+		$google_api_key = get_option( 'hmo_maps_google_api_key', '' );
+
+		if ( $google_api_key ) {
+			// Load Google Places API — the callback initialises our autocomplete.
+			wp_enqueue_script(
+				'google-places-api',
+				'https://maps.googleapis.com/maps/api/js?key=' . urlencode( $google_api_key ) . '&libraries=places&loading=async',
+				array(),
+				null,
+				true
+			);
+		}
+
+		wp_register_script(
+			'hmo-maps-tool',
+			HMO_PLUGIN_URL . 'assets/js/maps-tool.js',
+			$google_api_key ? array( 'google-places-api' ) : array(),
+			HMO_VERSION,
+			true // load in footer
+		);
+		wp_localize_script( 'hmo-maps-tool', 'hmoMapsConfig', array(
+			'ajaxUrl'      => admin_url( 'admin-ajax.php' ),
+			'nonce'        => wp_create_nonce( 'hmo_maps_lookup' ),
+			'hasGoogleKey' => ! empty( $google_api_key ),
+		) );
+		wp_enqueue_script( 'hmo-maps-tool' );
+
 		ob_start();
-		$ajax_url = admin_url( 'admin-ajax.php' );
-		$nonce    = wp_create_nonce( 'hmo_maps_lookup' );
 		include HMO_PLUGIN_DIR . 'shortcode/views/maps.php';
 		return ob_get_clean();
 	}
