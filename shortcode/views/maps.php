@@ -127,6 +127,12 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 	var ajaxUrl = <?php echo wp_json_encode( $ajax_url ); ?>;
 	var nonce   = <?php echo wp_json_encode( $nonce ); ?>;
 
+	// #region agent log
+	var _DBG = 'http://127.0.0.1:7792/ingest/c07dce8a-1459-4213-b22b-d2d3f2cddd04';
+	var _SID = 'cbac62';
+	function _log(msg, data, hyp) { try { fetch(_DBG,{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':_SID},body:JSON.stringify({sessionId:_SID,location:'maps.php:JS',message:msg,data:data||{},hypothesisId:hyp||'',timestamp:Date.now()})}).catch(function(){}); } catch(e){} }
+	// #endregion
+
 	// ── DOM refs ────────────────────────────────────────────────────────
 	var btnLookup = document.getElementById('hmo-maps-lookup-btn');
 	var btnExport = document.getElementById('hmo-maps-export-btn');
@@ -139,6 +145,13 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 	var results   = document.getElementById('hmo-maps-results');
 	var tbody     = document.getElementById('hmo-maps-tbody');
 	var acList    = document.getElementById('hmo-maps-suggestions');
+
+	// #region agent log
+	_log('SCRIPT_INIT', {
+		btnLookup: !!btnLookup, inputLoc: !!inputLoc, acList: !!acList,
+		ajaxUrl: ajaxUrl, nonceLen: (nonce||'').length
+	}, 'A-C');
+	// #endregion
 
 	// ── State ───────────────────────────────────────────────────────────
 	var currentData = [];
@@ -176,15 +189,25 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 			fd.append('lng', pinnedLng);
 		}
 
+		// #region agent log
+		_log('RUN_LOOKUP', {location: location, radius: sliderRad.value, pinnedLat: pinnedLat, pinnedLng: pinnedLng, ajaxUrl: ajaxUrl}, 'E-F');
+		// #endregion
+
 		fetch(ajaxUrl, { method: 'POST', body: fd })
 			.then(function(r) { return r.json(); })
 			.then(function(res) {
 				showSpinner(false);
+				// #region agent log
+				_log('AJAX_RESPONSE', {success: res.success, dataKeys: res.data ? Object.keys(res.data) : null, error: res.success ? null : res.data, count: res.data && res.data.count}, 'E-F');
+				// #endregion
 				if (!res.success) { showError(res.data || 'An error occurred.'); return; }
 				renderResults(res.data);
 			})
-			.catch(function() {
+			.catch(function(err) {
 				showSpinner(false);
+				// #region agent log
+				_log('AJAX_ERROR', {err: String(err)}, 'E');
+				// #endregion
 				showError('Request failed. Please try again.');
 			});
 	}
@@ -290,18 +313,25 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 		pinnedLng = null;
 
 		var q = this.value.trim();
+		// #region agent log
+		_log('INPUT_EVENT', {q: q, len: q.length}, 'D');
+		// #endregion
 		clearTimeout(acTimer);
 		if (q.length < 2) { acHide(); return; }
 
 		acTimer = setTimeout(function() {
-			fetch(
-				'https://nominatim.openstreetmap.org/search' +
+			var nomUrl = 'https://nominatim.openstreetmap.org/search' +
 				'?q=' + encodeURIComponent(q) +
-				'&format=json&limit=7&countrycodes=us&addressdetails=1',
-				{ headers: { 'User-Agent': 'HostlinksMarketingOps/1.0' } }
-			)
+				'&format=json&limit=7&countrycodes=us&addressdetails=1';
+			// #region agent log
+			_log('NOMINATIM_FETCH_START', {url: nomUrl}, 'B');
+			// #endregion
+			fetch(nomUrl, { headers: { 'User-Agent': 'HostlinksMarketingOps/1.0' } })
 			.then(function(r) { return r.json(); })
 			.then(function(data) {
+				// #region agent log
+				_log('NOMINATIM_RESPONSE', {count: (data||[]).length, first: data && data[0] ? {name:data[0].display_name,lat:data[0].lat,lon:data[0].lon,addrtype:data[0].addresstype} : null}, 'B-D');
+				// #endregion
 				var seen  = {};
 				var items = [];
 				(data || []).forEach(function(item) {
@@ -316,9 +346,17 @@ $_maps_is_mgr     = current_user_can( 'manage_options' ) || HMO_Access_Service::
 					seen[label] = true;
 					items.push({ label: label, lat: parseFloat(item.lat), lng: parseFloat(item.lon) });
 				});
+				// #region agent log
+				_log('AC_ITEMS_BUILT', {count: items.length, items: items.slice(0,3)}, 'D');
+				// #endregion
 				acShow(items);
 			})
-			.catch(function() { acHide(); });
+			.catch(function(err) {
+				// #region agent log
+				_log('NOMINATIM_ERROR', {err: String(err)}, 'B');
+				// #endregion
+				acHide();
+			});
 		}, 320);
 	});
 
