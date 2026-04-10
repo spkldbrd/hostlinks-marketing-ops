@@ -129,10 +129,12 @@ if ( isset( $_POST['hmo_save_tools'] ) ) {
 // Maps settings save
 if ( isset( $_POST['hmo_save_maps'] ) ) {
 	check_admin_referer( 'hmo_save_maps' );
-	update_option( 'hmo_maps_census_api_key',  sanitize_text_field( $_POST['hmo_maps_census_api_key'] ?? '' ) );
-	update_option( 'hmo_maps_google_api_key',  sanitize_text_field( $_POST['hmo_maps_google_api_key'] ?? '' ) );
-	update_option( 'hmo_maps_sync_frequency',  sanitize_key( $_POST['hmo_maps_sync_frequency'] ?? 'monthly' ) );
-	update_option( 'hmo_maps_page_heading',    sanitize_text_field( $_POST['hmo_maps_page_heading'] ?? '' ) );
+	update_option( 'hmo_maps_census_api_key',    sanitize_text_field( $_POST['hmo_maps_census_api_key'] ?? '' ) );
+	update_option( 'hmo_maps_google_api_key',    sanitize_text_field( $_POST['hmo_maps_google_api_key'] ?? '' ) );
+	update_option( 'hmo_maps_sync_frequency',    sanitize_key( $_POST['hmo_maps_sync_frequency'] ?? 'monthly' ) );
+	update_option( 'hmo_maps_page_heading',      sanitize_text_field( $_POST['hmo_maps_page_heading'] ?? '' ) );
+	update_option( 'hmo_maps_centroid_source',   in_array( $_POST['hmo_maps_centroid_source'] ?? '', array( 'geographic', 'population_weighted' ), true )
+		? $_POST['hmo_maps_centroid_source'] : 'geographic' );
 	$notice = '<div class="notice notice-success is-dismissible"><p>Maps settings saved.</p></div>';
 }
 
@@ -1857,14 +1859,15 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
      TAB: MAPS
      ====================================================================== -->
 <?php elseif ( $active_tab === 'maps' ) :
-	$maps_api_key        = get_option( 'hmo_maps_census_api_key', '' );
-	$maps_google_api_key = get_option( 'hmo_maps_google_api_key', '' );
-	$maps_frequency      = get_option( 'hmo_maps_sync_frequency', 'monthly' );
-	$maps_page_heading   = get_option( 'hmo_maps_page_heading', '' );
-	$maps_init_date = get_option( 'hmo_maps_centroids_initialized', '' );
-	$maps_sync_date = get_option( 'hmo_maps_last_sync', '' );
-	$centroid_count = HMO_Maps_DB::centroids_count();
-	$stats_count    = HMO_Maps_DB::stats_count();
+	$maps_api_key          = get_option( 'hmo_maps_census_api_key', '' );
+	$maps_google_api_key   = get_option( 'hmo_maps_google_api_key', '' );
+	$maps_frequency        = get_option( 'hmo_maps_sync_frequency', 'monthly' );
+	$maps_page_heading     = get_option( 'hmo_maps_page_heading', '' );
+	$maps_centroid_source  = get_option( 'hmo_maps_centroid_source', 'geographic' );
+	$maps_init_date        = get_option( 'hmo_maps_centroids_initialized', '' );
+	$maps_sync_date        = get_option( 'hmo_maps_last_sync', '' );
+	$centroid_count        = HMO_Maps_DB::centroids_count();
+	$stats_count           = HMO_Maps_DB::stats_count();
 ?>
 
 <h2 style="margin-top:0;">Maps Tool Settings</h2>
@@ -1906,6 +1909,21 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 					value="<?php echo esc_attr( $maps_page_heading ); ?>" class="regular-text"
 					placeholder="Marketing Maps">
 				<p class="description">Text displayed in the blue header bar on the Maps tool page. Defaults to <strong>Marketing Maps</strong> if left blank.</p>
+			</td>
+		</tr>
+		<tr>
+			<th><label for="hmo_maps_centroid_source">Centroid Source</label></th>
+			<td>
+				<select id="hmo_maps_centroid_source" name="hmo_maps_centroid_source">
+					<option value="geographic"         <?php selected( $maps_centroid_source, 'geographic' ); ?>>Geographic (2024 Gazetteer — land-area center)</option>
+					<option value="population_weighted"<?php selected( $maps_centroid_source, 'population_weighted' ); ?>>Population-Weighted (2020 Census — where people live)</option>
+				</select>
+				<p class="description">
+					Controls which centroid is used when you click <strong>Initialize Centroids</strong>.<br>
+					<strong>Geographic</strong> uses the geographic center of each county's land area (2024 Census Gazetteer).<br>
+					<strong>Population-Weighted</strong> uses the center of where the county's population actually lives (2020 Census Centers of Population) — recommended for marketing reach analysis.<br>
+					After changing this setting, save and then click <strong>Initialize Centroids</strong> to reload the data.
+				</p>
 			</td>
 		</tr>
 		<tr>
@@ -1957,6 +1975,12 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 			<td>
 				<?php if ( $centroid_count > 0 ) : ?>
 					<span style="color:#007017;font-weight:600;">&#10003; <?php echo number_format( $centroid_count ); ?> counties loaded</span>
+					<?php
+					$_src_label = ( get_option( 'hmo_maps_centroid_source', 'geographic' ) === 'population_weighted' )
+						? 'Population-Weighted (2020 Census)'
+						: 'Geographic (2024 Gazetteer)';
+					?>
+					<br><small style="color:#555;">Source: <?php echo esc_html( $_src_label ); ?></small>
 					<?php if ( $maps_init_date ) : ?>
 					<br><small style="color:#888;">Last initialized: <?php echo esc_html( $maps_init_date ); ?></small>
 					<?php endif; ?>
@@ -1995,7 +2019,7 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 </p>
 
 <p class="description" style="margin-top:12px;">
-	<strong>Initialize Centroids</strong> — imports county geographic centers (~3,200 rows) from the bundled Gazetteer file. Run once; safe to re-run to refresh.<br>
+	<strong>Initialize Centroids</strong> — loads county centroids (~3,200 rows) using the <strong>Centroid Source</strong> selected above. Safe to re-run; switching sources requires re-running this.<br>
 	<strong>Sync Stats</strong> — imports 2025 population and net migration data from the bundled Census PEP file. Re-run whenever you update the data file.
 </p>
 
@@ -2037,8 +2061,36 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 	}
 
 	document.getElementById('hmo-maps-init-btn').addEventListener('click', function() {
-		runAction(this, document.getElementById('hmo-maps-init-status'),
-			'hmo_maps_init_centroids', initNonce, 'Initialize Centroids');
+		var source = (document.getElementById('hmo_maps_centroid_source') || {}).value || 'geographic';
+		var fd = new FormData();
+		fd.append('action', 'hmo_maps_init_centroids');
+		fd.append('_ajax_nonce', initNonce);
+		fd.append('source', source);
+		var btn = this;
+		var statusEl = document.getElementById('hmo-maps-init-status');
+		btn.disabled = true;
+		btn.textContent = '⏳ Running…';
+		statusEl.style.color = '#888';
+		statusEl.textContent = 'Processing — this may take a moment…';
+		fetch(ajaxUrl, { method: 'POST', body: fd })
+			.then(function(r) { return r.json(); })
+			.then(function(res) {
+				btn.disabled = false;
+				btn.textContent = '✓ Initialize Centroids';
+				if (res.success) {
+					statusEl.style.color = '#007017';
+					statusEl.textContent = 'Done! ' + res.data.rows.toLocaleString() + ' rows processed (' + (res.data.source === 'population_weighted' ? 'population-weighted' : 'geographic') + ').';
+				} else {
+					statusEl.style.color = '#d63638';
+					statusEl.textContent = 'Error: ' + (res.data || 'Unknown error.');
+				}
+			})
+			.catch(function() {
+				btn.disabled = false;
+				btn.textContent = '▶ Initialize Centroids';
+				statusEl.style.color = '#d63638';
+				statusEl.textContent = 'Request failed. Please try again.';
+			});
 	});
 
 	document.getElementById('hmo-maps-sync-btn').addEventListener('click', function() {

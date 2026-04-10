@@ -14,9 +14,24 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class HMO_Maps_Service {
 
-	const DATA_DIR = HMO_PLUGIN_DIR . 'assets/data/';
-	const GAZ_FILE = '2024_Gaz_counties_national.txt';
-	const POP_FILE = 'co-est2025-alldata.csv';
+	const DATA_DIR    = HMO_PLUGIN_DIR . 'assets/data/';
+	const GAZ_FILE    = '2024_Gaz_counties_national.txt';
+	const CENPOP_FILE = 'CenPop2020_Mean_CO.txt';
+	const POP_FILE    = 'co-est2025-alldata.csv';
+
+	/** Map of 2-digit state FIPS → 2-letter postal abbreviation. */
+	private static function state_fips_map(): array {
+		return array(
+			'01'=>'AL','02'=>'AK','04'=>'AZ','05'=>'AR','06'=>'CA','08'=>'CO','09'=>'CT',
+			'10'=>'DE','11'=>'DC','12'=>'FL','13'=>'GA','15'=>'HI','16'=>'ID','17'=>'IL',
+			'18'=>'IN','19'=>'IA','20'=>'KS','21'=>'KY','22'=>'LA','23'=>'ME','24'=>'MD',
+			'25'=>'MA','26'=>'MI','27'=>'MN','28'=>'MS','29'=>'MO','30'=>'MT','31'=>'NE',
+			'32'=>'NV','33'=>'NH','34'=>'NJ','35'=>'NM','36'=>'NY','37'=>'NC','38'=>'ND',
+			'39'=>'OH','40'=>'OK','41'=>'OR','42'=>'PA','44'=>'RI','45'=>'SC','46'=>'SD',
+			'47'=>'TN','48'=>'TX','49'=>'UT','50'=>'VT','51'=>'VA','53'=>'WA','54'=>'WV',
+			'55'=>'WI','56'=>'WY','60'=>'AS','66'=>'GU','69'=>'MP','72'=>'PR','78'=>'VI',
+		);
+	}
 
 	// ── AJAX registration ─────────────────────────────────────────────────────
 
@@ -30,8 +45,11 @@ class HMO_Maps_Service {
 	// ── Initialize Centroids ─────────────────────────────────────────────────
 
 	/**
-	 * Parse the Gazetteer TXT file and batch-upsert into hmo_maps_county_centroids.
-	 * Tab-delimited, header row on line 1. INTPTLONG header has trailing whitespace.
+	 * Parse a centroid file and batch-upsert into hmo_maps_county_centroids.
+	 *
+	 * Supports two sources selected by the `source` POST param:
+	 *   "geographic"         — 2024 Census Gazetteer (tab-delimited, INTPTLAT/INTPTLONG)
+	 *   "population_weighted"— 2020 Census Centers of Population (CSV, LATITUDE/LONGITUDE)
 	 */
 	public static function ajax_init_centroids(): void {
 		if ( ! current_user_can( 'manage_options' ) ) {
@@ -39,32 +57,54 @@ class HMO_Maps_Service {
 		}
 		check_ajax_referer( 'hmo_maps_init_centroids' );
 
-		// Ensure tables exist (in case the admin hasn't run the DB upgrade yet).
 		HMO_Maps_DB::create_tables();
-
 		@set_time_limit( 180 );
 
-		$file = self::DATA_DIR . self::GAZ_FILE;
-		if ( ! file_exists( $file ) ) {
-			wp_send_json_error( 'Gazetteer data file not found: ' . $file );
-		}
+		$source = sanitize_text_field( $_POST['source'] ?? 'geographic' );
+		$use_pop_weighted = ( $source === 'population_weighted' );
 
 		global $wpdb;
 		$table = $wpdb->prefix . 'hmo_maps_county_centroids';
 
-		$handle = fopen( $file, 'r' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
-		if ( ! $handle ) {
-			wp_send_json_error( 'Could not open Gazetteer file.' );
+		if ( $use_pop_weighted ) {
+			$inserted = self::import_cenpop_file( $table );
+		} else {
+			$inserted = self::import_gazetteer_file( $table );
 		}
 
-		// Read and normalise the header row (strip BOM + whitespace from every key).
+		if ( is_wp_error( $inserted ) ) {
+			wp_send_json_error( $inserted->get_error_message() );
+		}
+
+		update_option( 'hmo_maps_centroids_initialized', current_time( 'mysql' ) );
+		update_option( 'hmo_maps_centroid_source', $source );
+
+		wp_send_json_success( array( 'rows' => $inserted, 'source' => $source ) );
+	}
+
+	/**
+	 * Parse the 2024 Census Gazetteer TXT (tab-delimited).
+	 * Returns row count or WP_Error.
+	 */
+	private static function import_gazetteer_file( string $table ): int|\WP_Error {
+		global $wpdb;
+		$file = self::DATA_DIR . self::GAZ_FILE;
+		if ( ! file_exists( $file ) ) {
+			return new \WP_Error( 'missing_file', 'Gazetteer data file not found: ' . $file );
+		}
+
+		$handle = fopen( $file, 'r' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		if ( ! $handle ) {
+			return new \WP_Error( 'open_failed', 'Could not open Gazetteer file.' );
+		}
+
 		$raw_header = fgetcsv( $handle, 0, "\t" );
 		$header     = array_map( 'trim', $raw_header );
 		$col        = array_flip( $header );
 
 		if ( ! isset( $col['GEOID'], $col['INTPTLAT'], $col['INTPTLONG'], $col['USPS'], $col['NAME'] ) ) {
 			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
-			wp_send_json_error( 'Unexpected Gazetteer header. Found: ' . implode( ', ', $header ) );
+			return new \WP_Error( 'bad_header', 'Unexpected Gazetteer header. Found: ' . implode( ', ', $header ) );
 		}
 
 		$batch    = array();
@@ -93,7 +133,6 @@ class HMO_Maps_Service {
 				$batch     = array();
 			}
 		}
-
 		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
 
 		if ( ! empty( $batch ) ) {
@@ -101,9 +140,72 @@ class HMO_Maps_Service {
 			$inserted += count( $batch );
 		}
 
-		update_option( 'hmo_maps_centroids_initialized', current_time( 'mysql' ) );
+		return $inserted;
+	}
 
-		wp_send_json_success( array( 'rows' => $inserted ) );
+	/**
+	 * Parse the 2020 Census Centers of Population CSV.
+	 * Columns: STATEFP, COUNTYFP, COUNAME, STNAME, POPULATION, LATITUDE, LONGITUDE
+	 * Returns row count or WP_Error.
+	 */
+	private static function import_cenpop_file( string $table ): int|\WP_Error {
+		global $wpdb;
+		$file = self::DATA_DIR . self::CENPOP_FILE;
+		if ( ! file_exists( $file ) ) {
+			return new \WP_Error( 'missing_file', 'Population-weighted centroids file not found: ' . $file );
+		}
+
+		$handle = fopen( $file, 'r' ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen
+		if ( ! $handle ) {
+			return new \WP_Error( 'open_failed', 'Could not open CenPop file.' );
+		}
+
+		$raw_header = fgetcsv( $handle );
+		$header     = array_map( 'trim', $raw_header );
+		$col        = array_flip( $header );
+
+		if ( ! isset( $col['STATEFP'], $col['COUNTYFP'], $col['COUNAME'], $col['LATITUDE'], $col['LONGITUDE'] ) ) {
+			fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+			return new \WP_Error( 'bad_header', 'Unexpected CenPop header. Found: ' . implode( ', ', $header ) );
+		}
+
+		$fips_map = self::state_fips_map();
+		$batch    = array();
+		$inserted = 0;
+		$batch_sz = 500;
+
+		while ( ( $row = fgetcsv( $handle ) ) !== false ) {
+			if ( count( $row ) < count( $header ) ) {
+				continue;
+			}
+			$state_fp    = str_pad( trim( $row[ $col['STATEFP'] ] ), 2, '0', STR_PAD_LEFT );
+			$county_fp   = str_pad( trim( $row[ $col['COUNTYFP'] ] ), 3, '0', STR_PAD_LEFT );
+			$fips        = $state_fp . $county_fp;
+			$lat         = (float) trim( $row[ $col['LATITUDE'] ] );
+			$lng         = (float) trim( $row[ $col['LONGITUDE'] ] );
+			$county_name = trim( $row[ $col['COUNAME'] ] );
+			$state_abbr  = $fips_map[ $state_fp ] ?? '';
+
+			if ( strlen( $fips ) !== 5 || ! $lat || ! $lng || ! $state_abbr ) {
+				continue;
+			}
+
+			$batch[] = $wpdb->prepare( '(%s, %s, %s, %f, %f)', $fips, $state_abbr, $county_name, $lat, $lng );
+
+			if ( count( $batch ) >= $batch_sz ) {
+				self::flush_centroid_batch( $table, $batch );
+				$inserted += count( $batch );
+				$batch     = array();
+			}
+		}
+		fclose( $handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+
+		if ( ! empty( $batch ) ) {
+			self::flush_centroid_batch( $table, $batch );
+			$inserted += count( $batch );
+		}
+
+		return $inserted;
 	}
 
 	/** Execute one batch INSERT … ON DUPLICATE KEY UPDATE for centroids. */
