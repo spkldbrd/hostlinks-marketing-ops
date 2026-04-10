@@ -100,9 +100,10 @@ $_maps_event_name = sanitize_text_field( $_GET['hmo_ename'] ?? '' );
 						<div class="hmo-maps-stat-value" id="hmo-maps-county-count">—</div>
 						<div class="hmo-maps-stat-sub">within radius</div>
 					</div>
-					<div class="hmo-maps-stat-card hmo-maps-stat-card--soon">
-						<span>coming soon</span>
-					</div>
+				<div class="hmo-maps-stat-card hmo-maps-stat-card--soon">
+					<div class="hmo-maps-stat-label">Send Count</div>
+					<span>coming soon</span>
+				</div>
 				</div>
 
 				<!-- Action rows -->

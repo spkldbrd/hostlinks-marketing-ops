@@ -129,6 +129,9 @@ The WordPress admin will show an update notice when a new release is available.
 
 == Changelog ==
 
+= 1.11.4 =
+* Settings: added "Allow Goal Editing" checkboxes to General tab — independently grant Marketing Admins and/or Hostlinks Users the ability to edit the registration goal on event pages. Input field and Save button are hidden for unchecked roles; the goal count remains visible. WP Administrators can always edit.
+
 = 1.11.3 =
 * Maps tool: left and right cards now match height — align-items changed to stretch and left panel set to flex: 1.
 

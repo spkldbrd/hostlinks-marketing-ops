@@ -498,7 +498,20 @@ class HMO_REST {
 	}
 
 	public function require_manager( WP_REST_Request $request ): bool {
-		return is_user_logged_in() && current_user_can( 'manage_options' );
+		if ( ! is_user_logged_in() ) {
+			return false;
+		}
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+		if ( get_option( 'hmo_goal_edit_marketing_admin', 0 ) && HMO_Access_Service::current_user_is_marketing_admin() ) {
+			return true;
+		}
+		$event_id = (int) $request->get_param( 'id' );
+		if ( get_option( 'hmo_goal_edit_hostlinks_user', 0 ) && $event_id && $this->access->can_view_event( $event_id ) ) {
+			return true;
+		}
+		return false;
 	}
 
 	public function require_event_access( WP_REST_Request $request ): bool {

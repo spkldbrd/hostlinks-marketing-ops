@@ -8,6 +8,11 @@ $stage         = $ops ? $ops->workflow_stage : 'event_setup';
 $dashboard_url = HMO_Page_URLs::get_dashboard();
 $is_admin      = $access->current_user_can_see_all_events();
 $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime( current_time( 'Y-m-d' ) );
+
+// Determine who can edit the registration goal on this event.
+$can_edit_goal = current_user_can( 'manage_options' )
+	|| ( get_option( 'hmo_goal_edit_marketing_admin', 0 ) && HMO_Access_Service::current_user_is_marketing_admin() )
+	|| ( get_option( 'hmo_goal_edit_hostlinks_user', 0 )  && $access->can_view_event( $event->eve_id ) );
 ?>
 <div class="hostlinks-page hmo-frontend hmo-event-detail-page">
 	<div class="hostlinks-container">
@@ -65,7 +70,7 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 				<span class="hmo-detail-stat__label">Registrations</span>
 				<span class="hmo-detail-stat__value">
 					<?php echo (int) $reg_count; ?> /
-					<?php if ( $is_admin && ! $is_past_event ) : ?>
+					<?php if ( $can_edit_goal && ! $is_past_event ) : ?>
 						<span class="hmo-goal-wrap" data-event-id="<?php echo (int) $event->eve_id; ?>">
 							<input type="number" class="hmo-goal-input" min="1"
 								value="<?php echo (int) $goal; ?>"
@@ -75,7 +80,7 @@ $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime
 						</span>
 					<?php else : ?>
 						<span><?php echo (int) $goal; ?></span>
-						<?php if ( $is_admin && $is_past_event ) : ?>
+						<?php if ( $can_edit_goal && $is_past_event ) : ?>
 							<small style="font-size:11px;opacity:.75;">(locked — past event)</small>
 						<?php endif; ?>
 					<?php endif; ?>

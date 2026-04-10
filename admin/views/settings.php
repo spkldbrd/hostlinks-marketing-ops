@@ -21,8 +21,10 @@ if ( isset( $_POST['hmo_save_general'] ) ) {
 			update_option( $key, $san( $_POST[ $key ] ) );
 		}
 	}
-	// Checkbox — unchecked inputs are absent from POST, so we always write it.
-	update_option( 'hmo_hide_list_links', isset( $_POST['hmo_hide_list_links'] ) ? 1 : 0 );
+	// Checkboxes — unchecked inputs are absent from POST, so we always write them.
+	update_option( 'hmo_hide_list_links',          isset( $_POST['hmo_hide_list_links'] )          ? 1 : 0 );
+	update_option( 'hmo_goal_edit_marketing_admin', isset( $_POST['hmo_goal_edit_marketing_admin'] ) ? 1 : 0 );
+	update_option( 'hmo_goal_edit_hostlinks_user',  isset( $_POST['hmo_goal_edit_hostlinks_user'] )  ? 1 : 0 );
 	$notice = '<div class="notice notice-success is-dismissible"><p>General settings saved.</p></div>';
 }
 
@@ -262,6 +264,24 @@ $tabs = array(
 				<input type="number" id="hmo_default_goal" name="hmo_default_goal" min="1" class="small-text"
 					value="<?php echo (int) get_option( 'hmo_default_goal', 40 ); ?>">
 				<p class="description">Used when no goal has been set on a specific event.</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">Allow Goal Editing</th>
+			<td>
+				<fieldset>
+					<label>
+						<input type="checkbox" name="hmo_goal_edit_marketing_admin" value="1"
+							<?php checked( 1, get_option( 'hmo_goal_edit_marketing_admin', 0 ) ); ?>>
+						Marketing Admins can edit the registration goal on event pages
+					</label><br>
+					<label style="margin-top:6px;display:inline-block;">
+						<input type="checkbox" name="hmo_goal_edit_hostlinks_user" value="1"
+							<?php checked( 1, get_option( 'hmo_goal_edit_hostlinks_user', 0 ) ); ?>>
+						Hostlinks Users can edit the registration goal on event pages
+					</label>
+					<p class="description">When unchecked, the goal count is still displayed but the input field and Save button are hidden for that role. WordPress Administrators can always edit.</p>
+				</fieldset>
 			</td>
 		</tr>
 	</table>
