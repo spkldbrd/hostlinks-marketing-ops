@@ -2,12 +2,12 @@
 Contributors: digitalsolution
 Requires at least: 6.0
 Tested up to: 6.7
-Requires PHP: 7.4
+Requires PHP: 8.0
 License: GPLv2
 
 A companion plugin for Hostlinks that gives the marketing team a full workflow
 management system: dashboards, per-event checklists, marketer bucket access,
-task template editing, a journey report, and more.
+task template editing, a journey report, a radius-based Maps reach tool, and more.
 
 Requires the Hostlinks plugin to be installed and active.
 
@@ -15,12 +15,13 @@ Requires the Hostlinks plugin to be installed and active.
 
 Hostlinks Marketing Ops sits alongside the core Hostlinks plugin and provides
 everything the marketing operations team needs to track and manage events from
-assignment through completion.
+assignment through completion. It also includes standalone marketing tools
+(Maps radius lookup) accessible from the event detail page.
 
 Each event moves through six configurable workflow stages. Tasks are provisioned
-from a master template and tracked per-event. Marketers see only the events
-assigned to their bucket. Admins and Marketing Admins get full visibility,
-reporting, and configuration tools.
+automatically from a master template when an event is created in Hostlinks and
+tracked per-event. Marketers see only the events assigned to their bucket.
+Admins and Marketing Admins get full visibility, reporting, and configuration tools.
 
 == Shortcodes ==
 
@@ -39,28 +40,36 @@ reporting, and configuration tools.
 [hmo_event_detail]
   Per-event detail page: checklist with stage progress, task completion,
   per-task notes, event stats in the header, and an Insights panel (venue,
-  links, contacts, hotels). Right column also holds a Call List card and a
-  free-form Notes card.
+  links, contacts, hotels). Right column holds a Call List card, a Tools card
+  (global links from settings), and a free-form Notes card.
 
 [hmo_task_editor]
   Master task template editor. Add, rename, reorder, and delete stages and
-  tasks (including subtasks). Changes automatically reflect on every event's
-  checklist the next time it loads.
+  tasks (including subtasks). Changes automatically sync to all future events
+  (adds new tasks, renames labels, removes deleted pending tasks while preserving
+  completed ones).
 
 [hmo_event_report]
   Event Journey Report for Marketing Admins and Report Viewers. Filterable by
   year, month, and marketer bucket. Shows registration count, days remaining,
   stage progress, and a full task breakdown for the selected event.
 
+[display_maps_tool]
+  Radius-based US population lookup tool. Enter a city, select a radius (25–500 mi),
+  and get a county-level list with population and net migration data. Includes
+  Copy List and Download CSV actions. Accessible to Hostlinks users only.
+  Opens in a new tab from the event detail Tools card with automatic event context.
+
 == User Roles & Access ==
 
 WordPress Administrator
   Full access to all shortcodes, admin settings, task editor, reports, bulk
-  tools, and list management.
+  tools, Maps tool, and list management. Always able to edit registration goals.
 
 Marketing Admin
   Access to the task editor, event journey report, and all header navigation
-  links. Assigned via the HMO Settings → Marketing Admins list.
+  links. Can edit registration goals if enabled in Settings → General.
+  Assigned via HMO Settings → Marketing Admins list.
 
 Task Editor
   Can add/edit/delete tasks and stages in the master template. Assigned via
@@ -70,8 +79,9 @@ Report Viewer
   Can access the Event Journey Report. Assigned via HMO Settings → Report
   Viewers.
 
-Marketer (Bucket User)
+Marketer / Hostlinks User (Bucket User)
   Sees only events assigned to their bucket(s) via the My Classes view.
+  Can access the Maps tool. Can edit registration goals if enabled in Settings → General.
   Assigned via HMO Settings → Bucket Access (many-to-many: one user can hold
   multiple buckets; one bucket can be shared by multiple users).
 
@@ -86,33 +96,106 @@ Stages are fully configurable in the Task Template Editor. The default set is:
   5. Final Prep
   6. Completion
 
+== Task Auto-Provisioning ==
+
+When a new event is created in Hostlinks — either via "Add New Event" or the
+"New CVENT Events" importer — the plugin fires the custom action
+`hostlinks_event_created` which triggers HMO to immediately provision the full
+task checklist from the master template and set the open-task count. No manual
+steps required.
+
+Template changes sync automatically:
+  - New top-level tasks are added to all future (non-past) events.
+  - Renamed task labels update on all events.
+  - Deleted tasks are removed only if still pending (completed tasks are preserved).
+  - A "Recount All" button in Settings recalculates open-task counts across all
+    provisioned future events without touching task statuses.
+
+== Tools Card (Event Detail) ==
+
+The Tools card on the event detail right column displays a configurable 2×2 grid
+of global links set in HMO Settings → Tools Links. Each link can have:
+  - A name
+  - A URL
+  - An optional icon image (selected from the WordPress Media Library)
+
+When a Tools link points to the Maps tool page, the event ID and name are
+automatically appended as URL parameters so the Maps tool knows its context.
+
+== Maps Tool ([display_maps_tool]) ==
+
+A local-first radius lookup tool. All data is cached in MySQL — no live API calls
+at query time.
+
+Data sources (bundled files in assets/data/):
+  - CenPop2020_Mean_CO.txt — 2020 Census Centers of Population (population-weighted
+    county centroids; updated every 10 years with each decennial Census).
+  - 2024_Gaz_counties_national.txt — 2024 Census Gazetteer (geographic county
+    centroids; alternative source).
+  - co-est2025-alldata.csv — Census PEP Vintage 2025 population and net migration
+    estimates (updated annually each spring).
+
+Centroid source is selectable in Settings → Maps → Centroid Source. Population-
+weighted centroids (recommended) place county centers where people actually live,
+producing marketing-relevant radius counts that closely match reference tools like
+Stats America Big Radius.
+
+Geocoding:
+  - Primary: Google Places API autocomplete (requires API key in settings).
+  - Fallback: Nominatim (OpenStreetMap) server-side geocoding.
+  - When autocomplete is used, the resolved lat/lng is sent directly with the
+    AJAX request — no server-side geocoder round-trip needed.
+
+Maps page navigation: the page opens in a new browser tab from the Tools card.
+The header shows a "× Close Tab" button (calls window.close()) when opened as a
+fresh tab, or "← Return to Hostlinks" when navigated to directly.
+
+Future features flagged in Settings (not yet implemented):
+  - Census API Key: for automatic annual data pulls from the Census Bureau API.
+  - Sync Frequency: to schedule WP Cron auto-refresh when Census API is wired up.
+
 == Database Tables ==
 
-  wp_hmo_event_ops       — one row per event; stage, goal, task count, call list URL,
-                           event note, and other workflow metadata.
-  wp_hmo_event_tasks     — one row per task per event; status, completion tracking,
-                           and per-task notes.
-  wp_hmo_event_task_items — sub-checklist items (future use).
+Workflow tables:
+  wp_hmo_event_ops          — one row per event; stage, goal, task count, call list URL,
+                              event note, and other workflow metadata.
+  wp_hmo_event_tasks        — one row per task per event; status, completion tracking,
+                              and per-task notes.
+  wp_hmo_event_task_items   — sub-checklist items (reserved for future use).
   wp_hmo_checklist_templates — master stage and task definitions including subtasks.
-  wp_hmo_bucket_access   — many-to-many: marketer bucket ↔ WordPress user.
-  wp_hmo_event_activity  — activity log: task completions, stage changes, goal updates.
+  wp_hmo_bucket_access      — many-to-many: marketer bucket ↔ WordPress user.
+  wp_hmo_event_activity     — activity log: task completions, stage changes, goal updates.
 
-DB schema version is managed via `hmo_db_version` in wp_options. Migrations run
-automatically on every page load via the `plugins_loaded` hook.
+Maps tables:
+  wp_hmo_maps_county_centroids — FIPS, state_abbr, county_name, lat, lng
+                                 (~3,221 rows: 3,143 US counties + 78 PR municipios).
+  wp_hmo_maps_county_stats     — FIPS, state_name, county_name, pop_2025, netmig_2025,
+                                 synced_at.
+
+DB schema version is managed via HMO_DB_VERSION constant and `hmo_db_version` in
+wp_options. Migrations run automatically when the version constant advances.
 
 == REST API ==
 
 All checklist interactions use the WordPress REST API under the `hmo/v1` namespace.
+Maps tool interactions use wp-admin/admin-ajax.php AJAX actions.
 
-  GET  /hmo/v1/dashboard                          Dashboard row data
-  GET  /hmo/v1/events/{id}/checklist              Event checklist
-  POST /hmo/v1/events/{id}/stage                  Update workflow stage
-  POST /hmo/v1/events/{id}/lists                  Save call list URL
-  POST /hmo/v1/events/{id}/goal                   Update registration goal (managers)
-  POST /hmo/v1/events/{id}/event-note             Save event-level note
-  POST /hmo/v1/tasks/{id}/complete                Mark task complete (with optional note)
-  POST /hmo/v1/tasks/{id}/incomplete              Revert task to pending
-  POST /hmo/v1/tasks/{id}/note                    Save per-task completion note
+REST endpoints:
+  GET  /hmo/v1/dashboard                  Dashboard row data
+  GET  /hmo/v1/events/{id}/checklist      Event checklist
+  POST /hmo/v1/events/{id}/stage          Update workflow stage
+  POST /hmo/v1/events/{id}/lists          Save call list URL
+  POST /hmo/v1/events/{id}/goal           Update registration goal (role-gated)
+  POST /hmo/v1/events/{id}/event-note     Save event-level note
+  POST /hmo/v1/tasks/{id}/complete        Mark task complete (with optional note)
+  POST /hmo/v1/tasks/{id}/incomplete      Revert task to pending
+  POST /hmo/v1/tasks/{id}/note            Save per-task completion note
+
+AJAX actions (Maps tool):
+  wp_ajax_hmo_maps_init_centroids         Parse centroid file and upsert to DB (admin)
+  wp_ajax_hmo_maps_sync_stats             Parse PEP CSV and upsert to DB (admin)
+  wp_ajax_hmo_maps_lookup                 Geocode + Haversine radius query (logged-in users)
+  wp_ajax_nopriv_hmo_maps_lookup          Same, for non-logged-in (access-gated inside handler)
 
 == Installation ==
 
@@ -121,16 +204,35 @@ All checklist interactions use the WordPress REST API under the `hmo/v1` namespa
 3. Activate via the WordPress Plugins screen.
 4. Tables are created and checklist templates are seeded automatically.
 5. Visit Marketing Ops → Settings to assign user roles and configure pages.
+6. For the Maps tool: visit Settings → Maps, choose Centroid Source, click
+   "Initialize Centroids" then "Sync Stats Now". Add your Google Maps API key
+   for autocomplete. Set the Maps tool page URL in Settings → Page Links.
 
 == Auto-Updates ==
 
 The plugin checks for updates via GitHub Releases (repository: spkldbrd/hostlinks-marketing-ops).
 The WordPress admin will show an update notice when a new release is available.
+A push to main triggers a GitHub Actions workflow that builds and publishes the zip.
 
 == Changelog ==
 
+= 1.11.5 =
+* Maps tool: added population-weighted centroid support (2020 Census Centers of
+  Population file CenPop2020_Mean_CO.txt). New "Centroid Source" dropdown in
+  Settings → Maps lets you choose Geographic (2024 Gazetteer) or Population-
+  Weighted (2020 Census). Initialize Centroids now passes the selected source to
+  the importer. Population-weighted centroids place county centers where people
+  actually live, producing county counts that closely match Stats America Big Radius.
+* Maps tool: Data Status table now shows which centroid source is currently loaded.
+* Maps tool: fixed UTF-8 BOM stripping from CenPop file header row.
+* Settings: Census API Key and Sync Frequency fields marked as "Future Feature"
+  with explanatory descriptions for planned automatic annual Census data updates.
+
 = 1.11.4 =
-* Settings: added "Allow Goal Editing" checkboxes to General tab — independently grant Marketing Admins and/or Hostlinks Users the ability to edit the registration goal on event pages. Input field and Save button are hidden for unchecked roles; the goal count remains visible. WP Administrators can always edit.
+* Settings: added "Allow Goal Editing" checkboxes to General tab — independently
+  grant Marketing Admins and/or Hostlinks Users the ability to edit the registration
+  goal on event pages. Input field and Save button are hidden for unchecked roles;
+  the goal count remains visible. WP Administrators can always edit.
 
 = 1.11.3 =
 * Maps tool: left and right cards now match height — align-items changed to stretch and left panel set to flex: 1.
