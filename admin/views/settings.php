@@ -1947,7 +1947,9 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 			<td>
 				<input type="text" id="hmo_maps_census_api_key" name="hmo_maps_census_api_key"
 					value="<?php echo esc_attr( $maps_api_key ); ?>" class="regular-text">
-				<p class="description">Optional. Reserved for future use with live Census Data API endpoints.</p>
+				<p class="description">
+					<strong style="color:#b45309;">&#9201; Future Feature</strong> — when implemented, this key will enable automatic annual updates of county population and migration data directly from the Census Bureau API, eliminating the need to manually replace the bundled CSV each spring. Census population estimates update once per year (released ~March/April). Obtain a free key at <a href="https://api.census.gov/data/key_signup.html" target="_blank" rel="noopener">api.census.gov</a>.
+				</p>
 			</td>
 		</tr>
 		<tr>
@@ -1958,7 +1960,9 @@ define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // replace 0 with Events parent page 
 					<option value="quarterly" <?php selected( $maps_frequency, 'quarterly' ); ?>>Quarterly</option>
 					<option value="annually"  <?php selected( $maps_frequency, 'annually' ); ?>>Annually</option>
 				</select>
-				<p class="description">How often stats should be refreshed. Currently informational only.</p>
+				<p class="description">
+					<strong style="color:#b45309;">&#9201; Future Feature</strong> — when the Census API integration is built, this will control how often WordPress automatically pulls fresh population and migration data in the background via WP Cron. <em>Annually</em> is recommended since Census estimates only update once per year. No automatic sync occurs yet.
+				</p>
 			</td>
 		</tr>
 	</table>
