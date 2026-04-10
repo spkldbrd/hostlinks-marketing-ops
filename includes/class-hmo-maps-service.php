@@ -162,6 +162,8 @@ class HMO_Maps_Service {
 
 		$raw_header = fgetcsv( $handle );
 		$header     = array_map( 'trim', $raw_header );
+		// Strip UTF-8 BOM from the first column if the file was saved with one.
+		$header[0]  = ltrim( $header[0], "\xEF\xBB\xBF" );
 		$col        = array_flip( $header );
 
 		if ( ! isset( $col['STATEFP'], $col['COUNTYFP'], $col['COUNAME'], $col['LATITUDE'], $col['LONGITUDE'] ) ) {
