@@ -232,21 +232,10 @@ $can_edit_goal = current_user_can( 'manage_options' )
 			<li class="hmo-call-list-item" data-index="<?php echo $_ci; ?>">
 				<button type="button" class="hmo-call-list-delete"
 					title="Delete this list" aria-label="Delete List <?php echo $_ci + 1; ?>">&times;</button>
-				<span class="hmo-call-list-item-label">List <?php echo $_ci + 1; ?></span>
 				<a href="<?php echo esc_url( $_curl ); ?>" target="_blank" rel="noopener"
-					class="hmo-call-list-item-open" title="Open sheet"
-					aria-label="Open List <?php echo $_ci + 1; ?>">&#8599;</a>
-			</li>
-			<li class="hmo-call-list-item-edit" data-index="<?php echo $_ci; ?>" style="display:none;">
-				<input type="url" class="hmo-call-list-url-input"
-					placeholder="https://docs.google.com/spreadsheets/…"
-					value="<?php echo esc_attr( $_curl ); ?>">
-				<div class="hmo-call-list-edit-actions">
-					<button class="hostlinks-btn hostlinks-btn--active hmo-call-list-save-existing"
-						data-index="<?php echo $_ci; ?>">Save</button>
-					<button class="hostlinks-btn hmo-call-list-cancel-edit">Cancel</button>
-					<span class="hmo-call-list-save-status"></span>
-				</div>
+					class="hmo-call-list-item-label"
+					title="Open List <?php echo $_ci + 1; ?>"
+					aria-label="Open List <?php echo $_ci + 1; ?>">List <?php echo $_ci + 1; ?> &ndash; click to view &#8599;</a>
 			</li>
 		<?php endforeach; ?>
 		</ul>

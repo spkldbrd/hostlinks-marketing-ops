@@ -1418,6 +1418,11 @@
 	color: hsl(215 15% 68%);
 	cursor: not-allowed;
 }
+/* Divi theme override — prevent extra list padding inside shortcode panels */
+.et_pb_text ol,
+.et_pb_text ul {
+	padding-bottom: 0em;
+}
 /* List of saved call links */
 .hmo-call-list-items {
 	list-style: none;
@@ -1428,7 +1433,7 @@
 	display: flex;
 	align-items: center;
 	gap: 0.45rem;
-	padding: 0.35rem 0;
+	padding: 0;
 	border-bottom: 1px solid hsl(215 15% 94%);
 }
 .hmo-call-list-item-edit {
@@ -1453,27 +1458,17 @@
 	background: hsl(0 65% 95%);
 	color: hsl(0 70% 38%);
 }
-/* "List N" clickable label */
+/* "List N - click to view ↗" combined link */
 .hmo-call-list-item-label {
 	font-size: 0.88rem;
 	font-weight: 600;
-	color: hsl(215 25% 35%);
+	color: hsl(207 75% 45%);
 	flex: 1;
 	cursor: pointer;
+	text-decoration: none;
 }
 .hmo-call-list-item-label:hover {
 	text-decoration: underline;
-	color: hsl(207 80% 42%);
-}
-/* Arrow open-link button */
-.hmo-call-list-item-open {
-	color: hsl(207 75% 50%);
-	font-size: 1rem;
-	text-decoration: none;
-	flex-shrink: 0;
-	line-height: 1;
-}
-.hmo-call-list-item-open:hover {
 	color: hsl(207 80% 35%);
 }
 /* Empty-state text */
@@ -1819,7 +1814,7 @@
 	border-color: hsl(215 20% 25%);
 }
 .wp-dark-mode-active .hmo-call-list-item-label {
-	color: hsl(215 20% 75%);
+	color: hsl(207 70% 65%);
 }
 .wp-dark-mode-active .hmo-call-list-delete {
 	color: hsl(0 60% 60%);
