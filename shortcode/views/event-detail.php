@@ -205,42 +205,67 @@ $can_edit_goal = current_user_can( 'manage_options' )
 		<!-- Right column: Call List + Tools (side by side) -->
 		<div class="hmo-side-row">
 
-		<!-- Right column: Call List -->
-		<?php
-		$_call_url = $ops ? trim( $ops->call_list_url ) : '';
-		$_call_set = ! empty( $_call_url );
-		?>
-		<div class="hmo-detail-panel hmo-detail-col-side hmo-call-list-card"
-			data-event-id="<?php echo (int) $event->eve_id; ?>">
-			<div class="hmo-call-list-header">
-				<h2 class="hmo-panel-title hmo-panel-title--inline">Call List</h2>
-				<a href="<?php echo $_call_set ? esc_url( $_call_url ) : '#'; ?>"
-					target="_blank" rel="noopener"
-					class="hmo-hotel-card__link hmo-call-list-view"
-					<?php echo $_call_set ? '' : 'style="display:none;"'; ?>
-					aria-hidden="<?php echo $_call_set ? 'false' : 'true'; ?>">View &#8599;</a>
-			</div>
-			<p class="hmo-call-list-status">
-				<?php if ( $_call_set ) : ?>
-					Set &mdash; click View to open the sheet.
-				<?php else : ?>
-					Not Set &mdash; click Update to set sheet.
-				<?php endif; ?>
-			</p>
-			<div class="hmo-call-list-edit" style="display:none;">
+	<!-- Right column: Call List (up to 3 links) -->
+	<?php
+	$_call_raw  = $ops ? trim( $ops->call_list_url ) : '';
+	$_call_urls = array();
+	if ( $_call_raw ) {
+		$_decoded = json_decode( $_call_raw, true );
+		if ( is_array( $_decoded ) ) {
+			$_call_urls = array_values( array_filter( array_map( 'trim', $_decoded ) ) );
+		} else {
+			$_call_urls = array( $_call_raw ); // backward-compat: legacy plain URL
+		}
+	}
+	$_call_max = 3;
+	?>
+	<div class="hmo-detail-panel hmo-detail-col-side hmo-call-list-card"
+		data-event-id="<?php echo (int) $event->eve_id; ?>">
+		<div class="hmo-call-list-header">
+			<h2 class="hmo-panel-title hmo-panel-title--inline">Call List</h2>
+			<button type="button" class="hmo-call-list-add-btn" title="Add a list link"
+				<?php echo count( $_call_urls ) >= $_call_max ? 'disabled' : ''; ?>>+</button>
+		</div>
+
+		<ul class="hmo-call-list-items">
+		<?php foreach ( $_call_urls as $_ci => $_curl ) : ?>
+			<li class="hmo-call-list-item" data-index="<?php echo $_ci; ?>">
+				<button type="button" class="hmo-call-list-delete"
+					title="Delete this list" aria-label="Delete List <?php echo $_ci + 1; ?>">&times;</button>
+				<span class="hmo-call-list-item-label">List <?php echo $_ci + 1; ?></span>
+				<a href="<?php echo esc_url( $_curl ); ?>" target="_blank" rel="noopener"
+					class="hmo-call-list-item-open" title="Open sheet"
+					aria-label="Open List <?php echo $_ci + 1; ?>">&#8599;</a>
+			</li>
+			<li class="hmo-call-list-item-edit" data-index="<?php echo $_ci; ?>" style="display:none;">
 				<input type="url" class="hmo-call-list-url-input"
 					placeholder="https://docs.google.com/spreadsheets/…"
-					value="<?php echo esc_attr( $_call_url ); ?>">
+					value="<?php echo esc_attr( $_curl ); ?>">
 				<div class="hmo-call-list-edit-actions">
-					<button class="hostlinks-btn hostlinks-btn--active hmo-call-list-save">Save</button>
-					<button class="hostlinks-btn hmo-call-list-cancel">Cancel</button>
+					<button class="hostlinks-btn hostlinks-btn--active hmo-call-list-save-existing"
+						data-index="<?php echo $_ci; ?>">Save</button>
+					<button class="hostlinks-btn hmo-call-list-cancel-edit">Cancel</button>
 					<span class="hmo-call-list-save-status"></span>
 				</div>
-			</div>
-			<div class="hmo-call-list-footer">
-				<button class="hostlinks-btn hmo-call-list-update">Update</button>
+			</li>
+		<?php endforeach; ?>
+		</ul>
+
+		<?php if ( empty( $_call_urls ) ) : ?>
+		<p class="hmo-call-list-empty">No lists set &mdash; click <strong>+</strong> to add one.</p>
+		<?php endif; ?>
+
+		<!-- New-link form, revealed by the + button -->
+		<div class="hmo-call-list-new-form" style="display:none;">
+			<input type="url" class="hmo-call-list-url-input hmo-call-list-new-input"
+				placeholder="https://docs.google.com/spreadsheets/…">
+			<div class="hmo-call-list-edit-actions">
+				<button class="hostlinks-btn hostlinks-btn--active hmo-call-list-new-save">Save</button>
+				<button class="hostlinks-btn hmo-call-list-new-cancel">Cancel</button>
+				<span class="hmo-call-list-save-status hmo-call-list-new-status"></span>
 			</div>
 		</div>
+	</div>
 
 		<!-- Right column: Tools -->
 		<?php

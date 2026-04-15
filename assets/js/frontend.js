@@ -246,54 +246,180 @@
 	// -------------------------------------------------------------------------
 
 	// -------------------------------------------------------------------------
-	// Call List card — Update / Save / Cancel
+	// Call List card — multi-link (up to 3)
 	// -------------------------------------------------------------------------
 
-	$( document ).on( 'click', '.hmo-call-list-update', function () {
-		var $card = $( this ).closest( '.hmo-call-list-card' );
-		$card.find( '.hmo-call-list-edit' ).slideDown( 150 );
-		$card.find( '.hmo-call-list-url-input' ).focus();
-	} );
+	var CALL_LIST_MAX = 3;
 
-	$( document ).on( 'click', '.hmo-call-list-cancel', function () {
-		$( this ).closest( '.hmo-call-list-card' ).find( '.hmo-call-list-edit' ).slideUp( 150 );
-	} );
+	/** Collect current URL array from the item-edit rows in the card. */
+	function callListGetUrls( $card ) {
+		var urls = [];
+		$card.find( '.hmo-call-list-item-edit' ).each( function () {
+			urls.push( $.trim( $( this ).find( '.hmo-call-list-url-input' ).val() ) );
+		} );
+		return urls;
+	}
 
-	$( document ).on( 'click', '.hmo-call-list-save', function () {
-		var $btn    = $( this );
-		var $card   = $btn.closest( '.hmo-call-list-card' );
+	/** POST updated URL array to the REST endpoint. */
+	function callListSave( $card, urls, $btn, $status, onDone ) {
 		var eventId = $card.data( 'event-id' );
-		var url     = $.trim( $card.find( '.hmo-call-list-url-input' ).val() );
-		var $status = $card.find( '.hmo-call-list-save-status' );
-
-		$btn.text( str.saving ).prop( 'disabled', true );
-
+		$btn.prop( 'disabled', true ).text( str.saving );
 		apiPost(
 			'/events/' + eventId + '/lists',
-			{ call_list_url: url },
+			{ call_list_urls: urls },
 			function () {
-				$btn.text( 'Save' ).prop( 'disabled', false );
-
-				if ( url ) {
-					$card.find( '.hmo-call-list-status' ).text( 'Set \u2014 click View to open the sheet.' );
-					$card.find( '.hmo-call-list-view' )
-						.attr( 'href', url )
-						.attr( 'aria-hidden', 'false' )
-						.show();
-				} else {
-					$card.find( '.hmo-call-list-status' ).text( 'Not Set \u2014 click Update to set sheet.' );
-					$card.find( '.hmo-call-list-view' )
-						.attr( 'href', '#' )
-						.attr( 'aria-hidden', 'true' )
-						.hide();
-				}
-
-				$card.find( '.hmo-call-list-edit' ).slideUp( 150 );
+				$btn.prop( 'disabled', false ).text( 'Save' );
 				showInlineStatus( $status, str.saved, false );
+				if ( onDone ) { onDone(); }
 			},
 			function () {
-				$btn.text( 'Save' ).prop( 'disabled', false );
+				$btn.prop( 'disabled', false ).text( 'Save' );
 				showInlineStatus( $status, str.error, true );
+			}
+		);
+	}
+
+	/** Rebuild the list DOM from a fresh URL array (no page reload). */
+	function callListRebuild( $card, urls ) {
+		var $list = $card.find( '.hmo-call-list-items' );
+		$list.empty();
+
+		for ( var i = 0; i < urls.length; i++ ) {
+			( function ( idx, url ) {
+				var $item  = $( '<li class="hmo-call-list-item"></li>' ).attr( 'data-index', idx );
+				var $del   = $( '<button type="button" class="hmo-call-list-delete">\u00d7</button>' )
+					.attr( 'title', 'Delete this list' )
+					.attr( 'aria-label', 'Delete List ' + ( idx + 1 ) );
+				var $label = $( '<span class="hmo-call-list-item-label"></span>' )
+					.text( 'List ' + ( idx + 1 ) );
+				var $link  = $( '<a target="_blank" rel="noopener" class="hmo-call-list-item-open">&#8599;</a>' )
+					.attr( 'href', url )
+					.attr( 'title', 'Open sheet' )
+					.attr( 'aria-label', 'Open List ' + ( idx + 1 ) );
+				$item.append( $del ).append( $label ).append( $link );
+
+				var $editRow = $( '<li class="hmo-call-list-item-edit" style="display:none;"></li>' )
+					.attr( 'data-index', idx );
+				var $input   = $( '<input type="url" class="hmo-call-list-url-input">' )
+					.attr( 'placeholder', 'https://docs.google.com/spreadsheets/\u2026' )
+					.val( url );
+				var $actions  = $( '<div class="hmo-call-list-edit-actions"></div>' );
+				var $saveBtn  = $( '<button class="hostlinks-btn hostlinks-btn--active hmo-call-list-save-existing">Save</button>' )
+					.attr( 'data-index', idx );
+				var $cancelBtn = $( '<button class="hostlinks-btn hmo-call-list-cancel-edit">Cancel</button>' );
+				var $status    = $( '<span class="hmo-call-list-save-status"></span>' );
+				$actions.append( $saveBtn ).append( $cancelBtn ).append( $status );
+				$editRow.append( $input ).append( $actions );
+
+				$list.append( $item ).append( $editRow );
+			}( i, urls[ i ] ) );
+		}
+
+		$card.find( '.hmo-call-list-empty' ).toggle( urls.length === 0 );
+		$card.find( '.hmo-call-list-add-btn' ).prop( 'disabled', urls.length >= CALL_LIST_MAX );
+	}
+
+	// + button: reveal new-link form
+	$( document ).on( 'click', '.hmo-call-list-add-btn', function () {
+		var $card = $( this ).closest( '.hmo-call-list-card' );
+		var $form = $card.find( '.hmo-call-list-new-form' );
+		$form.slideDown( 150 );
+		$form.find( '.hmo-call-list-new-input' ).val( '' ).focus();
+		$card.find( '.hmo-call-list-new-status' ).text( '' );
+	} );
+
+	// Cancel adding new
+	$( document ).on( 'click', '.hmo-call-list-new-cancel', function () {
+		$( this ).closest( '.hmo-call-list-new-form' ).slideUp( 150 );
+	} );
+
+	// Save new link
+	$( document ).on( 'click', '.hmo-call-list-new-save', function () {
+		var $btn    = $( this );
+		var $card   = $btn.closest( '.hmo-call-list-card' );
+		var $form   = $card.find( '.hmo-call-list-new-form' );
+		var url     = $.trim( $form.find( '.hmo-call-list-new-input' ).val() );
+		var $status = $card.find( '.hmo-call-list-new-status' );
+
+		if ( ! url ) {
+			showInlineStatus( $status, 'Please enter a URL.', true );
+			return;
+		}
+
+		var urls = callListGetUrls( $card );
+		urls.push( url );
+
+		callListSave( $card, urls, $btn, $status, function () {
+			callListRebuild( $card, urls );
+			$form.slideUp( 150 );
+		} );
+	} );
+
+	// Click "List N" label to edit that entry
+	$( document ).on( 'click', '.hmo-call-list-item-label', function () {
+		var idx   = $( this ).closest( '.hmo-call-list-item' ).data( 'index' );
+		var $card = $( this ).closest( '.hmo-call-list-card' );
+		$card.find( '.hmo-call-list-item-edit[data-index="' + idx + '"]' )
+			.slideDown( 150 )
+			.find( '.hmo-call-list-url-input' )
+			.focus();
+	} );
+
+	// Cancel editing an existing entry
+	$( document ).on( 'click', '.hmo-call-list-cancel-edit', function () {
+		$( this ).closest( '.hmo-call-list-item-edit' ).slideUp( 150 );
+	} );
+
+	// Save an edited existing entry
+	$( document ).on( 'click', '.hmo-call-list-save-existing', function () {
+		var $btn    = $( this );
+		var $row    = $btn.closest( '.hmo-call-list-item-edit' );
+		var idx     = parseInt( $row.data( 'index' ), 10 );
+		var $card   = $row.closest( '.hmo-call-list-card' );
+		var url     = $.trim( $row.find( '.hmo-call-list-url-input' ).val() );
+		var $status = $row.find( '.hmo-call-list-save-status' );
+
+		var urls = [];
+		$card.find( '.hmo-call-list-item-edit' ).each( function () {
+			var i   = parseInt( $( this ).data( 'index' ), 10 );
+			var val = ( i === idx ) ? url : $.trim( $( this ).find( '.hmo-call-list-url-input' ).val() );
+			urls[ i ] = val;
+		} );
+
+		callListSave( $card, urls, $btn, $status, function () {
+			callListRebuild( $card, urls );
+		} );
+	} );
+
+	// Delete a list entry (with confirmation)
+	$( document ).on( 'click', '.hmo-call-list-delete', function () {
+		var $btn  = $( this );
+		var $item = $btn.closest( '.hmo-call-list-item' );
+		var idx   = parseInt( $item.data( 'index' ), 10 );
+		var $card = $item.closest( '.hmo-call-list-card' );
+
+		if ( ! window.confirm( 'Are you sure you want to delete List ' + ( idx + 1 ) + '? This cannot be undone.' ) ) {
+			return;
+		}
+
+		var urls = [];
+		$card.find( '.hmo-call-list-item-edit' ).each( function () {
+			var i = parseInt( $( this ).data( 'index' ), 10 );
+			if ( i !== idx ) {
+				urls.push( $.trim( $( this ).find( '.hmo-call-list-url-input' ).val() ) );
+			}
+		} );
+
+		$btn.prop( 'disabled', true );
+		var eventId = $card.data( 'event-id' );
+		apiPost(
+			'/events/' + eventId + '/lists',
+			{ call_list_urls: urls },
+			function () {
+				callListRebuild( $card, urls );
+			},
+			function () {
+				$btn.prop( 'disabled', false );
 			}
 		);
 	} );

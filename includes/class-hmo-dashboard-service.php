@@ -232,6 +232,14 @@ class HMO_Dashboard_Service {
 			}
 		}
 
+		// Multi-link call list: array of up to 3 sanitized URLs stored as JSON.
+		if ( isset( $data['call_list_urls'] ) && is_array( $data['call_list_urls'] ) ) {
+			$urls = array_values( array_filter(
+				array_map( 'esc_url_raw', array_slice( $data['call_list_urls'], 0, 3 ) )
+			) );
+			$clean['call_list_url'] = empty( $urls ) ? '' : wp_json_encode( $urls );
+		}
+
 		if ( empty( $clean ) ) {
 			return false;
 		}

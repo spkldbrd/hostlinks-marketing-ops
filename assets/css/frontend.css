@@ -1391,19 +1391,104 @@
 	padding-bottom: 0.55rem;
 	border-bottom: 1px solid hsl(215 15% 90%);
 }
-.hmo-call-list-status {
-	font-size: 0.85rem;
-	color: hsl(215 15% 48%);
-	margin: 0 0 0.65rem 0;
-}
-.hmo-call-list-footer {
+/* + add button in Call List header */
+.hmo-call-list-add-btn {
+	background: none;
+	border: 1.5px solid hsl(207 80% 55%);
+	color: hsl(207 80% 45%);
+	border-radius: 50%;
+	width: 22px;
+	height: 22px;
+	font-size: 15px;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0;
 	display: flex;
 	align-items: center;
-	gap: 0.6rem;
+	justify-content: center;
+	flex-shrink: 0;
+	transition: background 0.15s, color 0.15s;
 }
-.hmo-call-list-edit {
-	margin-bottom: 0.6rem;
+.hmo-call-list-add-btn:hover:not(:disabled) {
+	background: hsl(207 80% 55%);
+	color: #fff;
 }
+.hmo-call-list-add-btn:disabled {
+	border-color: hsl(215 15% 78%);
+	color: hsl(215 15% 68%);
+	cursor: not-allowed;
+}
+/* List of saved call links */
+.hmo-call-list-items {
+	list-style: none;
+	margin: 0 0 0.35rem 0;
+	padding: 0;
+}
+.hmo-call-list-item {
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	padding: 0.35rem 0;
+	border-bottom: 1px solid hsl(215 15% 94%);
+}
+.hmo-call-list-item-edit {
+	list-style: none;
+	padding: 0.4rem 0;
+	border-bottom: 1px solid hsl(215 15% 94%);
+}
+/* Red × delete button */
+.hmo-call-list-delete {
+	background: none;
+	border: none;
+	color: hsl(0 65% 52%);
+	font-size: 1rem;
+	line-height: 1;
+	cursor: pointer;
+	padding: 2px 3px;
+	border-radius: 3px;
+	flex-shrink: 0;
+	transition: background 0.12s, color 0.12s;
+}
+.hmo-call-list-delete:hover {
+	background: hsl(0 65% 95%);
+	color: hsl(0 70% 38%);
+}
+/* "List N" clickable label */
+.hmo-call-list-item-label {
+	font-size: 0.88rem;
+	font-weight: 600;
+	color: hsl(215 25% 35%);
+	flex: 1;
+	cursor: pointer;
+}
+.hmo-call-list-item-label:hover {
+	text-decoration: underline;
+	color: hsl(207 80% 42%);
+}
+/* Arrow open-link button */
+.hmo-call-list-item-open {
+	color: hsl(207 75% 50%);
+	font-size: 1rem;
+	text-decoration: none;
+	flex-shrink: 0;
+	line-height: 1;
+}
+.hmo-call-list-item-open:hover {
+	color: hsl(207 80% 35%);
+}
+/* Empty-state text */
+.hmo-call-list-empty {
+	font-size: 0.85rem;
+	color: hsl(215 15% 52%);
+	margin: 0.1rem 0 0.35rem 0;
+}
+/* New-link form revealed by + */
+.hmo-call-list-new-form {
+	margin-top: 0.5rem;
+	padding-top: 0.5rem;
+	border-top: 1px dashed hsl(215 15% 85%);
+}
+/* Shared URL input */
 .hmo-call-list-url-input {
 	width: 100%;
 	box-sizing: border-box;
@@ -1719,8 +1804,35 @@
 .wp-dark-mode-active .hmo-call-list-header {
 	border-color: hsl(215 20% 25%);
 }
-.wp-dark-mode-active .hmo-call-list-status {
-	color: hsl(215 15% 58%);
+.wp-dark-mode-active .hmo-call-list-add-btn {
+	border-color: hsl(207 60% 55%);
+	color: hsl(207 70% 65%);
+}
+.wp-dark-mode-active .hmo-call-list-add-btn:hover:not(:disabled) {
+	background: hsl(207 60% 45%);
+	color: #fff;
+}
+.wp-dark-mode-active .hmo-call-list-item {
+	border-color: hsl(215 20% 25%);
+}
+.wp-dark-mode-active .hmo-call-list-item-edit {
+	border-color: hsl(215 20% 25%);
+}
+.wp-dark-mode-active .hmo-call-list-item-label {
+	color: hsl(215 20% 75%);
+}
+.wp-dark-mode-active .hmo-call-list-delete {
+	color: hsl(0 60% 60%);
+}
+.wp-dark-mode-active .hmo-call-list-delete:hover {
+	background: hsl(0 40% 22%);
+	color: hsl(0 70% 70%);
+}
+.wp-dark-mode-active .hmo-call-list-empty {
+	color: hsl(215 15% 55%);
+}
+.wp-dark-mode-active .hmo-call-list-new-form {
+	border-top-color: hsl(215 20% 28%);
 }
 .wp-dark-mode-active .hmo-call-list-url-input {
 	background: hsl(215 20% 18%);
