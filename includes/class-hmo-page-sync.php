@@ -21,6 +21,24 @@ class HMO_Page_Sync {
 	const CONST_USER   = 'GWU_API_USER';
 	const CONST_PASS   = 'GWU_API_PASS';
 	const CONST_PARENT = 'GWU_EVENTS_PARENT_PAGE_ID';
+	const CONST_STATUS = 'GWU_PAGE_STATUS';
+
+	/**
+	 * Returns the post status used for newly created GWU pages.
+	 * Honors GWU_PAGE_STATUS constant; defaults to 'publish'.
+	 * Valid WP page statuses only: publish, draft, pending, private.
+	 */
+	public static function get_default_page_status(): string {
+		$allowed = array( 'publish', 'draft', 'pending', 'private' );
+
+		if ( defined( self::CONST_STATUS ) ) {
+			$status = strtolower( (string) constant( self::CONST_STATUS ) );
+			if ( in_array( $status, $allowed, true ) ) {
+				return $status;
+			}
+		}
+		return 'publish';
+	}
 
 	// -------------------------------------------------------------------------
 	// Configuration helpers
@@ -33,7 +51,7 @@ class HMO_Page_Sync {
 	}
 
 	public static function get_config_status(): array {
-		$consts = array( self::CONST_API, self::CONST_USER, self::CONST_PASS, self::CONST_PARENT );
+		$consts = array( self::CONST_API, self::CONST_USER, self::CONST_PASS, self::CONST_PARENT, self::CONST_STATUS );
 		$status = array();
 		foreach ( $consts as $c ) {
 			$status[ $c ] = defined( $c );
@@ -101,7 +119,7 @@ class HMO_Page_Sync {
 			'title'    => $this->build_page_title( $ev ),
 			'slug'     => $this->build_page_slug( $ev ),
 			'content'  => $this->build_page_content( $ev ),
-			'status'   => 'publish',
+			'status'   => self::get_default_page_status(),
 			'template' => 'gwu-event-pages/templates/page-event-marketing.php',
 			'meta'     => array( '_gwu_event_id' => (int) $ev['eve_id'] ),
 		);
@@ -230,8 +248,26 @@ class HMO_Page_Sync {
 			$location_str = $this->extract_city_state( $ev['eve_location'] ?? '' );
 		}
 
-		$date_str   = $this->format_date_range( $ev['eve_start'] ?? '', $ev['eve_end'] ?? '' );
-		$type_label = ( ( $ev['eve_zoom'] ?? '' ) === 'yes' ) ? 'Zoom Webinar' : 'Grant Writing Class';
+		$date_str = $this->format_date_range( $ev['eve_start'] ?? '', $ev['eve_end'] ?? '' );
+
+		// Build type label from the event's actual type (writing / management /
+		// subaward) plus the delivery mode (zoom vs. in-person).
+		$type_key = HMO_Page_Template::event_type_key( (int) ( $ev['eve_type'] ?? 0 ) );
+		$is_zoom  = ( ( $ev['eve_zoom'] ?? '' ) === 'yes' );
+
+		switch ( $type_key ) {
+			case 'writing':
+				$type_label = $is_zoom ? 'Grant Writing Zoom Webinar' : 'Grant Writing Class';
+				break;
+			case 'management':
+				$type_label = $is_zoom ? 'Grant Management Zoom Webinar' : 'Grant Management Class';
+				break;
+			case 'subaward':
+				$type_label = $is_zoom ? 'Managing Subawards Zoom Webinar' : 'Managing Subawards Class';
+				break;
+			default:
+				$type_label = $is_zoom ? 'Zoom Webinar' : 'Class';
+		}
 
 		return trim( $location_str . ', ' . $date_str . ' | ' . $type_label );
 	}
