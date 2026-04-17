@@ -73,7 +73,8 @@ class HMO_Page_Sync {
 		$result = $this->create_gwu_page( $ev );
 
 		if ( $result ) {
-			$this->save_web_url( $event_id, $result['url'] );
+			// Pass false so a manually-entered WEB URL is never overwritten on auto-creation.
+			$this->save_web_url( $event_id, $result['url'], false );
 			HMO_DB::upsert_event_ops( $event_id, array( 'gwu_page_id' => $result['page_id'] ) );
 			HMO_DB::log_activity( $event_id, 'page_sync', 'GWU marketing page created: ' . $result['url'] );
 		} else {
@@ -188,9 +189,24 @@ class HMO_Page_Sync {
 
 	/**
 	 * Write the marketing page URL back to eve_web_url on the event record.
+	 *
+	 * @param bool $overwrite When false, skips the update if eve_web_url is already populated.
+	 *                        Always true for explicit admin actions (Create / Regenerate buttons).
+	 *                        Pass false for automatic creation so a manually-entered URL is preserved.
 	 */
-	public function save_web_url( int $event_id, string $url ): void {
+	public function save_web_url( int $event_id, string $url, bool $overwrite = true ): void {
 		global $wpdb;
+		if ( ! $overwrite ) {
+			$existing = $wpdb->get_var(
+				$wpdb->prepare(
+					"SELECT eve_web_url FROM {$wpdb->prefix}event_details_list WHERE eve_id = %d",
+					$event_id
+				)
+			);
+			if ( ! empty( $existing ) ) {
+				return;
+			}
+		}
 		$wpdb->update(
 			$wpdb->prefix . 'event_details_list',
 			array( 'eve_web_url' => $url ),
