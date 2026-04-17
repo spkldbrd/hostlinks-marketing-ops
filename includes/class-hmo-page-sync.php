@@ -284,8 +284,13 @@ class HMO_Page_Sync {
 			$state  = trim( $parts[1] ?? $state );
 		}
 
-		$month_year = $start ? date( 'F-Y', strtotime( $start ) ) : '';
-		$slug_parts = array_filter( array( $city, $state, $month_year ) );
+		// Include day-of-month so two events in the same city and month
+		// produce distinct slugs instead of colliding and triggering WP's
+		// auto-increment suffix (-2, -3, …) which makes admin listings
+		// visually indistinguishable.
+		$date_part = $start ? date( 'F-j-Y', strtotime( $start ) ) : '';
+
+		$slug_parts = array_filter( array( $city, $state, $date_part ) );
 		return sanitize_title( implode( '-', $slug_parts ) );
 	}
 
