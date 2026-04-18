@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * wp-config.php constants so they are never written to the database.
  *
  * Required constants (add to hostlinks.grantwritingusa.com wp-config.php):
- *   define( 'GWU_PRIMARY_API',           'https://grantwritingusa.com/wp-json/wp/v2' );
+ *   define( 'GWU_PRIMARY_API',           'https://www.grantwritingusa.com/wp-json/wp/v2' );
  *   define( 'GWU_API_USER',              'event-automation' );
  *   define( 'GWU_API_PASS',              'xxxx xxxx xxxx xxxx xxxx xxxx' );
  *   define( 'GWU_EVENTS_PARENT_PAGE_ID',  0 ); // optional; 0 = top-level
@@ -65,13 +65,20 @@ class HMO_Page_Sync {
 
 	/**
 	 * Called by hostlinks_event_created action (priority 20, after checklist at 10).
+	 *
+	 * "Today" uses this site's WordPress timezone (`current_time`). If Hostlinks and
+	 * grantwritingusa.com use different timezone settings, the cutoff for "future"
+	 * can disagree by up to one calendar day at boundaries.
 	 */
 	public function on_event_created( int $event_id, string $eve_start ): void {
 		if ( ! self::is_configured() ) {
 			return;
 		}
 
-		if ( $eve_start < current_time( 'Y-m-d' ) ) {
+		// Compare calendar dates only (eve_start may be Y-m-d or include time).
+		$today = current_time( 'Y-m-d' );
+		$start = strlen( $eve_start ) >= 10 ? substr( $eve_start, 0, 10 ) : $eve_start;
+		if ( $start < $today ) {
 			return;
 		}
 
@@ -448,6 +455,33 @@ class HMO_Page_Sync {
 		return $sm . ' ' . $sd . '-' . $em . ' ' . $ed . ', ' . $sy;
 	}
 
+	/**
+	 * Update or create the GWU marketing page for an event row; persist WEB URL and gwu_page_id in ops when needed.
+	 *
+	 * @param int   $event_id             Hostlinks event ID.
+	 * @param array $ev                   Row from event_details_list.
+	 * @param bool  $force_upsert_page_id When true, always write gwu_page_id (admin single-event regenerate). When false, only upsert gwu_page_id after a create (bulk batch).
+	 * @return array{url:string,page_id:int}|null Null on failure.
+	 */
+	private function sync_event_row_to_gwu( int $event_id, array $ev, bool $force_upsert_page_id ): ?array {
+		$page_id = HMO_DB::get_event_gwu_page_id( $event_id );
+		$result  = $page_id > 0
+			? $this->update_gwu_page( $page_id, $ev )
+			: $this->create_gwu_page( $ev );
+
+		if ( ! $result ) {
+			return null;
+		}
+
+		$this->save_web_url( $event_id, $result['url'] );
+
+		if ( $force_upsert_page_id || $page_id === 0 ) {
+			HMO_DB::upsert_event_ops( $event_id, array( 'gwu_page_id' => $result['page_id'] ) );
+		}
+
+		return $result;
+	}
+
 	// -------------------------------------------------------------------------
 	// Admin AJAX
 	// -------------------------------------------------------------------------
@@ -544,21 +578,13 @@ class HMO_Page_Sync {
 		}
 
 		$instance = new self();
-		$ops      = HMO_DB::get_event_ops( $event_id );
-		$page_id  = (int) ( $ops->gwu_page_id ?? 0 );
-
-		if ( $page_id > 0 ) {
-			$result = $instance->update_gwu_page( $page_id, $ev );
-		} else {
-			$result = $instance->create_gwu_page( $ev );
-		}
+		$page_id  = HMO_DB::get_event_gwu_page_id( $event_id );
+		$result   = $instance->sync_event_row_to_gwu( $event_id, $ev, true );
 
 		if ( ! $result ) {
 			wp_send_json_error( 'Failed to sync page. Check the server error log for details.' );
 		}
 
-		$instance->save_web_url( $event_id, $result['url'] );
-		HMO_DB::upsert_event_ops( $event_id, array( 'gwu_page_id' => $result['page_id'] ) );
 		HMO_DB::log_activity( $event_id, 'page_sync', 'GWU page regenerated: ' . $result['url'] );
 
 		wp_send_json_success( array(
@@ -571,11 +597,11 @@ class HMO_Page_Sync {
 	/**
 	 * Step 1 of bulk regeneration — return the list of candidate event IDs.
 	 *
-	 * Returning just the ID list (not full rows) keeps the payload small and
-	 * lets the client drive the batching loop. Any future event whose ops row
-	 * has a gwu_page_id > 0 is included; the batch handler will create a new
-	 * page for events that lack one if the admin opted into that (not done
-	 * here — matches original behavior of updating existing pages only).
+	 * Returns only IDs (not full rows) so the payload stays small and the client
+	 * can drive the batch loop. Events are included when they have eve_start on or
+	 * after today (this site's `current_time`), a matching ops row, and gwu_page_id > 0.
+	 * The batch handler updates those pages; if gwu_page_id is missing or zero when
+	 * a batch runs (manual DB drift), it creates a page and stores the new ID.
 	 */
 	public static function ajax_bulk_regen_init(): void {
 		check_ajax_referer( 'hmo_bulk_regen' );
@@ -681,18 +707,9 @@ class HMO_Page_Sync {
 				continue;
 			}
 
-			$ops     = HMO_DB::get_event_ops( $event_id );
-			$page_id = (int) ( $ops->gwu_page_id ?? 0 );
-
-			$result = $page_id > 0
-				? $instance->update_gwu_page( $page_id, $ev )
-				: $instance->create_gwu_page( $ev );
+			$result = $instance->sync_event_row_to_gwu( $event_id, $ev, false );
 
 			if ( $result ) {
-				$instance->save_web_url( $event_id, $result['url'] );
-				if ( $page_id === 0 ) {
-					HMO_DB::upsert_event_ops( $event_id, array( 'gwu_page_id' => $result['page_id'] ) );
-				}
 				HMO_DB::log_activity( $event_id, 'page_sync', 'GWU page bulk regenerated.' );
 				$updated++;
 			} else {

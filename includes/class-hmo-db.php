@@ -321,6 +321,20 @@ class HMO_DB {
 	}
 
 	/**
+	 * Linked GWU page ID for an event, or 0 when there is no ops row or no page.
+	 *
+	 * @param int $event_id Hostlinks event ID.
+	 * @return int
+	 */
+	public static function get_event_gwu_page_id( int $event_id ): int {
+		$ops = self::get_event_ops( $event_id );
+		if ( ! $ops ) {
+			return 0;
+		}
+		return (int) ( $ops->gwu_page_id ?? 0 );
+	}
+
+	/**
 	 * Insert or update a row in hmo_event_ops.
 	 * Returns false on DB failure, otherwise true.
 	 *
