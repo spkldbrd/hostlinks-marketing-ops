@@ -23,6 +23,10 @@ automatically from a master template when an event is created in Hostlinks and
 tracked per-event. Marketers see only the events assigned to their bucket.
 Admins and Marketing Admins get full visibility, reporting, and configuration tools.
 
+Any user who can access an event in Marketing Ops may complete or reopen checklist
+tasks on that event. WordPress Administrators and Marketing Admins retain broader
+configuration powers and visibility across events.
+
 == Shortcodes ==
 
 [hmo_dashboard_selector]
@@ -215,6 +219,20 @@ The WordPress admin will show an update notice when a new release is available.
 A push to main triggers a GitHub Actions workflow that builds and publishes the zip.
 
 == Changelog ==
+
+= 1.11.14 =
+* Stability: public REST endpoints (public-events, past-events) use a short-lived
+  response cache and a light per-IP rate limit to reduce load from anonymous clients.
+* Maintenance: complete uninstall cleanup for all HMO tables, options, page-template
+  keys, and hmo_* transients; settings POST handling moved to HMO_Settings_Form_Handler;
+  Settings screen split into tab partials under admin/views/settings/.
+* Shortcodes: single registry from HMO_Shortcodes::register() drives access labels,
+  asset detection, and shortcode registration together.
+* Maps and checklist: hardened centroid validation, maps lookup when a Google key is
+  set, safer list-metadata updates when both call_list_url and call_list_urls are
+  posted; shared bulk-complete SQL for REST and AJAX.
+* Releases: Requires PHP 8.0 in plugin metadata and updater payload; documented
+  Windows zip pitfalls; CI rejects zip entries containing backslashes.
 
 = 1.11.5 =
 * Maps tool: added population-weighted centroid support (2020 Census Centers of

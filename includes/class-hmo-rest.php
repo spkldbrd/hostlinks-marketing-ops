@@ -8,6 +8,21 @@ class HMO_REST {
 
 	const NAMESPACE = 'hmo/v1';
 
+	/** @var string Transient key for GET /public-events JSON (TTL-only invalidation). */
+	private const TRANSIENT_PUBLIC_EVENTS = 'hmo_rest_public_events_v1';
+
+	/** @var int Seconds to cache public REST payloads. */
+	private const PUBLIC_REST_CACHE_TTL = 300;
+
+	/** @var int Max anonymous requests per IP per window for public REST routes. */
+	private const PUBLIC_REST_RATE_MAX = 60;
+
+	/** @var int Rate-limit window in seconds. */
+	private const PUBLIC_REST_RATE_WINDOW = 600;
+
+	/** @var bool */
+	private static $public_cache_flush_hook_registered = false;
+
 	/** @var HMO_Checklist_Service */
 	private $checklist;
 
@@ -70,6 +85,11 @@ class HMO_REST {
 	}
 
 	public function register_routes(): void {
+		if ( ! self::$public_cache_flush_hook_registered ) {
+			add_action( 'hmo_flush_public_events_cache', array( __CLASS__, 'flush_public_events_cache' ) );
+			self::$public_cache_flush_hook_registered = true;
+		}
+
 		$ns = self::NAMESPACE;
 
 		// Dashboard data.
@@ -259,8 +279,6 @@ class HMO_REST {
 	}
 
 	public function complete_stages( WP_REST_Request $request ): WP_REST_Response {
-		global $wpdb;
-
 		$event_id   = (int) $request->get_param( 'id' );
 		$raw_stages = (array) $request->get_param( 'stage_keys' );
 		$stage_keys = array_values( array_map( 'sanitize_key', $raw_stages ) );
@@ -276,23 +294,10 @@ class HMO_REST {
 			return new WP_REST_Response( array( 'message' => 'No valid stage keys.' ), 400 );
 		}
 
-		$user_id     = get_current_user_id();
-		$now         = current_time( 'mysql' );
-		$placeholders = implode( ', ', array_fill( 0, count( $stage_keys ), '%s' ) );
+		$user_id = get_current_user_id();
+		$now     = current_time( 'mysql' );
 
-		$updated = $wpdb->query(
-			$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				"UPDATE {$wpdb->prefix}hmo_event_tasks
-				 SET status = 'complete',
-				     completed_at = %s,
-				     completed_by_user_id = %d,
-				     updated_at = %s
-				 WHERE hostlinks_event_id = %d
-				   AND stage_key IN ($placeholders)
-				   AND status = 'pending'",
-				array_merge( array( $now, $user_id, $now, $event_id ), $stage_keys )
-			)
-		);
+		$updated = $this->checklist->bulk_complete_pending_tasks_for_stages( $event_id, $stage_keys, $user_id, $now );
 
 		if ( $updated > 0 ) {
 			$this->checklist->recalculate_open_task_count( $event_id );
@@ -343,7 +348,17 @@ class HMO_REST {
 	 * Mirrors the query in Hostlinks' public-event-list.php shortcode and adds
 	 * a `column` field ('left'|'right'|'') computed from the same saved options.
 	 */
-	public function get_public_events( WP_REST_Request $request ): WP_REST_Response {
+	public function get_public_events( WP_REST_Request $request ) {
+		$rate = $this->assert_public_rest_rate_allowed();
+		if ( is_wp_error( $rate ) ) {
+			return $rate;
+		}
+
+		$cached = get_transient( self::TRANSIENT_PUBLIC_EVENTS );
+		if ( is_array( $cached ) ) {
+			return new WP_REST_Response( $cached, 200 );
+		}
+
 		global $wpdb;
 
 		$today = current_time( 'Y-m-d' );
@@ -417,7 +432,10 @@ class HMO_REST {
 			);
 		}
 
-		return new WP_REST_Response( array( 'events' => $events, 'meta' => $meta ), 200 );
+		$payload = array( 'events' => $events, 'meta' => $meta );
+		set_transient( self::TRANSIENT_PUBLIC_EVENTS, $payload, self::PUBLIC_REST_CACHE_TTL );
+
+		return new WP_REST_Response( $payload, 200 );
 	}
 
 	/**
@@ -427,10 +445,28 @@ class HMO_REST {
 	 * archive shortcode on grantwritingusa.com.  Same privacy filters as
 	 * public-events; defaults to 2 years of history.
 	 */
-	public function get_past_events( WP_REST_Request $request ): WP_REST_Response {
-		global $wpdb;
+	public function get_past_events( WP_REST_Request $request ) {
+		$rate = $this->assert_public_rest_rate_allowed();
+		if ( is_wp_error( $rate ) ) {
+			return $rate;
+		}
 
 		$years = (int) $request->get_param( 'years' );
+		if ( $years < 1 ) {
+			$years = 2;
+		}
+		if ( $years > 20 ) {
+			$years = 20;
+		}
+
+		$cache_key = 'hmo_rest_past_events_' . $years;
+		$cached    = get_transient( $cache_key );
+		if ( is_array( $cached ) ) {
+			return new WP_REST_Response( $cached, 200 );
+		}
+
+		global $wpdb;
+
 		$today = current_time( 'Y-m-d' );
 		$since = gmdate( 'Y-m-d', strtotime( "-{$years} years" ) );
 
@@ -486,7 +522,55 @@ class HMO_REST {
 			);
 		}
 
-		return new WP_REST_Response( array( 'events' => $events, 'years' => $years ), 200 );
+		$payload = array( 'events' => $events, 'years' => $years );
+		set_transient( $cache_key, $payload, self::PUBLIC_REST_CACHE_TTL );
+
+		return new WP_REST_Response( $payload, 200 );
+	}
+
+	/**
+	 * Clears cached JSON for public-events and past-events (TTL-only by default).
+	 *
+	 * Fires on action {@see 'hmo_flush_public_events_cache'} for future hooks
+	 * when event visibility mutates inside Marketing Ops.
+	 */
+	public static function flush_public_events_cache(): void {
+		delete_transient( self::TRANSIENT_PUBLIC_EVENTS );
+		for ( $y = 1; $y <= 20; $y++ ) {
+			delete_transient( 'hmo_rest_past_events_' . $y );
+		}
+	}
+
+	/**
+	 * Lightweight per-IP rate limit for anonymous public REST consumers.
+	 *
+	 * @return true|WP_Error
+	 */
+	private function assert_public_rest_rate_allowed() {
+		$ip = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) ) : 'unknown';
+		$key = 'hmo_rest_rl_' . md5( $ip );
+
+		$data = get_transient( $key );
+		if ( ! is_array( $data ) || ! isset( $data['count'], $data['start'] ) ) {
+			$data = array( 'count' => 0, 'start' => time() );
+		}
+
+		if ( time() - (int) $data['start'] > self::PUBLIC_REST_RATE_WINDOW ) {
+			$data = array( 'count' => 0, 'start' => time() );
+		}
+
+		$data['count']++;
+		set_transient( $key, $data, self::PUBLIC_REST_RATE_WINDOW );
+
+		if ( (int) $data['count'] > self::PUBLIC_REST_RATE_MAX ) {
+			return new WP_Error(
+				'rest_rate_limited',
+				__( 'Too many requests. Please try again later.', 'hmo' ),
+				array( 'status' => 429 )
+			);
+		}
+
+		return true;
 	}
 
 	// -------------------------------------------------------------------------

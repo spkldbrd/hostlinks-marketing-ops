@@ -41,6 +41,17 @@ class HMO_Shortcodes {
 	}
 
 	public function register(): void {
+		$registry = array(
+			'hmo_dashboard_selector' => 'Marketing Ops Selector',
+			'hmo_dashboard'          => 'Marketing Ops Dashboard',
+			'hmo_my_classes'         => 'My Classes',
+			'hmo_event_detail'       => 'Event Detail',
+			'hmo_task_editor'        => 'Task Template Editor',
+			'hmo_event_report'       => 'Event Journey Report',
+			'display_maps_tool'      => 'Marketing Maps',
+		);
+		HMO_Access_Service::set_registered_shortcodes( $registry );
+
 		add_shortcode( 'hmo_dashboard_selector', array( $this, 'render_dashboard_selector' ) );
 		add_shortcode( 'hmo_dashboard',          array( $this, 'render_dashboard' ) );
 		add_shortcode( 'hmo_my_classes',         array( $this, 'render_my_classes' ) );

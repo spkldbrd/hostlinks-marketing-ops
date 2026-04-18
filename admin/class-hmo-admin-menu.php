@@ -121,6 +121,10 @@ class HMO_Admin_Menu {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'You do not have permission to manage Marketing Ops settings.', 'hmo' ) );
 		}
+		$notice = '';
+		if ( class_exists( 'HMO_Settings_Form_Handler', false ) ) {
+			$notice = HMO_Settings_Form_Handler::process();
+		}
 		include HMO_PLUGIN_DIR . 'admin/views/settings.php';
 	}
 

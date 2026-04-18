@@ -16,17 +16,42 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class HMO_Access_Service {
 
-	// ── Shortcode registry ────────────────────────────────────────────────────
+	// ── Shortcode registry (filled by HMO_Shortcodes::register on init) ─────
 
-	const SHORTCODES = array(
-		'hmo_dashboard_selector' => 'Marketing Ops Selector',
-		'hmo_dashboard'          => 'Marketing Ops Dashboard',
-		'hmo_my_classes'         => 'My Classes',
-		'hmo_event_detail'       => 'Event Detail',
-		'hmo_task_editor'        => 'Task Template Editor',
-		'hmo_event_report'       => 'Event Journey Report',
-		'display_maps_tool'      => 'Marketing Maps',
-	);
+	/** @var array<string,string>|null */
+	private static $shortcode_registry = null;
+
+	/**
+	 * @param array<string,string> $slug_to_label Shortcode tag => admin label.
+	 */
+	public static function set_registered_shortcodes( array $slug_to_label ): void {
+		self::$shortcode_registry = $slug_to_label;
+	}
+
+	/**
+	 * @return array<string,string> Shortcode tag => admin label.
+	 */
+	public static function get_shortcodes(): array {
+		if ( is_array( self::$shortcode_registry ) && self::$shortcode_registry !== array() ) {
+			return self::$shortcode_registry;
+		}
+		return self::default_shortcodes();
+	}
+
+	/**
+	 * @return array<string,string>
+	 */
+	private static function default_shortcodes(): array {
+		return array(
+			'hmo_dashboard_selector' => 'Marketing Ops Selector',
+			'hmo_dashboard'          => 'Marketing Ops Dashboard',
+			'hmo_my_classes'         => 'My Classes',
+			'hmo_event_detail'       => 'Event Detail',
+			'hmo_task_editor'        => 'Task Template Editor',
+			'hmo_event_report'       => 'Event Journey Report',
+			'display_maps_tool'      => 'Marketing Maps',
+		);
+	}
 
 	const MODES = array( 'public', 'logged_in', 'approved_viewers' );
 
@@ -117,7 +142,7 @@ class HMO_Access_Service {
 
 	public function save_access_modes( array $modes ): void {
 		$clean = array();
-		foreach ( array_keys( self::SHORTCODES ) as $key ) {
+		foreach ( array_keys( self::get_shortcodes() ) as $key ) {
 			$m           = $modes[ $key ] ?? 'approved_viewers';
 			$clean[$key] = in_array( $m, self::MODES, true ) ? $m : 'approved_viewers';
 		}

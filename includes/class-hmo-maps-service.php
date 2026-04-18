@@ -188,7 +188,13 @@ class HMO_Maps_Service {
 			$county_name = trim( $row[ $col['COUNAME'] ] );
 			$state_abbr  = $fips_map[ $state_fp ] ?? '';
 
-			if ( strlen( $fips ) !== 5 || ! $lat || ! $lng || ! $state_abbr ) {
+			if ( strlen( $fips ) !== 5 || ! $state_abbr ) {
+				continue;
+			}
+			if ( ! is_finite( $lat ) || ! is_finite( $lng ) ) {
+				continue;
+			}
+			if ( $lat < -90.0 || $lat > 90.0 || $lng < -180.0 || $lng > 180.0 ) {
 				continue;
 			}
 
@@ -361,14 +367,22 @@ class HMO_Maps_Service {
 		// 1. Use pre-resolved coordinates from the autocomplete if the client
 		//    already called Nominatim and pinned a lat/lng. This skips an extra
 		//    geocoder round-trip and makes the lookup instant.
-		$pinned_lat = isset( $_POST['lat'] ) ? (float) $_POST['lat'] : 0;
-		$pinned_lng = isset( $_POST['lng'] ) ? (float) $_POST['lng'] : 0;
+		$pinned_lat = isset( $_POST['lat'] ) ? (float) $_POST['lat'] : 0.0;
+		$pinned_lng = isset( $_POST['lng'] ) ? (float) $_POST['lng'] : 0.0;
+		$has_pins   = self::is_valid_lookup_coordinate_pair( $pinned_lat, $pinned_lng );
 
-		if ( $pinned_lat && $pinned_lng ) {
+		$google_key = trim( (string) get_option( 'hmo_maps_google_api_key', '' ) );
+		if ( $google_key !== '' && ! $has_pins ) {
+			wp_send_json_error(
+				'Choose a location from the address suggestions before lookup, or clear the Google Maps API key in Marketing Ops settings to allow server-side geocoding for typed-only addresses.'
+			);
+		}
+
+		if ( $has_pins ) {
 			$center_lat = $pinned_lat;
 			$center_lng = $pinned_lng;
 		} else {
-			// Fallback: geocode server-side via Nominatim (manual entry path).
+			// Fallback: geocode server-side via Nominatim (manual entry path; no Google key or key cleared).
 			$geo_url = add_query_arg(
 				array(
 					'q'            => rawurlencode( $location ),
@@ -399,7 +413,7 @@ class HMO_Maps_Service {
 			$center_lat = (float) $geo_results[0]['lat'];
 			$center_lng = (float) $geo_results[0]['lon'];
 
-			if ( ! $center_lat || ! $center_lng ) {
+			if ( ! self::is_valid_lookup_coordinate_pair( $center_lat, $center_lng ) ) {
 				wp_send_json_error( 'Could not extract coordinates from geocoder response.' );
 			}
 		}
@@ -455,5 +469,19 @@ class HMO_Maps_Service {
 			'count'        => count( $counties ),
 			'counties'     => $counties,
 		) );
+	}
+
+	/** True when lat/lng are finite, in range, and not both effectively zero (unset). */
+	private static function is_valid_lookup_coordinate_pair( float $lat, float $lng ): bool {
+		if ( ! is_finite( $lat ) || ! is_finite( $lng ) ) {
+			return false;
+		}
+		if ( $lat < -90.0 || $lat > 90.0 || $lng < -180.0 || $lng > 180.0 ) {
+			return false;
+		}
+		if ( abs( $lat ) < 1e-6 && abs( $lng ) < 1e-6 ) {
+			return false;
+		}
+		return true;
 	}
 }

@@ -54,7 +54,7 @@ class HMO_Assets {
 			return;
 		}
 
-		$shortcodes = array_keys( HMO_Access_Service::SHORTCODES );
+		$shortcodes = array_keys( HMO_Access_Service::get_shortcodes() );
 		$has_hmo    = false;
 
 		foreach ( $shortcodes as $tag ) {

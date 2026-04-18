@@ -223,17 +223,21 @@ class HMO_Dashboard_Service {
 	// -------------------------------------------------------------------------
 
 	public function update_list_metadata( int $event_id, array $data ): bool {
-		$allowed = array( 'data_list_status', 'data_list_url', 'call_list_status', 'call_list_url' );
-		$clean   = array();
+		$allowed            = array( 'data_list_status', 'data_list_url', 'call_list_status', 'call_list_url' );
+		$clean              = array();
+		$has_call_list_urls = isset( $data['call_list_urls'] ) && is_array( $data['call_list_urls'] );
 
 		foreach ( $allowed as $key ) {
+			if ( $has_call_list_urls && 'call_list_url' === $key ) {
+				continue;
+			}
 			if ( isset( $data[ $key ] ) ) {
 				$clean[ $key ] = sanitize_text_field( $data[ $key ] );
 			}
 		}
 
 		// Multi-link call list: array of up to 3 sanitized URLs stored as JSON.
-		if ( isset( $data['call_list_urls'] ) && is_array( $data['call_list_urls'] ) ) {
+		if ( $has_call_list_urls ) {
 			$urls = array_values( array_filter(
 				array_map( 'esc_url_raw', array_slice( $data['call_list_urls'], 0, 3 ) )
 			) );

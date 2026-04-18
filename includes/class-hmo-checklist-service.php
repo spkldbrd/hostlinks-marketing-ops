@@ -154,6 +154,42 @@ class HMO_Checklist_Service {
 		);
 	}
 
+	/**
+	 * Bulk-set all pending tasks in the given stages to complete for one event.
+	 *
+	 * @param int    $event_id            hostlinks_event_id
+	 * @param string[] $stage_keys      sanitized stage_key values (caller validates)
+	 * @param int    $user_id           WordPress user completing the tasks
+	 * @param string $completed_at_mysql current_time( 'mysql' )
+	 * @return int Rows updated (0 if none), or 0 on query failure
+	 */
+	public function bulk_complete_pending_tasks_for_stages( int $event_id, array $stage_keys, int $user_id, string $completed_at_mysql ): int {
+		global $wpdb;
+
+		$stage_keys = array_values( array_filter( $stage_keys ) );
+		if ( empty( $stage_keys ) ) {
+			return 0;
+		}
+
+		$placeholders = implode( ', ', array_fill( 0, count( $stage_keys ), '%s' ) );
+
+		$updated = $wpdb->query(
+			$wpdb->prepare( // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"UPDATE {$wpdb->prefix}hmo_event_tasks
+				 SET status = 'complete',
+				     completed_at = %s,
+				     completed_by_user_id = %d,
+				     updated_at = %s
+				 WHERE hostlinks_event_id = %d
+				   AND stage_key IN ($placeholders)
+				   AND status = 'pending'",
+				array_merge( array( $completed_at_mysql, $user_id, $completed_at_mysql, $event_id ), $stage_keys )
+			)
+		);
+
+		return ( false === $updated ) ? 0 : (int) $updated;
+	}
+
 	// -------------------------------------------------------------------------
 	// Task completion
 	// -------------------------------------------------------------------------
@@ -472,11 +508,8 @@ class HMO_Checklist_Service {
 		$checklist_svc = new self( $templates );
 		$user_id       = get_current_user_id();
 		$now           = current_time( 'mysql' );
-		$tasks_done    = 0;
-		$affected_events = 0;
-
-		// Build a safe IN() clause for stage keys.
-		$stage_placeholders = implode( ', ', array_fill( 0, count( $raw_stages ), '%s' ) );
+		$tasks_done        = 0;
+		$affected_events   = 0;
 
 		foreach ( $events as $event_id ) {
 			$event_id = (int) $event_id;
@@ -484,21 +517,7 @@ class HMO_Checklist_Service {
 			// Ensure task rows exist before completing them.
 			$checklist_svc->ensure_event_tasks_exist( $event_id );
 
-			// Build query args: event_id + each stage key.
-			$query_args = array_merge( array( $event_id ), $raw_stages );
-
-			$updated = $wpdb->query(
-				$wpdb->prepare(
-					"UPDATE {$wpdb->prefix}hmo_event_tasks
-					 SET status = 'complete',
-					     completed_at = %s,
-					     completed_by_user_id = %d
-					 WHERE hostlinks_event_id = %d
-					   AND stage_key IN ($stage_placeholders)
-					   AND status = 'pending'",
-					array_merge( array( $now, $user_id, $event_id ), $raw_stages )
-				)
-			);
+			$updated = $checklist_svc->bulk_complete_pending_tasks_for_stages( $event_id, $raw_stages, $user_id, $now );
 
 			if ( $updated > 0 ) {
 				$tasks_done += $updated;
