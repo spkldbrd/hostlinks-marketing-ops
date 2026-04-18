@@ -60,8 +60,6 @@ A push to **`main`** runs [`.github/workflows/release-zip.yml`](.github/workflow
 
 **Excluded from the zip (same as manual build below):** `.git`, `.github`, `.cursor`, `build/`, stray `hostlinks-marketing-ops.zip`.
 
-**Why not PowerShell `Compress-Archive`:** On Windows PowerShell 5.1, `Compress-Archive` writes ZIP central-directory entry names using **backslashes** (`\`). The ZIP spec and Linux `ZipArchive` expect **forward slashes** (`/`). A bad zip extracts as flat filenames containing literal backslashes, so WordPress never finds `hostlinks-marketing-ops/hostlinks-marketing-ops.php` on the server and reports **"Plugin file does not exist."** Always use CI (`zip` on Ubuntu) or the .NET `ZipFile` snippet in Step 4 with explicit `/` entry names.
-
 Verify on GitHub: **Actions** job green, **Releases** shows the zip. Admins bust the update cache by opening the Marketing Ops settings screen.
 
 **Agents:** after bumping the version, **always commit and push**; do not stop before `git push` — that is what triggers the release.

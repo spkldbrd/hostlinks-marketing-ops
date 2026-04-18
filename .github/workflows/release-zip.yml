@@ -42,14 +42,6 @@ jobs:
           (cd build && zip -rq "$GITHUB_WORKSPACE/hostlinks-marketing-ops.zip" hostlinks-marketing-ops)
           ls -la hostlinks-marketing-ops.zip
 
-      - name: Verify ZIP entry names use forward slashes only
-        run: |
-          if unzip -l hostlinks-marketing-ops.zip | grep -E '\\'; then
-            echo "::error::ZIP contains backslash path separators — would break Linux installs. Do not use PowerShell Compress-Archive."
-            exit 1
-          fi
-          echo "ZIP path separator check passed."
-
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}

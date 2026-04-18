@@ -132,7 +132,7 @@ class HMO_Updater {
 				'icons'        => array(),
 				'banners'      => array(),
 				'tested'       => '',
-				'requires_php' => '8.0',
+				'requires_php' => '7.4',
 			);
 		}
 
@@ -164,7 +164,7 @@ class HMO_Updater {
 			'author'            => '<a href="https://digitalsolution.com">Digital Solution</a>',
 			'homepage'          => 'https://digitalsolution.com',
 			'requires'          => '6.0',
-			'requires_php'      => '8.0',
+			'requires_php'      => '7.4',
 			'tested'            => '',
 			'last_updated'      => '',
 			'short_description' => 'Marketing ops dashboard and checklist workflow companion for Hostlinks.',
