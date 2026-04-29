@@ -220,6 +220,11 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.15 =
+* Event Detail: "Back to Marketing Ops" now uses the Marketing Ops Selector page URL
+  (same hub as Hostlinks), with fallback to the Dashboard page URL if the selector
+  is not configured. Matches role-based routing (full dashboard vs. My Classes).
+
 = 1.11.14 =
 * Stability: public REST endpoints (public-events, past-events) use a short-lived
   response cache and a light per-IP rate limit to reduce load from anonymous clients.

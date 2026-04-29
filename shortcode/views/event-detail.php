@@ -5,7 +5,9 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 $stored_goal   = $ops ? (int) $ops->registration_goal : 0;
 $goal          = $stored_goal > 0 ? $stored_goal : (int) get_option( 'hmo_default_goal', 25 );
 $stage         = $ops ? $ops->workflow_stage : 'event_setup';
-$dashboard_url = HMO_Page_URLs::get_dashboard();
+// Same hub as Hostlinks "Marketing Ops": selector routes Marketing Admins to the full
+// dashboard and everyone else to My Classes (HMO_Shortcodes::render_dashboard_selector).
+$ops_home_url  = HMO_Page_URLs::get_dashboard_selector() ?: HMO_Page_URLs::get_dashboard();
 $is_admin      = $access->current_user_can_see_all_events();
 $is_past_event = $event->eve_start && strtotime( $event->eve_start ) < strtotime( current_time( 'Y-m-d' ) );
 
@@ -25,9 +27,9 @@ $can_edit_goal = current_user_can( 'manage_options' )
 			<h1 class="hmo-detail-title">
 				<?php echo esc_html( $event->cvent_event_title ?: $event->eve_location ); ?>
 			</h1>
-			<?php if ( $dashboard_url ) : ?>
-			<a href="<?php echo esc_url( $dashboard_url ); ?>" class="hostlinks-btn hmo-detail-back-btn">
-				&larr; Back to Dashboard
+			<?php if ( $ops_home_url ) : ?>
+			<a href="<?php echo esc_url( $ops_home_url ); ?>" class="hostlinks-btn hmo-detail-back-btn">
+				&larr; Back to Marketing Ops
 			</a>
 			<?php endif; ?>
 		</div>
