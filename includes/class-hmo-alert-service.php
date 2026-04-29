@@ -12,14 +12,12 @@ class HMO_Alert_Service {
 
 	const TYPE_AT_RISK           = 'at_risk';
 	const TYPE_BEHIND_SCHEDULE   = 'behind_schedule';
-	const TYPE_MISSING_DATA_LIST = 'missing_data_list';
 	const TYPE_MISSING_CALL_LIST = 'missing_call_list';
 	const TYPE_UNDER_GOAL        = 'under_goal';
 
 	const LABELS = array(
 		self::TYPE_AT_RISK           => 'At Risk',
 		self::TYPE_BEHIND_SCHEDULE   => 'Behind Schedule',
-		self::TYPE_MISSING_DATA_LIST => 'Missing Data List',
 		self::TYPE_MISSING_CALL_LIST => 'Missing Call List',
 		self::TYPE_UNDER_GOAL        => 'Under Goal',
 	);
@@ -27,7 +25,6 @@ class HMO_Alert_Service {
 	const COLORS = array(
 		self::TYPE_AT_RISK           => 'red',
 		self::TYPE_BEHIND_SCHEDULE   => 'orange',
-		self::TYPE_MISSING_DATA_LIST => 'yellow',
 		self::TYPE_MISSING_CALL_LIST => 'yellow',
 		self::TYPE_UNDER_GOAL        => 'blue',
 	);
@@ -47,9 +44,6 @@ class HMO_Alert_Service {
 			}
 			if ( $row->behind_schedule ) {
 				$alerts[ self::TYPE_BEHIND_SCHEDULE ][] = $row;
-			}
-			if ( empty( $row->data_list_url ) ) {
-				$alerts[ self::TYPE_MISSING_DATA_LIST ][] = $row;
 			}
 			if ( empty( $row->call_list_url ) ) {
 				$alerts[ self::TYPE_MISSING_CALL_LIST ][] = $row;

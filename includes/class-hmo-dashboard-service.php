@@ -185,7 +185,6 @@ class HMO_Dashboard_Service {
 			'red_risk'          => 0,
 			'behind_schedule'   => 0,
 			'next_30_days'      => 0,
-			'missing_data_list' => 0,
 			'missing_call_list' => 0,
 		);
 
@@ -202,10 +201,6 @@ class HMO_Dashboard_Service {
 
 			if ( $row->event_date >= $today && $row->event_date <= $in_30days ) {
 				$cards['next_30_days']++;
-			}
-
-			if ( empty( $row->data_list_url ) ) {
-				$cards['missing_data_list']++;
 			}
 
 			if ( empty( $row->call_list_url ) ) {

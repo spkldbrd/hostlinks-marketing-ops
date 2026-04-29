@@ -23,10 +23,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<span class="hmo-card__label">Next 30 Days</span>
 		</div>
 		<div class="hmo-card hmo-card--warn">
-			<span class="hmo-card__number"><?php echo (int) $cards['missing_data_list']; ?></span>
-			<span class="hmo-card__label">Missing Data List</span>
-		</div>
-		<div class="hmo-card hmo-card--warn">
 			<span class="hmo-card__number"><?php echo (int) $cards['missing_call_list']; ?></span>
 			<span class="hmo-card__label">Missing Call List</span>
 		</div>

@@ -71,10 +71,6 @@ function hmo_clear_filter_url( $remove_key ): string {
 			<span class="hmo-fe-card__label">Next 30 Days</span>
 		</div>
 		<div class="hmo-fe-card hmo-fe-card--warn">
-			<span class="hmo-fe-card__number"><?php echo (int) $cards['missing_data_list']; ?></span>
-			<span class="hmo-fe-card__label">Missing Data List</span>
-		</div>
-		<div class="hmo-fe-card hmo-fe-card--warn">
 			<span class="hmo-fe-card__number"><?php echo (int) $cards['missing_call_list']; ?></span>
 			<span class="hmo-fe-card__label">Missing Call List</span>
 		</div>

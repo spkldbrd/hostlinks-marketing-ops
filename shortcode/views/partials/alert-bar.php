@@ -11,7 +11,6 @@ if ( ! $has_any ) { return; }
 $type_meta = array(
 	HMO_Alert_Service::TYPE_AT_RISK           => array( 'icon' => '⚠', 'label' => 'At Risk',            'color' => 'red' ),
 	HMO_Alert_Service::TYPE_BEHIND_SCHEDULE   => array( 'icon' => '⏰', 'label' => 'Behind Schedule',   'color' => 'orange' ),
-	HMO_Alert_Service::TYPE_MISSING_DATA_LIST => array( 'icon' => '📋', 'label' => 'Missing Data List', 'color' => 'yellow' ),
 	HMO_Alert_Service::TYPE_MISSING_CALL_LIST => array( 'icon' => '📞', 'label' => 'Missing Call List', 'color' => 'yellow' ),
 	HMO_Alert_Service::TYPE_UNDER_GOAL        => array( 'icon' => '📉', 'label' => 'Under Goal',        'color' => 'blue' ),
 );

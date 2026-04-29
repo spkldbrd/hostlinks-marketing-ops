@@ -220,6 +220,10 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.17 =
+* Dashboard: removed "Missing Data List" summary card and alert type; only call
+  list URLs are surfaced in cards and the alert bar.
+
 = 1.11.16 =
 * Dashboard: simplified call-list filter dropdown to "No List Filter" (default) and
   "Missing Call List" only; legacy data/both query values are ignored.
