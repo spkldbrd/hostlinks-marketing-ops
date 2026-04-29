@@ -220,6 +220,10 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.16 =
+* Dashboard: simplified call-list filter dropdown to "No List Filter" (default) and
+  "Missing Call List" only; legacy data/both query values are ignored.
+
 = 1.11.15 =
 * Event Detail: "Back to Marketing Ops" now uses the Marketing Ops Selector page URL
   (same hub as Hostlinks), with fallback to the Dashboard page URL if the selector

@@ -431,11 +431,15 @@ class HMO_Shortcodes {
 
 	private function get_dashboard_filter_params(): array {
 		$out = array();
-		$passthrough = array( 'hmo_stage', 'hmo_risk', 'hmo_bucket', 'hmo_trouble', 'hmo_missing', 'hmo_next30' );
+		$passthrough = array( 'hmo_stage', 'hmo_risk', 'hmo_bucket', 'hmo_trouble', 'hmo_next30' );
 		foreach ( $passthrough as $key ) {
 			if ( ! empty( $_GET[ $key ] ) ) {
-				$out[ $key ] = sanitize_text_field( $_GET[ $key ] );
+				$out[ $key ] = sanitize_text_field( wp_unslash( $_GET[ $key ] ) );
 			}
+		}
+		// Only `call` is supported (legacy data/both query args are ignored).
+		if ( ! empty( $_GET['hmo_missing'] ) && sanitize_key( wp_unslash( (string) $_GET['hmo_missing'] ) ) === 'call' ) {
+			$out['hmo_missing'] = 'call';
 		}
 		return $out;
 	}

@@ -16,7 +16,7 @@ $f_risk    = sanitize_key( $_GET['hmo_risk']    ?? '' );
 $f_bucket  = (int) ( $_GET['hmo_bucket']  ?? 0 );
 $f_trouble = ! empty( $_GET['hmo_trouble'] );
 $f_next30  = ! empty( $_GET['hmo_next30'] );
-$f_missing = sanitize_key( $_GET['hmo_missing'] ?? '' );
+$f_missing = ( isset( $_GET['hmo_missing'] ) && sanitize_key( wp_unslash( (string) $_GET['hmo_missing'] ) ) === 'call' ) ? 'call' : '';
 
 $stage_labels_map = array();
 foreach ( HMO_Checklist_Templates::get_stages_option() as $s ) {
@@ -118,13 +118,11 @@ function hmo_clear_filter_url( $remove_key ): string {
 			</select>
 			<?php endif; ?>
 
-			<!-- Missing filter -->
-			<select class="hmo-filter-select" onchange="window.location.href=this.value" title="Missing lists">
+			<!-- Call list URL filter (see Event Detail Call List, up to 3 links in call_list_url) -->
+			<select class="hmo-filter-select" onchange="window.location.href=this.value" title="Call list links">
 				<option value="<?php echo esc_url( hmo_clear_filter_url( 'hmo_missing' ) ); ?>"
-					<?php selected( ! $f_missing ); ?>>All Lists</option>
-				<option value="<?php echo esc_url( add_query_arg( array( 'hmo_missing' => 'data', 'hmo_page' => false ), remove_query_arg( 'hmo_missing' ) ) ); ?>" <?php selected( $f_missing, 'data' ); ?>>Missing Data List</option>
+					<?php selected( ! $f_missing ); ?>>No List Filter</option>
 				<option value="<?php echo esc_url( add_query_arg( array( 'hmo_missing' => 'call', 'hmo_page' => false ), remove_query_arg( 'hmo_missing' ) ) ); ?>" <?php selected( $f_missing, 'call' ); ?>>Missing Call List</option>
-				<option value="<?php echo esc_url( add_query_arg( array( 'hmo_missing' => 'both', 'hmo_page' => false ), remove_query_arg( 'hmo_missing' ) ) ); ?>" <?php selected( $f_missing, 'both' ); ?>>Missing Either</option>
 			</select>
 
 		</div>
@@ -185,9 +183,9 @@ function hmo_clear_filter_url( $remove_key ): string {
 		<?php if ( $f_next30 ) : ?>
 		<a class="hmo-active-filter-pill" href="<?php echo esc_url( hmo_clear_filter_url( 'hmo_next30' ) ); ?>">Next 30 Days &times;</a>
 		<?php endif; ?>
-		<?php if ( $f_missing ) : ?>
+		<?php if ( $f_missing === 'call' ) : ?>
 		<a class="hmo-active-filter-pill" href="<?php echo esc_url( hmo_clear_filter_url( 'hmo_missing' ) ); ?>">
-			Missing: <?php echo esc_html( ucfirst( $f_missing ) ); ?> List &times;
+			Missing Call List &times;
 		</a>
 		<?php endif; ?>
 	</div>

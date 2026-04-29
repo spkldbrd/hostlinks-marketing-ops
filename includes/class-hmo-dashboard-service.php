@@ -41,7 +41,7 @@ class HMO_Dashboard_Service {
 	/**
 	 * Returns dashboard row objects, access-filtered and sorted.
 	 * Quick filters ($filters keys: view, hmo_stage, hmo_risk, hmo_bucket,
-	 * hmo_trouble, hmo_missing, hmo_buckets[], hmo_trouble_only, hmo_next30)
+	 * hmo_trouble, hmo_missing (=call only: no call_list_url), hmo_buckets[], hmo_trouble_only, hmo_next30)
 	 * are applied post-sort and not cached — they're cheap array operations.
 	 *
 	 * @param array $filters
@@ -293,15 +293,9 @@ class HMO_Dashboard_Service {
 			$rows = array_values( array_filter( $rows, fn( $r ) => $r->risk_level === 'red' || $r->behind_schedule ) );
 		}
 
-		// Dashboard: missing list filter.
-		if ( ! empty( $filters['hmo_missing'] ) ) {
-			$m    = $filters['hmo_missing'];
-			$rows = array_values( array_filter( $rows, function ( $r ) use ( $m ) {
-				if ( $m === 'data' ) { return empty( $r->data_list_url ); }
-				if ( $m === 'call' ) { return empty( $r->call_list_url ); }
-				if ( $m === 'both' ) { return empty( $r->data_list_url ) || empty( $r->call_list_url ); }
-				return false;
-			} ) );
+		// Dashboard: events with no call list URL (call_list_url; may hold JSON array of up to 3 links).
+		if ( ! empty( $filters['hmo_missing'] ) && $filters['hmo_missing'] === 'call' ) {
+			$rows = array_values( array_filter( $rows, fn( $r ) => empty( $r->call_list_url ) ) );
 		}
 
 		// My Classes: multi-bucket pill filter.
