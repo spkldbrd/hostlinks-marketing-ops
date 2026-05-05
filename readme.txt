@@ -220,6 +220,11 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.18 =
+* Public REST (`/hmo/v1/public-events`, `/hmo/v1/past-events`): exclude events whose
+  Hostlinks marketer display name is exactly `private` (case-insensitive) when a
+  marketer is assigned; existing Hide Public and location pipe filters unchanged.
+
 = 1.11.17 =
 * Dashboard: removed "Missing Data List" summary card and alert type; only call
   list URLs are surfaced in cards and the alert bar.

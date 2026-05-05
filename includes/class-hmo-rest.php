@@ -347,6 +347,13 @@ class HMO_REST {
 	 * gwu-event-pages plugin on grantwritingusa.com.  No authentication required.
 	 * Mirrors the query in Hostlinks' public-event-list.php shortcode and adds
 	 * a `column` field ('left'|'right'|'') computed from the same saved options.
+	 *
+	 * Privacy (must never appear in output):
+	 * - Hide Public in Hostlinks (`eve_public_hide = 1`) — excluded via `eve_public_hide = 0`.
+	 * - Location flagged private (`eve_location` matching the three `|%private%` patterns).
+	 * - “Private class” bucket: when `eve_marketer > 0`, the assigned Hostlinks marketer’s
+	 *   display name exactly `private` (case-insensitive) — excluded via LEFT JOIN to
+	 *   `event_marketer`. Events with no/zero marketer remain eligible.
 	 */
 	public function get_public_events( WP_REST_Request $request ) {
 		$rate = $this->assert_public_rest_rate_allowed();
@@ -368,12 +375,14 @@ class HMO_REST {
 				"SELECT e.*, t.event_type_name
 				 FROM {$wpdb->prefix}event_details_list e
 				 LEFT JOIN {$wpdb->prefix}event_type t ON t.event_type_id = e.eve_type
+				 LEFT JOIN {$wpdb->prefix}event_marketer m ON m.event_marketer_id = e.eve_marketer
 				 WHERE e.eve_status = 1
 				   AND e.eve_public_hide = 0
 				   AND e.eve_start >= %s
 				   AND e.eve_location NOT LIKE %s
 				   AND e.eve_location NOT LIKE %s
 				   AND e.eve_location NOT LIKE %s
+				   AND NOT ( e.eve_marketer > 0 AND LOWER( TRIM( COALESCE( m.event_marketer_name, '' ) ) ) = 'private' )
 				 ORDER BY e.eve_start ASC",
 				$today,
 				'%|PRIVATE%',
@@ -443,7 +452,13 @@ class HMO_REST {
 	 *
 	 * Returns completed public events (newest first) for use in a past-events
 	 * archive shortcode on grantwritingusa.com.  Same privacy filters as
-	 * public-events; defaults to 2 years of history.
+	 * {@see get_public_events()}; defaults to 2 years of history.
+	 *
+	 * Privacy (must never appear in output):
+	 * - Hide Public (`eve_public_hide = 1`) — excluded via `eve_public_hide = 0`.
+	 * - Location private pipe patterns on `eve_location`.
+	 * - Marketer display name exactly `private` (case-insensitive) when `eve_marketer > 0`;
+	 *   see {@see get_public_events()} for the JOIN rule.
 	 */
 	public function get_past_events( WP_REST_Request $request ) {
 		$rate = $this->assert_public_rest_rate_allowed();
@@ -475,6 +490,7 @@ class HMO_REST {
 				"SELECT e.*, t.event_type_name
 				 FROM {$wpdb->prefix}event_details_list e
 				 LEFT JOIN {$wpdb->prefix}event_type t ON t.event_type_id = e.eve_type
+				 LEFT JOIN {$wpdb->prefix}event_marketer m ON m.event_marketer_id = e.eve_marketer
 				 WHERE e.eve_status = 1
 				   AND e.eve_public_hide = 0
 				   AND e.eve_start < %s
@@ -482,6 +498,7 @@ class HMO_REST {
 				   AND e.eve_location NOT LIKE %s
 				   AND e.eve_location NOT LIKE %s
 				   AND e.eve_location NOT LIKE %s
+				   AND NOT ( e.eve_marketer > 0 AND LOWER( TRIM( COALESCE( m.event_marketer_name, '' ) ) ) = 'private' )
 				 ORDER BY e.eve_start DESC",
 				$today,
 				$since,
