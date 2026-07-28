@@ -220,6 +220,11 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.20 =
+* Page Sync: stop embedding register buttons in generated page HTML — use
+  `[event_register_button]` in the DIVI layout (GWU Event Pages 1.2.21+).
+* Page Sync: continue writing `_gwu_reg_url` meta on create/regenerate.
+
 = 1.11.19 =
 * Page Sync: write `_gwu_reg_url` and `_gwu_event_data` meta to GWU marketing pages on create and regenerate (supports DIVI shortcodes on grantwritingusa.com).
 

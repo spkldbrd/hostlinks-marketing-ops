@@ -243,7 +243,7 @@ class HMO_Page_Sync {
 	}
 
 	// -------------------------------------------------------------------------
-	// GWU page meta (for DIVI shortcodes on grantwritingusa.com)
+	// GWU page meta (for [event_register_button] on grantwritingusa.com)
 	// -------------------------------------------------------------------------
 
 	/**
@@ -254,37 +254,8 @@ class HMO_Page_Sync {
 	 */
 	public function build_gwu_page_meta( array $ev ): array {
 		return array(
-			'_gwu_event_id'   => (int) ( $ev['eve_id'] ?? 0 ),
-			'_gwu_reg_url'    => esc_url_raw( trim( (string) ( $ev['eve_trainer_url'] ?? '' ) ) ),
-			'_gwu_event_data' => wp_json_encode( $this->build_event_snapshot( $ev ) ),
-		);
-	}
-
-	/**
-	 * Event fields needed by GWU [event_section] token replacement and dynamic blocks.
-	 *
-	 * @param array $ev Event row from event_details_list.
-	 * @return array<string, mixed>
-	 */
-	public function build_event_snapshot( array $ev ): array {
-		return array(
-			'eve_id'               => (int) ( $ev['eve_id'] ?? 0 ),
-			'eve_type'             => (int) ( $ev['eve_type'] ?? 0 ),
-			'eve_zoom'             => (string) ( $ev['eve_zoom'] ?? '' ),
-			'eve_start'            => (string) ( $ev['eve_start'] ?? '' ),
-			'eve_end'              => (string) ( $ev['eve_end'] ?? '' ),
-			'eve_location'         => (string) ( $ev['eve_location'] ?? '' ),
-			'city'                 => (string) ( $ev['city'] ?? '' ),
-			'state'                => (string) ( $ev['state'] ?? '' ),
-			'zip_code'             => (string) ( $ev['zip_code'] ?? '' ),
-			'street_address_1'     => (string) ( $ev['street_address_1'] ?? '' ),
-			'street_address_2'     => (string) ( $ev['street_address_2'] ?? '' ),
-			'street_address_3'     => (string) ( $ev['street_address_3'] ?? '' ),
-			'location_name'        => (string) ( $ev['location_name'] ?? '' ),
-			'host_name'            => (string) ( $ev['host_name'] ?? '' ),
-			'eve_trainer_url'      => (string) ( $ev['eve_trainer_url'] ?? '' ),
-			'hotels'               => (string) ( $ev['hotels'] ?? '' ),
-			'special_instructions' => (string) ( $ev['special_instructions'] ?? '' ),
+			'_gwu_event_id' => (int) ( $ev['eve_id'] ?? 0 ),
+			'_gwu_reg_url'  => esc_url_raw( trim( (string) ( $ev['eve_trainer_url'] ?? '' ) ) ),
 		);
 	}
 
@@ -363,7 +334,6 @@ class HMO_Page_Sync {
 		$host    = trim( $ev['host_name']        ?? '' );
 		$start   = $ev['eve_start']              ?? '';
 		$end     = $ev['eve_end']                ?? '';
-		$reg_url = trim( $ev['eve_trainer_url']  ?? '' );
 		$is_zoom = ( ( $ev['eve_zoom'] ?? '' ) === 'yes' );
 		$hotels  = trim( $ev['hotels']           ?? '' );
 		$special = trim( $ev['special_instructions'] ?? '' );
@@ -385,12 +355,6 @@ class HMO_Page_Sync {
 		// Google Maps URL.
 		$map_query = urlencode( implode( ', ', array_filter( array( $addr1, $city, $state, $zip ) ) ) );
 		$map_url   = 'https://maps.google.com/?q=' . $map_query;
-
-		// Registration button HTML.
-		$reg_button = '';
-		if ( $reg_url ) {
-			$reg_button = '<p style="margin:12px 0;"><a href="' . esc_url( $reg_url ) . '" class="gwu-reg-btn" style="display:inline-block;padding:10px 24px;background:#00509e;color:#fff;text-decoration:none;border-radius:4px;font-weight:bold;">Click here to register!</a></p>' . "\n";
-		}
 
 		// Token values for itinerary sections.
 		$host_line  = $hosted_by ? '<br>Hosted by ' . esc_html( $hosted_by ) : '';
@@ -426,8 +390,8 @@ class HMO_Page_Sync {
 			: '';
 
 		// Assemble using template sections for all static boilerplate.
+		// Register buttons: use [event_register_button] in the DIVI layout (GWU Event Pages 1.2.21+).
 		$c  = '';
-		$c .= $reg_button;
 		$c .= '<h2>Welcome!</h2>' . "\n";
 		$c .= HMO_Page_Template::render_section( 'welcome', array(), $type_key );
 		$c .= $itinerary_html;
@@ -457,7 +421,6 @@ class HMO_Page_Sync {
 
 		$c .= '<h2>Ready to enroll?</h2>' . "\n";
 		$c .= '<p>Great &mdash; it\'s easy!</p>' . "\n";
-		$c .= $reg_button;
 
 		$c .= $hotels_html;
 
