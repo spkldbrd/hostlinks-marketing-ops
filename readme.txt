@@ -220,6 +220,9 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.21 =
+* Page Sync: format hotels JSON as readable HTML on marketing pages (name, phone, address, optional link).
+
 = 1.11.20 =
 * Page Sync: stop embedding register buttons in generated page HTML — use
   `[event_register_button]` in the DIVI layout (GWU Event Pages 1.2.21+).

@@ -377,12 +377,7 @@ class HMO_Page_Sync {
 		}
 
 		// Hotels section (dynamic — not template-editable).
-		$hotels_html = '';
-		if ( $hotels ) {
-			$hotels_html = '<h2>Traveling and need lodging?</h2>' . "\n"
-				. '<p>These hotels are near the training location.</p>' . "\n"
-				. wp_kses_post( $hotels ) . "\n";
-		}
+		$hotels_html = $this->render_hotels_html( $hotels );
 
 		// Special instructions (dynamic).
 		$special_html = $special
@@ -430,6 +425,71 @@ class HMO_Page_Sync {
 	// -------------------------------------------------------------------------
 	// Private helpers
 	// -------------------------------------------------------------------------
+
+	/**
+	 * Renders the hotels JSON column as readable HTML for GWU marketing pages.
+	 *
+	 * @param string $hotels_raw JSON array from event_details_list.hotels.
+	 */
+	private function render_hotels_html( string $hotels_raw ): string {
+		$hotels_raw = trim( $hotels_raw );
+		if ( $hotels_raw === '' ) {
+			return '';
+		}
+
+		$hotels = json_decode( $hotels_raw, true );
+		if ( ! is_array( $hotels ) || $hotels === array() ) {
+			// Fallback: already HTML from a legacy import.
+			if ( str_contains( $hotels_raw, '<' ) ) {
+				return '<h2>Traveling and need lodging?</h2>' . "\n"
+					. '<p>These hotels are near the training location.</p>' . "\n"
+					. wp_kses_post( $hotels_raw ) . "\n";
+			}
+			return '';
+		}
+
+		$blocks = '';
+		foreach ( $hotels as $h ) {
+			if ( ! is_array( $h ) ) {
+				continue;
+			}
+			$name    = trim( (string) ( $h['name'] ?? '' ) );
+			$phone   = trim( (string) ( $h['phone'] ?? '' ) );
+			$address = trim( (string) ( $h['address'] ?? '' ) );
+			$url     = trim( (string) ( $h['url'] ?? '' ) );
+
+			if ( $name === '' && $address === '' && $phone === '' ) {
+				continue;
+			}
+
+			$blocks .= '<div class="gwu-hotel">' . "\n";
+			if ( $name !== '' ) {
+				if ( $url !== '' ) {
+					$blocks .= '<p class="gwu-hotel-name"><a href="' . esc_url( $url ) . '" target="_blank" rel="noopener noreferrer">'
+						. esc_html( $name ) . '</a></p>' . "\n";
+				} else {
+					$blocks .= '<p class="gwu-hotel-name"><strong>' . esc_html( $name ) . '</strong></p>' . "\n";
+				}
+			}
+			if ( $phone !== '' ) {
+				$blocks .= '<p class="gwu-hotel-phone">' . esc_html( $phone ) . '</p>' . "\n";
+			}
+			if ( $address !== '' ) {
+				$blocks .= '<p class="gwu-hotel-address">' . esc_html( $address ) . '</p>' . "\n";
+			}
+			$blocks .= '</div>' . "\n";
+		}
+
+		if ( $blocks === '' ) {
+			return '';
+		}
+
+		return '<h2>Traveling and need lodging?</h2>' . "\n"
+			. '<p>These hotels are near the training location.</p>' . "\n"
+			. '<div class="gwu-hotels">' . "\n"
+			. $blocks
+			. '</div>' . "\n";
+	}
 
 	private function extract_city_state( string $location ): string {
 		$location = trim( $location );
