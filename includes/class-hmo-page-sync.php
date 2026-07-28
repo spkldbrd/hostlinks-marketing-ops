@@ -128,7 +128,7 @@ class HMO_Page_Sync {
 			'content'  => $this->build_page_content( $ev ),
 			'status'   => self::get_default_page_status(),
 			'template' => 'gwu-event-pages/templates/page-event-marketing.php',
-			'meta'     => array( '_gwu_event_id' => (int) $ev['eve_id'] ),
+			'meta'     => $this->build_gwu_page_meta( $ev ),
 		);
 
 		if ( $parent > 0 ) {
@@ -178,6 +178,7 @@ class HMO_Page_Sync {
 		$body = array(
 			'title'   => $this->build_page_title( $ev ),
 			'content' => $this->build_page_content( $ev ),
+			'meta'    => $this->build_gwu_page_meta( $ev ),
 		);
 
 		$response = wp_remote_post( $api_base . '/pages/' . $gwu_page_id, array(
@@ -238,6 +239,52 @@ class HMO_Page_Sync {
 			array( 'eve_id'      => $event_id ),
 			array( '%s' ),
 			array( '%d' )
+		);
+	}
+
+	// -------------------------------------------------------------------------
+	// GWU page meta (for DIVI shortcodes on grantwritingusa.com)
+	// -------------------------------------------------------------------------
+
+	/**
+	 * Meta fields written to each marketing page via the WP REST API.
+	 *
+	 * @param array $ev Event row from event_details_list.
+	 * @return array<string, mixed>
+	 */
+	public function build_gwu_page_meta( array $ev ): array {
+		return array(
+			'_gwu_event_id'   => (int) ( $ev['eve_id'] ?? 0 ),
+			'_gwu_reg_url'    => esc_url_raw( trim( (string) ( $ev['eve_trainer_url'] ?? '' ) ) ),
+			'_gwu_event_data' => wp_json_encode( $this->build_event_snapshot( $ev ) ),
+		);
+	}
+
+	/**
+	 * Event fields needed by GWU [event_section] token replacement and dynamic blocks.
+	 *
+	 * @param array $ev Event row from event_details_list.
+	 * @return array<string, mixed>
+	 */
+	public function build_event_snapshot( array $ev ): array {
+		return array(
+			'eve_id'               => (int) ( $ev['eve_id'] ?? 0 ),
+			'eve_type'             => (int) ( $ev['eve_type'] ?? 0 ),
+			'eve_zoom'             => (string) ( $ev['eve_zoom'] ?? '' ),
+			'eve_start'            => (string) ( $ev['eve_start'] ?? '' ),
+			'eve_end'              => (string) ( $ev['eve_end'] ?? '' ),
+			'eve_location'         => (string) ( $ev['eve_location'] ?? '' ),
+			'city'                 => (string) ( $ev['city'] ?? '' ),
+			'state'                => (string) ( $ev['state'] ?? '' ),
+			'zip_code'             => (string) ( $ev['zip_code'] ?? '' ),
+			'street_address_1'     => (string) ( $ev['street_address_1'] ?? '' ),
+			'street_address_2'     => (string) ( $ev['street_address_2'] ?? '' ),
+			'street_address_3'     => (string) ( $ev['street_address_3'] ?? '' ),
+			'location_name'        => (string) ( $ev['location_name'] ?? '' ),
+			'host_name'            => (string) ( $ev['host_name'] ?? '' ),
+			'eve_trainer_url'      => (string) ( $ev['eve_trainer_url'] ?? '' ),
+			'hotels'               => (string) ( $ev['hotels'] ?? '' ),
+			'special_instructions' => (string) ( $ev['special_instructions'] ?? '' ),
 		);
 	}
 

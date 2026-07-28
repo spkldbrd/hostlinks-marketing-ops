@@ -220,6 +220,9 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.19 =
+* Page Sync: write `_gwu_reg_url` and `_gwu_event_data` meta to GWU marketing pages on create and regenerate (supports DIVI shortcodes on grantwritingusa.com).
+
 = 1.11.18 =
 * Public REST (`/hmo/v1/public-events`, `/hmo/v1/past-events`): exclude events whose
   Hostlinks marketer display name is exactly `private` (case-insensitive) when a
