@@ -26,8 +26,15 @@ class HMO_Page_Sync {
 	/** When false, Course Type HTML is omitted from synced body (use [event_course_type] on GWU). */
 	const OPT_INCLUDE_COURSE_TYPE_BODY = 'hmo_gwu_page_include_course_type_body';
 
+	/** When true, host/venue block is prepended to synced body; default off (use [event_host_venue] on GWU). */
+	const OPT_INCLUDE_HOST_VENUE_BODY = 'hmo_gwu_page_include_host_venue_body';
+
 	public static function include_course_type_in_body(): bool {
 		return (int) get_option( self::OPT_INCLUDE_COURSE_TYPE_BODY, 1 ) === 1;
+	}
+
+	public static function include_host_venue_in_body(): bool {
+		return (int) get_option( self::OPT_INCLUDE_HOST_VENUE_BODY, 0 ) === 1;
 	}
 
 	/**
@@ -261,9 +268,10 @@ class HMO_Page_Sync {
 	 */
 	public function build_gwu_page_meta( array $ev ): array {
 		return array(
-			'_gwu_event_id'         => (int) ( $ev['eve_id'] ?? 0 ),
-			'_gwu_reg_url'          => esc_url_raw( trim( (string) ( $ev['eve_trainer_url'] ?? '' ) ) ),
-			'_gwu_course_type_html' => $this->build_format_html( $ev ),
+			'_gwu_event_id'          => (int) ( $ev['eve_id'] ?? 0 ),
+			'_gwu_reg_url'           => esc_url_raw( trim( (string) ( $ev['eve_trainer_url'] ?? '' ) ) ),
+			'_gwu_course_type_html'  => $this->build_format_html( $ev ),
+			'_gwu_host_venue_html'   => $this->build_host_venue_html( $ev ),
 		);
 	}
 
@@ -367,9 +375,11 @@ class HMO_Page_Sync {
 		$special_html = $this->build_special_instructions_html( $ev );
 
 		// Assemble using template sections for all static boilerplate.
-		// Register buttons: use [event_register_button] in the DIVI layout (GWU Event Pages 1.2.21+).
+		// Register button: [event_register_button]; host/venue: [event_host_venue] (GWU Event Pages).
 		$c  = '';
-		$c .= $this->build_host_venue_html( $ev );
+		if ( self::include_host_venue_in_body() ) {
+			$c .= $this->build_host_venue_html( $ev );
+		}
 		$c .= $this->append_template_heading_section( 'Welcome!', 'welcome', array(), $type_key );
 
 		if ( $is_zoom ) {

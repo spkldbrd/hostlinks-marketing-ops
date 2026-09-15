@@ -3,6 +3,7 @@
 	$sync_nonce   = wp_create_nonce( 'hmo_page_sync_test' );
 	$all_defined  = ! in_array( false, $sync_status, true );
 	$include_ct   = HMO_Page_Sync::include_course_type_in_body();
+	$include_hv   = HMO_Page_Sync::include_host_venue_in_body();
 ?>
 
 <h2>Generated Page Layout</h2>
@@ -20,6 +21,20 @@
 				<p class="description" style="max-width:640px;">
 					Uncheck when using the <code>[event_course_type]</code> shortcode in your DIVI sidebar on grantwritingusa.com
 					(GWU Event Pages 1.2.23+). Course Type text is still saved to page meta on every regenerate for the shortcode.
+					Regenerate event pages after changing this setting.
+				</p>
+			</td>
+		</tr>
+		<tr>
+			<th scope="row">Host &amp; venue in page body</th>
+			<td>
+				<label>
+					<input type="checkbox" name="hmo_gwu_include_host_venue_body" value="1" <?php checked( $include_hv ); ?>>
+					Include <strong>Host &amp; venue</strong> at the top of the synced HTML body (above Welcome)
+				</label>
+				<p class="description" style="max-width:640px;">
+					Leave unchecked when using <code>[event_host_venue]</code> in your DIVI layout on grantwritingusa.com
+					(GWU Event Pages 1.2.25+). Host/venue text is still saved to page meta on every regenerate for the shortcode.
 					Regenerate event pages after changing this setting.
 				</p>
 			</td>

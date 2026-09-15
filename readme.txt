@@ -220,6 +220,10 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.28 =
+* GWU Page Sync: sync `_gwu_host_venue_html` for `[event_host_venue]` on grantwritingusa.com (GWU Event Pages 1.2.25+).
+* Settings → GWU Page Sync: optional checkbox to include host/venue in synced body (off by default).
+
 = 1.11.27 =
 * Page sync: host/venue block above Welcome from displayed_as, host_name, location_name, and address fields; itinerary/date sections use H2 headings.
 * Page sync: parking file URL outputs a link when special instructions are included; legacy itinerary host/address tokens cleared.

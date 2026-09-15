@@ -146,6 +146,11 @@ class HMO_Settings_Form_Handler {
 				isset( $_POST['hmo_gwu_include_course_type_body'] ) ? 1 : 0,
 				false
 			);
+			update_option(
+				HMO_Page_Sync::OPT_INCLUDE_HOST_VENUE_BODY,
+				isset( $_POST['hmo_gwu_include_host_venue_body'] ) ? 1 : 0,
+				false
+			);
 			$notice = '<div class="notice notice-success is-dismissible"><p>GWU Page Sync settings saved.</p></div>';
 		}
 
