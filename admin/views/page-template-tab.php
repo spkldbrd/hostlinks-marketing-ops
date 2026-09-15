@@ -171,6 +171,18 @@ $base_url = add_query_arg(
 		</button>
 		<?php endif; ?>
 	</p>
+	<?php if ( $is_default ) : ?>
+	<p class="hmo-bulk-regen-options" style="margin:-8px 0 24px;">
+		<label>
+			<input type="checkbox" id="hmo-bulk-regen-overwrite-url" value="1">
+			Update Hostlinks <strong>WEB URL</strong> to match each synced GWU page
+		</label>
+		<span class="description" style="display:block;margin:6px 0 0 24px;color:#646970;max-width:720px;">
+			Unchecked (default): only title, body, and meta on grantwritingusa.com are updated; existing WEB URLs in Hostlinks are kept.
+			Checked: overwrites each event&rsquo;s WEB URL with the synced page permalink.
+		</span>
+	</p>
+	<?php endif; ?>
 </form>
 
 <?php if ( $is_default ) : ?>
@@ -326,7 +338,14 @@ jQuery(function($){
 		var errorsWrap = $('#hmo-bulk-regen-errors-wrap');
 		var errorsList = $('#hmo-bulk-regen-errors');
 
-		if ( ! confirm(labels.confirm) ) {
+		var overwriteUrls = $('#hmo-bulk-regen-overwrite-url').is(':checked');
+		var confirmMsg  = labels.confirm;
+		if ( overwriteUrls ) {
+			confirmMsg += '\n\nHostlinks WEB URLs will be overwritten with each synced page link.';
+		} else {
+			confirmMsg += '\n\nHostlinks WEB URLs will not be changed (page content on grantwritingusa.com only).';
+		}
+		if ( ! confirm(confirmMsg) ) {
 			return;
 		}
 
@@ -374,10 +393,11 @@ jQuery(function($){
 				var batch = queue.splice(0, batchSize);
 
 				$.post(ajaxurl, {
-					action      : 'hmo_bulk_regen_batch',
-					_ajax_nonce : bulkNonce,
-					regen_scope : scope,
-					event_ids   : batch
+					action            : 'hmo_bulk_regen_batch',
+					_ajax_nonce       : bulkNonce,
+					regen_scope       : scope,
+					overwrite_web_url : overwriteUrls ? 1 : 0,
+					event_ids         : batch
 				}).done(function(batchResp){
 					if ( ! batchResp.success ) {
 						return fail('Batch failed: ' + (batchResp.data || 'Unknown error'));

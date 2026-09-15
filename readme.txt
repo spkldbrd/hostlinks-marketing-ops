@@ -220,6 +220,9 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.26 =
+* Page Template bulk regenerate: optional checkbox to update Hostlinks WEB URLs (off by default; updates GWU page content only unless checked).
+
 = 1.11.25 =
 * Page Template: bulk “Regenerate All Past Event Pages” for events with a linked GWU page (eve_start before today); updates only, no new page creation.
 

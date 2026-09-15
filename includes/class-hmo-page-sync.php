@@ -564,7 +564,7 @@ class HMO_Page_Sync {
 	 * @param bool  $force_upsert_page_id When true, always write gwu_page_id (admin single-event regenerate). When false, only upsert gwu_page_id after a create (bulk batch).
 	 * @return array{url:string,page_id:int}|null Null on failure.
 	 */
-	private function sync_event_row_to_gwu( int $event_id, array $ev, bool $force_upsert_page_id ): ?array {
+	private function sync_event_row_to_gwu( int $event_id, array $ev, bool $force_upsert_page_id, bool $overwrite_web_url = true ): ?array {
 		$page_id = HMO_DB::get_event_gwu_page_id( $event_id );
 		$result  = $page_id > 0
 			? $this->update_gwu_page( $page_id, $ev )
@@ -574,7 +574,7 @@ class HMO_Page_Sync {
 			return null;
 		}
 
-		$this->save_web_url( $event_id, $result['url'] );
+		$this->save_web_url( $event_id, $result['url'], $overwrite_web_url );
 
 		if ( $force_upsert_page_id || $page_id === 0 ) {
 			HMO_DB::upsert_event_ops( $event_id, array( 'gwu_page_id' => $result['page_id'] ) );
@@ -701,6 +701,11 @@ class HMO_Page_Sync {
 	/**
 	 * Validates bulk regen scope from AJAX (future vs past linked pages).
 	 */
+	/** Whether bulk regen should overwrite eve_web_url (checkbox; default false). */
+	private static function bulk_regen_overwrite_web_url_from_request(): bool {
+		return ! empty( $_POST['overwrite_web_url'] );
+	}
+
 	private static function sanitize_bulk_regen_scope( string $raw ): string {
 		$scope = sanitize_key( $raw );
 		if ( ! in_array( $scope, array( self::BULK_REGEN_FUTURE, self::BULK_REGEN_PAST ), true ) ) {
@@ -789,7 +794,8 @@ class HMO_Page_Sync {
 			@set_time_limit( 120 );
 		}
 
-		$scope = self::sanitize_bulk_regen_scope( (string) ( $_POST['regen_scope'] ?? self::BULK_REGEN_FUTURE ) );
+		$scope            = self::sanitize_bulk_regen_scope( (string) ( $_POST['regen_scope'] ?? self::BULK_REGEN_FUTURE ) );
+		$overwrite_web_url = self::bulk_regen_overwrite_web_url_from_request();
 
 		$raw = $_POST['event_ids'] ?? array();
 		if ( ! is_array( $raw ) ) {
@@ -847,10 +853,10 @@ class HMO_Page_Sync {
 				}
 				$result = $instance->update_gwu_page( $gwu_page_id, $ev );
 				if ( $result ) {
-					$instance->save_web_url( $event_id, $result['url'] );
+					$instance->save_web_url( $event_id, $result['url'], $overwrite_web_url );
 				}
 			} else {
-				$result = $instance->sync_event_row_to_gwu( $event_id, $ev, false );
+				$result = $instance->sync_event_row_to_gwu( $event_id, $ev, false, $overwrite_web_url );
 			}
 
 			if ( $result ) {
