@@ -602,11 +602,11 @@ class HMO_Page_Sync {
 					$blocks .= '<p class="gwu-hotel-name"><strong>' . esc_html( $name ) . '</strong></p>' . "\n";
 				}
 			}
-			if ( $phone !== '' ) {
-				$blocks .= '<p class="gwu-hotel-phone">' . esc_html( $phone ) . '</p>' . "\n";
-			}
 			if ( $address !== '' ) {
 				$blocks .= '<p class="gwu-hotel-address">' . esc_html( $address ) . '</p>' . "\n";
+			}
+			if ( $phone !== '' ) {
+				$blocks .= '<p class="gwu-hotel-phone">' . esc_html( $phone ) . '</p>' . "\n";
 			}
 			$blocks .= '</div>' . "\n";
 		}

@@ -220,6 +220,9 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.30 =
+* Marketing page hotels: name, address, then phone (for two-column card layout on GWU).
+
 = 1.11.29 =
 * Host/venue sync HTML: each line wrapped in `gwu-host-venue-line--*` classes; single street line merges with city/state/zip as one row.
 
