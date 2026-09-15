@@ -590,6 +590,9 @@ class HMO_Page_Sync {
 	/** Number of events processed per batch AJAX request in bulk regeneration. */
 	const BULK_BATCH_SIZE = 3;
 
+	const BULK_REGEN_FUTURE = 'future';
+	const BULK_REGEN_PAST   = 'past';
+
 	public static function register_ajax(): void {
 		add_action( 'wp_ajax_hmo_test_page_sync',        array( __CLASS__, 'ajax_test_connection' ) );
 		add_action( 'wp_ajax_hmo_regenerate_event_page', array( __CLASS__, 'ajax_regenerate_event_page' ) );
@@ -696,13 +699,48 @@ class HMO_Page_Sync {
 	}
 
 	/**
+	 * Validates bulk regen scope from AJAX (future vs past linked pages).
+	 */
+	private static function sanitize_bulk_regen_scope( string $raw ): string {
+		$scope = sanitize_key( $raw );
+		if ( ! in_array( $scope, array( self::BULK_REGEN_FUTURE, self::BULK_REGEN_PAST ), true ) ) {
+			return self::BULK_REGEN_FUTURE;
+		}
+		return $scope;
+	}
+
+	/**
+	 * Event IDs eligible for bulk GWU page regeneration.
+	 *
+	 * Future: eve_start on or after today. Past: eve_start before today.
+	 * Both require gwu_page_id > 0 (only pages already linked in Marketing Ops).
+	 *
+	 * @return int[]
+	 */
+	public static function get_bulk_regen_event_ids( string $scope ): array {
+		global $wpdb;
+
+		$today = current_time( 'Y-m-d' );
+		$is_past = ( $scope === self::BULK_REGEN_PAST );
+
+		$sql = "SELECT ops.hostlinks_event_id
+		 FROM {$wpdb->prefix}hmo_event_ops ops
+		 INNER JOIN {$wpdb->prefix}event_details_list ev
+		     ON ops.hostlinks_event_id = ev.eve_id
+		 WHERE ops.gwu_page_id > 0
+		   AND ev.eve_start " . ( $is_past ? '<' : '>=' ) . ' %s
+		 ORDER BY ev.eve_start ' . ( $is_past ? 'DESC' : 'ASC' );
+
+		$ids = $wpdb->get_col( $wpdb->prepare( $sql, $today ) );
+
+		return array_map( 'intval', (array) $ids );
+	}
+
+	/**
 	 * Step 1 of bulk regeneration — return the list of candidate event IDs.
 	 *
-	 * Returns only IDs (not full rows) so the payload stays small and the client
-	 * can drive the batch loop. Events are included when they have eve_start on or
-	 * after today (this site's `current_time`), a matching ops row, and gwu_page_id > 0.
-	 * The batch handler updates those pages; if gwu_page_id is missing or zero when
-	 * a batch runs (manual DB drift), it creates a page and stores the new ID.
+	 * POST regen_scope: `future` (default) or `past`. Only events with gwu_page_id > 0.
+	 * Future batches may create a page if the stored ID is missing (drift); past batches update only.
 	 */
 	public static function ajax_bulk_regen_init(): void {
 		check_ajax_referer( 'hmo_bulk_regen' );
@@ -715,27 +753,14 @@ class HMO_Page_Sync {
 			wp_send_json_error( 'GWU API constants are not configured.' );
 		}
 
-		global $wpdb;
-
-		$ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT ops.hostlinks_event_id
-				 FROM {$wpdb->prefix}hmo_event_ops ops
-				 INNER JOIN {$wpdb->prefix}event_details_list ev
-				     ON ops.hostlinks_event_id = ev.eve_id
-				 WHERE ops.gwu_page_id > 0
-				   AND ev.eve_start >= %s
-				 ORDER BY ev.eve_start ASC",
-				current_time( 'Y-m-d' )
-			)
-		);
-
-		$event_ids = array_map( 'intval', (array) $ids );
+		$scope     = self::sanitize_bulk_regen_scope( (string) ( $_POST['regen_scope'] ?? self::BULK_REGEN_FUTURE ) );
+		$event_ids = self::get_bulk_regen_event_ids( $scope );
 
 		wp_send_json_success( array(
 			'event_ids'  => $event_ids,
 			'total'      => count( $event_ids ),
 			'batch_size' => self::BULK_BATCH_SIZE,
+			'scope'      => $scope,
 		) );
 	}
 
@@ -763,6 +788,8 @@ class HMO_Page_Sync {
 		if ( function_exists( 'set_time_limit' ) ) {
 			@set_time_limit( 120 );
 		}
+
+		$scope = self::sanitize_bulk_regen_scope( (string) ( $_POST['regen_scope'] ?? self::BULK_REGEN_FUTURE ) );
 
 		$raw = $_POST['event_ids'] ?? array();
 		if ( ! is_array( $raw ) ) {
@@ -808,10 +835,29 @@ class HMO_Page_Sync {
 				continue;
 			}
 
-			$result = $instance->sync_event_row_to_gwu( $event_id, $ev, false );
+			if ( $scope === self::BULK_REGEN_PAST ) {
+				$gwu_page_id = HMO_DB::get_event_gwu_page_id( $event_id );
+				if ( $gwu_page_id <= 0 ) {
+					$failed++;
+					$errors[] = array(
+						'event_id' => $event_id,
+						'error'    => 'No linked GWU page',
+					);
+					continue;
+				}
+				$result = $instance->update_gwu_page( $gwu_page_id, $ev );
+				if ( $result ) {
+					$instance->save_web_url( $event_id, $result['url'] );
+				}
+			} else {
+				$result = $instance->sync_event_row_to_gwu( $event_id, $ev, false );
+			}
 
 			if ( $result ) {
-				HMO_DB::log_activity( $event_id, 'page_sync', 'GWU page bulk regenerated.' );
+				$log_msg = $scope === self::BULK_REGEN_PAST
+					? 'GWU page bulk regenerated (past).'
+					: 'GWU page bulk regenerated.';
+				HMO_DB::log_activity( $event_id, 'page_sync', $log_msg );
 				$updated++;
 			} else {
 				$failed++;

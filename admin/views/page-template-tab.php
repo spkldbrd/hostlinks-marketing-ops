@@ -163,8 +163,11 @@ $base_url = add_query_arg(
 			Save <?php echo esc_html( $types[ $active_type ] ); ?> Templates
 		</button>
 		<?php if ( $is_default ) : ?>
-		<button type="button" id="hmo-bulk-regen" class="button" style="margin-left:12px;">
+		<button type="button" id="hmo-bulk-regen" class="button hmo-bulk-regen-trigger" data-regen-scope="future" style="margin-left:12px;">
 			Regenerate All Future Event Pages
+		</button>
+		<button type="button" id="hmo-bulk-regen-past" class="button hmo-bulk-regen-trigger" data-regen-scope="past">
+			Regenerate All Past Event Pages
 		</button>
 		<?php endif; ?>
 	</p>
@@ -286,23 +289,49 @@ jQuery(function($){
 		});
 	});
 
-	/* ---- Bulk regenerate all future event pages (batched) ---- */
+	/* ---- Bulk regenerate future / past event pages (batched) ---- */
 	var bulkNonce = '<?php echo esc_js( wp_create_nonce( 'hmo_bulk_regen' ) ); ?>';
 
-	$('#hmo-bulk-regen').on('click', function(){
-		var btn         = $(this);
-		var panel       = $('#hmo-bulk-regen-panel');
-		var statusEl    = $('#hmo-bulk-regen-status');
-		var barEl       = $('#hmo-bulk-regen-bar');
-		var countsEl    = $('#hmo-bulk-regen-counts');
-		var errorsWrap  = $('#hmo-bulk-regen-errors-wrap');
-		var errorsList  = $('#hmo-bulk-regen-errors');
+	var bulkRegenLabels = {
+		future: {
+			confirm: 'Regenerate content for ALL future event pages that already have a linked GWU page, using the current templates? This cannot be undone.',
+			empty:   'No future event pages found to regenerate.',
+			btn:     'Regenerate All Future Event Pages',
+			working: 'Regenerating…'
+		},
+		past: {
+			confirm: 'Regenerate content for ALL past event pages that already have a linked GWU page, using the current templates? This cannot be undone.',
+			empty:   'No past event pages found to regenerate.',
+			btn:     'Regenerate All Past Event Pages',
+			working: 'Regenerating…'
+		}
+	};
 
-		if ( ! confirm('Regenerate content for ALL future event pages using the current templates? This cannot be undone.') ) {
+	function resetBulkRegenButtons(){
+		$('.hmo-bulk-regen-trigger').each(function(){
+			var scope = $(this).data('regen-scope');
+			var labels = bulkRegenLabels[ scope ] || bulkRegenLabels.future;
+			$(this).prop('disabled', false).text(labels.btn);
+		});
+	}
+
+	$(document).on('click', '.hmo-bulk-regen-trigger', function(){
+		var btn        = $(this);
+		var scope      = btn.data('regen-scope') || 'future';
+		var labels     = bulkRegenLabels[ scope ] || bulkRegenLabels.future;
+		var panel      = $('#hmo-bulk-regen-panel');
+		var statusEl   = $('#hmo-bulk-regen-status');
+		var barEl      = $('#hmo-bulk-regen-bar');
+		var countsEl   = $('#hmo-bulk-regen-counts');
+		var errorsWrap = $('#hmo-bulk-regen-errors-wrap');
+		var errorsList = $('#hmo-bulk-regen-errors');
+
+		if ( ! confirm(labels.confirm) ) {
 			return;
 		}
 
-		btn.prop('disabled', true).text('Regenerating…');
+		$('.hmo-bulk-regen-trigger').prop('disabled', true);
+		btn.text(labels.working);
 		panel.show();
 		statusEl.css('color','').text('Fetching event list…');
 		barEl.css('width', '0%');
@@ -310,10 +339,10 @@ jQuery(function($){
 		errorsList.empty();
 		errorsWrap.hide();
 
-		// Step 1: get the full list of event IDs and batch size.
 		$.post(ajaxurl, {
 			action      : 'hmo_bulk_regen_init',
-			_ajax_nonce : bulkNonce
+			_ajax_nonce : bulkNonce,
+			regen_scope : scope
 		}).done(function(resp){
 			if ( ! resp.success ) {
 				return fail('Init failed: ' + (resp.data || 'Unknown error'));
@@ -323,9 +352,9 @@ jQuery(function($){
 			var total     = resp.data.total || queue.length;
 
 			if ( total === 0 ) {
-				statusEl.css('color','#666').text('No future event pages found to regenerate.');
+				statusEl.css('color','#666').text(labels.empty);
 				panel.delay(4000).fadeOut();
-				btn.prop('disabled', false).text('Regenerate All Future Event Pages');
+				resetBulkRegenButtons();
 				return;
 			}
 
@@ -338,7 +367,7 @@ jQuery(function($){
 						(failed > 0 ? '; ' + failed + ' failed.' : '.')
 					);
 					barEl.css('width', '100%');
-					btn.prop('disabled', false).text('Regenerate All Future Event Pages');
+					resetBulkRegenButtons();
 					return;
 				}
 
@@ -347,6 +376,7 @@ jQuery(function($){
 				$.post(ajaxurl, {
 					action      : 'hmo_bulk_regen_batch',
 					_ajax_nonce : bulkNonce,
+					regen_scope : scope,
 					event_ids   : batch
 				}).done(function(batchResp){
 					if ( ! batchResp.success ) {
@@ -368,7 +398,6 @@ jQuery(function($){
 					statusEl.text('Regenerating… ' + processed + ' / ' + total);
 					countsEl.text(updated + ' updated' + (failed > 0 ? ', ' + failed + ' failed' : ''));
 
-					// Yield to the browser between batches so the UI stays responsive.
 					setTimeout(runNext, 50);
 				}).fail(function(){
 					fail('Network error during batch. Already processed: ' + processed + ' / ' + total);
@@ -383,7 +412,7 @@ jQuery(function($){
 
 		function fail(msg){
 			statusEl.css('color','#b32d2e').text(msg);
-			btn.prop('disabled', false).text('Regenerate All Future Event Pages');
+			resetBulkRegenButtons();
 		}
 	});
 });

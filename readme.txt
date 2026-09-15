@@ -220,6 +220,9 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.25 =
+* Page Template: bulk “Regenerate All Past Event Pages” for events with a linked GWU page (eve_start before today); updates only, no new page creation.
+
 = 1.11.24 =
 * Page Template: restore Default/type inheritance when section editors are blank (empty type override inherits Default again).
 * Page Template (Default tab): checkboxes to show or hide each section on generated GWU pages without clearing template text.
