@@ -369,6 +369,7 @@ class HMO_Page_Sync {
 		$addr_block = $address_html ? '<br>' . $address_html : '';
 
 		// Dynamic (token-substituted) and static (template-driven) sections.
+		$itinerary_html = '';
 		if ( $is_zoom ) {
 			$itinerary_html = HMO_Page_Template::render_section( 'itinerary_zoom', array(
 				'{{DATE_LONG}}' => esc_html( $date_long ),
@@ -382,7 +383,10 @@ class HMO_Page_Sync {
 			), $type_key );
 		}
 
-		$format_html = $this->build_format_html( $ev );
+		$format_key  = $is_zoom ? 'format_zoom' : 'format_inperson';
+		$format_html = HMO_Page_Template::is_section_visible( $format_key )
+			? $this->build_format_html( $ev )
+			: '';
 
 		// Hotels section (dynamic — not template-editable).
 		$hotels_html = $this->render_hotels_html( $hotels );
@@ -419,21 +423,18 @@ class HMO_Page_Sync {
 	}
 
 	/**
-	 * Outputs H2 + template section, or nothing when section content is blank.
+	 * Outputs H2 + template section, or nothing when the section is hidden in settings.
 	 */
 	private function append_template_heading_section( string $heading, string $section_key, array $tokens, string $type_key ): string {
-		$body = HMO_Page_Template::render_section( $section_key, $tokens, $type_key );
-		if ( trim( $body ) === '' ) {
+		if ( ! HMO_Page_Template::is_section_visible( $section_key ) ) {
 			return '';
 		}
+		$body = HMO_Page_Template::render_section( $section_key, $tokens, $type_key );
 		return '<h2>' . esc_html( $heading ) . '</h2>' . "\n" . $body;
 	}
 
-	/**
-	 * Appends pre-rendered section HTML only when non-empty.
-	 */
 	private function append_template_section( string $html ): string {
-		return trim( $html ) === '' ? '' : $html;
+		return $html;
 	}
 
 	/**

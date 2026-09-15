@@ -165,9 +165,22 @@ class HMO_Settings_Form_Handler {
 				? $_POST['hmo_tmpl'] : array();
 
 			foreach ( array_keys( $sections ) as $key ) {
-				if ( isset( $posted_tmpl[ $key ] ) ) {
-					HMO_Page_Template::save_section( $key, wp_unslash( $posted_tmpl[ $key ] ), $type_key_for_save );
+				if ( ! isset( $posted_tmpl[ $key ] ) ) {
+					continue;
 				}
+				$content = wp_unslash( $posted_tmpl[ $key ] );
+				if ( $type_key_for_save && trim( $content ) === '' ) {
+					HMO_Page_Template::reset_section( $key, $type_key_for_save );
+					continue;
+				}
+				HMO_Page_Template::save_section( $key, $content, $type_key_for_save );
+			}
+
+			if ( $active_type === 'default' ) {
+				$posted_visible = isset( $_POST['hmo_tmpl_visible'] ) && is_array( $_POST['hmo_tmpl_visible'] )
+					? wp_unslash( $_POST['hmo_tmpl_visible'] )
+					: array();
+				HMO_Page_Template::save_section_visibility( $posted_visible );
 			}
 
 			$notice = '<div class="notice notice-success is-dismissible"><p>'

@@ -220,6 +220,11 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.24 =
+* Page Template: restore Default/type inheritance when section editors are blank (empty type override inherits Default again).
+* Page Template (Default tab): checkboxes to show or hide each section on generated GWU pages without clearing template text.
+* Saving an empty override on Writing/Management/Subaward clears the override instead of storing a blank hide.
+
 = 1.11.23 =
 * Page Template: saving a section blank on Default hides it and its H2 on synced pages; Reset restores built-in default.
 * Page sync skips empty itinerary, format, and heading sections.

@@ -31,8 +31,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class HMO_Page_Template {
 
-	const OPT_PREFIX   = 'hmo_page_tmpl_';
-	const TYPE_DEFAULT = 'default';
+	const OPT_PREFIX          = 'hmo_page_tmpl_';
+	const OPT_SECTION_VISIBLE = 'hmo_page_tmpl_section_visible';
+	const TYPE_DEFAULT        = 'default';
 
 	// -------------------------------------------------------------------------
 	// Event type registry
@@ -212,9 +213,9 @@ class HMO_Page_Template {
 
 	/**
 	 * Returns the active content for a section:
-	 *   1. Type-specific saved option (if type_key given and option exists), including empty = hidden.
-	 *   2. Default saved option (empty string = hidden).
-	 *   3. Hard-coded default string when no option is saved.
+	 *   1. Type-specific saved option when non-empty (empty override = inherit Default).
+	 *   2. Default saved option when non-empty.
+	 *   3. Hard-coded default string.
 	 *
 	 * @param string $key      Section key.
 	 * @param string $type_key Event type context key, or '' for default.
@@ -222,15 +223,55 @@ class HMO_Page_Template {
 	public static function get_section_content( string $key, string $type_key = '' ): string {
 		if ( $type_key && $type_key !== self::TYPE_DEFAULT ) {
 			$type_saved = get_option( self::get_option_key( $key, $type_key ), null );
-			if ( $type_saved !== null ) {
+			if ( $type_saved !== null && $type_saved !== '' ) {
 				return (string) $type_saved;
 			}
 		}
 		$saved = get_option( self::OPT_PREFIX . $key, null );
-		if ( $saved !== null ) {
+		if ( $saved !== null && $saved !== '' ) {
 			return (string) $saved;
 		}
 		return self::get_default( $key );
+	}
+
+	/**
+	 * Whether a section is included on generated GWU pages (Settings → Page Template checkboxes).
+	 * Missing option = all sections visible.
+	 */
+	public static function is_section_visible( string $key ): bool {
+		$sections = self::get_sections();
+		if ( ! isset( $sections[ $key ] ) ) {
+			return true;
+		}
+		$map = get_option( self::OPT_SECTION_VISIBLE, null );
+		if ( ! is_array( $map ) ) {
+			return true;
+		}
+		return ! empty( $map[ $key ] );
+	}
+
+	/**
+	 * @return array<string, bool> Section key => visible on synced pages.
+	 */
+	public static function get_section_visibility_map(): array {
+		$map    = array();
+		$saved  = get_option( self::OPT_SECTION_VISIBLE, null );
+		$stored = is_array( $saved ) ? $saved : array();
+		foreach ( array_keys( self::get_sections() ) as $key ) {
+			$map[ $key ] = ! array_key_exists( $key, $stored ) || ! empty( $stored[ $key ] );
+		}
+		return $map;
+	}
+
+	/**
+	 * @param array<string, mixed> $posted Checkbox POST values (hmo_tmpl_visible[key]).
+	 */
+	public static function save_section_visibility( array $posted ): void {
+		$map = array();
+		foreach ( array_keys( self::get_sections() ) as $key ) {
+			$map[ $key ] = ! empty( $posted[ $key ] );
+		}
+		update_option( self::OPT_SECTION_VISIBLE, $map, false );
 	}
 
 	/**
@@ -272,10 +313,10 @@ class HMO_Page_Template {
 	 * @param string $type_key Event type context key.
 	 */
 	public static function render_section( string $key, array $tokens = array(), string $type_key = '' ): string {
-		$content = self::get_section_content( $key, $type_key );
-		if ( trim( $content ) === '' ) {
+		if ( ! self::is_section_visible( $key ) ) {
 			return '';
 		}
+		$content = self::get_section_content( $key, $type_key );
 		if ( ! empty( $tokens ) ) {
 			$content = str_replace( array_keys( $tokens ), array_values( $tokens ), $content );
 		}

@@ -7,9 +7,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$sections  = HMO_Page_Template::get_sections();
-$types     = HMO_Page_Template::get_event_types();
-$nonce_val = wp_create_nonce( 'hmo_page_template' );
+$sections   = HMO_Page_Template::get_sections();
+$types      = HMO_Page_Template::get_event_types();
+$visibility = HMO_Page_Template::get_section_visibility_map();
+$nonce_val  = wp_create_nonce( 'hmo_page_template' );
 
 // Active type context from URL — defaults to 'default'.
 $active_type = sanitize_key( $_GET['tmpl_type'] ?? 'default' );
@@ -28,7 +29,7 @@ $base_url = add_query_arg(
 <p style="color:#666;margin-top:0;">
 	Edit the boilerplate used when auto-generating GWU marketing pages.
 	Each event type can have its own override for any section — leave type-specific sections blank to inherit from <strong>Default</strong>.
-	Clear a section and save on the <strong>Default</strong> tab to hide that section (and its heading) on generated pages.
+	On the <strong>Default</strong> tab, use <strong>Sections on generated pages</strong> to hide entire blocks (heading and body) without clearing template text.
 	<strong>Tokens</strong> (e.g. <code>{{DATE_LONG}}</code>) are replaced with live event data at page-creation time.
 	<strong>Course Type (In-Person)</strong> and <strong>Course Type (Zoom)</strong> can appear in the main body and/or in the DIVI sidebar via
 	<code>[event_course_type]</code> on grantwritingusa.com — see <a href="<?php echo esc_url( admin_url( 'admin.php?page=hmo-settings&tab=page-sync' ) ); ?>">GWU Page Sync</a>.
@@ -59,6 +60,30 @@ $base_url = add_query_arg(
 	<?php wp_nonce_field( 'hmo_page_template', 'hmo_page_template_nonce' ); ?>
 	<input type="hidden" name="hmo_save_page_template" value="1">
 	<input type="hidden" name="hmo_tmpl_type" value="<?php echo esc_attr( $active_type ); ?>">
+
+	<?php if ( $is_default ) : ?>
+	<div class="hmo-tmpl-section hmo-tmpl-visibility">
+		<div class="hmo-tmpl-section__header">
+			<span class="hmo-tmpl-section__title">Sections on generated pages</span>
+		</div>
+		<p class="hmo-tmpl-section__desc">
+			Checked sections appear on GWU marketing pages after sync or regenerate. Uncheck to hide a block entirely (template text is kept for when you turn it back on).
+		</p>
+		<ul class="hmo-tmpl-visibility-list">
+			<?php foreach ( $sections as $vis_key => $vis_def ) : ?>
+			<li>
+				<label>
+					<input type="checkbox"
+						name="hmo_tmpl_visible[<?php echo esc_attr( $vis_key ); ?>]"
+						value="1"
+						<?php checked( ! empty( $visibility[ $vis_key ] ) ); ?>>
+					<?php echo wp_kses_post( $vis_def['label'] ); ?>
+				</label>
+			</li>
+			<?php endforeach; ?>
+		</ul>
+	</div>
+	<?php endif; ?>
 
 	<?php foreach ( $sections as $key => $def ) :
 
@@ -209,6 +234,17 @@ $base_url = add_query_arg(
 }
 .hmo-tmpl-tokens th {
 	font-weight: 600;
+}
+.hmo-tmpl-visibility-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+	gap: 8px 16px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+.hmo-tmpl-visibility-list label {
+	font-size: 13px;
 }
 </style>
 
