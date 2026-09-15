@@ -220,6 +220,10 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.27 =
+* Page sync: host/venue block above Welcome from displayed_as, host_name, location_name, and address fields; itinerary/date sections use H2 headings.
+* Page sync: parking file URL outputs a link when special instructions are included; legacy itinerary host/address tokens cleared.
+
 = 1.11.26 =
 * Page Template bulk regenerate: optional checkbox to update Hostlinks WEB URLs (off by default; updates GWU page content only unless checked).
 

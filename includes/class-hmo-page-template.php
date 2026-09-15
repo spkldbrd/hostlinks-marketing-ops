@@ -77,12 +77,10 @@ class HMO_Page_Template {
 			),
 			'itinerary_inperson' => array(
 				'label'       => 'Itinerary &amp; Location (In-Person)',
-				'description' => 'Shown for in-person workshops only.',
+				'description' => 'Shown for in-person workshops only. Host and address appear above Welcome from Hostlinks Host &amp; Venue fields.',
 				'tokens'      => array(
-					'{{DATE_LONG}}'  => 'Formatted date range',
-					'{{MAP_URL}}'    => 'Google Maps link for the venue',
-					'{{HOST_LINE}}' => '"&lt;br&gt;Hosted by ..." — or empty',
-					'{{ADDR_BLOCK}}' => '"&lt;br&gt;Street&lt;br&gt;City, ST ZIP" — or empty',
+					'{{DATE_LONG}}' => 'Formatted date range',
+					'{{MAP_URL}}'   => 'Google Maps link for the venue',
 				),
 			),
 			'itinerary_zoom' => array(
@@ -151,10 +149,10 @@ class HMO_Page_Template {
 				'<p>If you\'re ready to learn how to find funding sources and write winning grant proposals, you\'ve come to the right place. Beginning and experienced grant writers from city, county and state agencies as well as healthcare organizations, nonprofits, K-12, colleges and universities are encouraged to attend. You <em>do not</em> need to work in the same profession as the host agency.</p>',
 
 			'itinerary_inperson' =>
-				'<p><strong>Itinerary and Location:</strong> This workshop is {{DATE_LONG}}, 9-4 both days with lunch on your own from noon to 1:20. View a <a href="{{MAP_URL}}" target="_blank">map of the workshop location</a> and review the <a href="https://www.grantwritingusa.com/grant-writing-course-content/">learning objectives</a> for this course.{{HOST_LINE}}{{ADDR_BLOCK}}</p>',
+				'<p>This workshop is {{DATE_LONG}}, 9-4 both days with lunch on your own from noon to 1:20. View a <a href="{{MAP_URL}}" target="_blank">map of the workshop location</a> and review the <a href="https://www.grantwritingusa.com/grant-writing-course-content/">learning objectives</a> for this course.</p>',
 
 			'itinerary_zoom' =>
-				'<p><strong>Date and Time:</strong> This webinar is {{DATE_LONG}}, 9:30&ndash;4:30 ET / 8:00&ndash;3:00 MT / 7:00&ndash;2:00 PT. A Zoom link will be emailed to all registered participants prior to the event. You do not need to download any software; participation requires only a computer, tablet, or smartphone with internet access.</p>',
+				'<p>This webinar is {{DATE_LONG}}, 9:30&ndash;4:30 ET / 8:00&ndash;3:00 MT / 7:00&ndash;2:00 PT. A Zoom link will be emailed to all registered participants prior to the event. You do not need to download any software; participation requires only a computer, tablet, or smartphone with internet access.</p>',
 
 			'format_inperson' =>
 				'<p>This is a:</p>' . "\n" .

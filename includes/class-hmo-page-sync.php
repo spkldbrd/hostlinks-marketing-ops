@@ -336,52 +336,25 @@ class HMO_Page_Sync {
 		$state   = trim( $ev['state']            ?? '' );
 		$zip     = trim( $ev['zip_code']         ?? '' );
 		$addr1   = trim( $ev['street_address_1'] ?? '' );
-		$addr2   = trim( $ev['street_address_2'] ?? '' );
-		$addr3   = trim( $ev['street_address_3'] ?? '' );
-		$venue   = trim( $ev['location_name']    ?? '' );
-		$host    = trim( $ev['host_name']        ?? '' );
 		$start   = $ev['eve_start']              ?? '';
 		$end     = $ev['eve_end']                ?? '';
 		$is_zoom = ( ( $ev['eve_zoom'] ?? '' ) === 'yes' );
 		$hotels  = trim( $ev['hotels']           ?? '' );
-		$special = trim( $ev['special_instructions'] ?? '' );
 
 		// Resolve event-type template context (writing / management / subaward / '').
 		$type_key = HMO_Page_Template::event_type_key( (int) ( $ev['eve_type'] ?? 0 ) );
 
 		$date_long = $this->format_date_range( $start, $end );
-		$hosted_by = $host ?: $venue;
-
-		// Address block.
-		$city_state_zip = implode( ', ', array_filter( array( $city, $state ) ) );
-		if ( $zip ) {
-			$city_state_zip .= ' ' . $zip;
-		}
-		$address_lines = array_filter( array( $addr1, $addr2, $addr3, $city_state_zip ) );
-		$address_html  = implode( '<br>', array_map( 'esc_html', $address_lines ) );
 
 		// Google Maps URL.
 		$map_query = urlencode( implode( ', ', array_filter( array( $addr1, $city, $state, $zip ) ) ) );
 		$map_url   = 'https://maps.google.com/?q=' . $map_query;
 
-		// Token values for itinerary sections.
-		$host_line  = $hosted_by ? '<br>Hosted by ' . esc_html( $hosted_by ) : '';
-		$addr_block = $address_html ? '<br>' . $address_html : '';
-
-		// Dynamic (token-substituted) and static (template-driven) sections.
-		$itinerary_html = '';
-		if ( $is_zoom ) {
-			$itinerary_html = HMO_Page_Template::render_section( 'itinerary_zoom', array(
-				'{{DATE_LONG}}' => esc_html( $date_long ),
-			), $type_key );
-		} else {
-			$itinerary_html = HMO_Page_Template::render_section( 'itinerary_inperson', array(
-				'{{DATE_LONG}}'  => esc_html( $date_long ),
-				'{{MAP_URL}}'    => esc_url( $map_url ),
-				'{{HOST_LINE}}' => $host_line,
-				'{{ADDR_BLOCK}}' => $addr_block,
-			), $type_key );
-		}
+		// Legacy tokens stripped from saved templates that still reference host/address in itinerary body.
+		$legacy_itinerary_tokens = array(
+			'{{HOST_LINE}}'  => '',
+			'{{ADDR_BLOCK}}' => '',
+		);
 
 		$format_key  = $is_zoom ? 'format_zoom' : 'format_inperson';
 		$format_html = HMO_Page_Template::is_section_visible( $format_key )
@@ -391,16 +364,36 @@ class HMO_Page_Sync {
 		// Hotels section (dynamic — not template-editable).
 		$hotels_html = $this->render_hotels_html( $hotels );
 
-		// Special instructions (dynamic).
-		$special_html = $special
-			? '<p>' . wp_kses_post( $special ) . '</p>' . "\n"
-			: '';
+		$special_html = $this->build_special_instructions_html( $ev );
 
 		// Assemble using template sections for all static boilerplate.
 		// Register buttons: use [event_register_button] in the DIVI layout (GWU Event Pages 1.2.21+).
 		$c  = '';
+		$c .= $this->build_host_venue_html( $ev );
 		$c .= $this->append_template_heading_section( 'Welcome!', 'welcome', array(), $type_key );
-		$c .= $this->append_template_section( $itinerary_html );
+
+		if ( $is_zoom ) {
+			$c .= $this->append_template_heading_section(
+				'Date and Time',
+				'itinerary_zoom',
+				array_merge( array( '{{DATE_LONG}}' => esc_html( $date_long ) ), $legacy_itinerary_tokens ),
+				$type_key
+			);
+		} else {
+			$c .= $this->append_template_heading_section(
+				'Itinerary and Location',
+				'itinerary_inperson',
+				array_merge(
+					array(
+						'{{DATE_LONG}}' => esc_html( $date_long ),
+						'{{MAP_URL}}'   => esc_url( $map_url ),
+					),
+					$legacy_itinerary_tokens
+				),
+				$type_key
+			);
+		}
+
 		if ( self::include_course_type_in_body() ) {
 			$c .= $this->append_template_section( $format_html );
 		}
@@ -456,6 +449,79 @@ class HMO_Page_Sync {
 	// -------------------------------------------------------------------------
 	// Private helpers
 	// -------------------------------------------------------------------------
+
+	/**
+	 * Host &amp; venue block above Welcome (in-person only), from Hostlinks Edit Event fields.
+	 *
+	 * @param array $ev Event row from event_details_list.
+	 */
+	private function build_host_venue_html( array $ev ): string {
+		if ( ( $ev['eve_zoom'] ?? '' ) === 'yes' ) {
+			return '';
+		}
+
+		$displayed = trim( (string) ( $ev['displayed_as'] ?? '' ) );
+		$host_name = trim( (string) ( $ev['host_name'] ?? '' ) );
+		$location  = trim( (string) ( $ev['location_name'] ?? '' ) );
+
+		$addr_lines = array_filter( array(
+			trim( (string) ( $ev['street_address_1'] ?? '' ) ),
+			trim( (string) ( $ev['street_address_2'] ?? '' ) ),
+			trim( (string) ( $ev['street_address_3'] ?? '' ) ),
+		) );
+
+		$city_line = trim(
+			trim( (string) ( $ev['city'] ?? '' ) ) . ', ' .
+			trim( (string) ( $ev['state'] ?? '' ) ) . ' ' .
+			trim( (string) ( $ev['zip_code'] ?? '' ) ),
+			', '
+		);
+
+		$lines = array();
+		if ( $displayed !== '' ) {
+			$lines[] = esc_html( $displayed );
+		} elseif ( $host_name !== '' ) {
+			$lines[] = 'Hosted by ' . esc_html( $host_name );
+		}
+		if ( $location !== '' ) {
+			$lines[] = esc_html( $location );
+		}
+		foreach ( $addr_lines as $line ) {
+			$lines[] = esc_html( $line );
+		}
+		if ( $city_line !== '' ) {
+			$lines[] = esc_html( $city_line );
+		}
+
+		if ( $lines === array() ) {
+			return '';
+		}
+
+		return '<p>' . implode( '<br>', $lines ) . '</p>' . "\n";
+	}
+
+	/**
+	 * Special instructions and optional parking file link from Hostlinks Additional Details.
+	 *
+	 * @param array $ev Event row from event_details_list.
+	 */
+	private function build_special_instructions_html( array $ev ): string {
+		$special = trim( (string) ( $ev['special_instructions'] ?? '' ) );
+		$parking = esc_url( trim( (string) ( $ev['parking_file_url'] ?? '' ) ) );
+
+		if ( $special === '' && $parking === '' ) {
+			return '';
+		}
+
+		$html = '';
+		if ( $special !== '' ) {
+			$html .= '<p>' . wp_kses_post( $special ) . '</p>' . "\n";
+		}
+		if ( $parking !== '' ) {
+			$html .= '<p><a href="' . esc_url( $parking ) . '" target="_blank" rel="noopener">Parking / instructions (PDF)</a></p>' . "\n";
+		}
+		return $html;
+	}
 
 	/**
 	 * Renders the hotels JSON column as readable HTML for GWU marketing pages.
