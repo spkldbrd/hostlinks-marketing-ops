@@ -474,11 +474,9 @@ class HMO_Page_Sync {
 		$host_name = trim( (string) ( $ev['host_name'] ?? '' ) );
 		$location  = trim( (string) ( $ev['location_name'] ?? '' ) );
 
-		$addr_lines = array_filter( array(
-			trim( (string) ( $ev['street_address_1'] ?? '' ) ),
-			trim( (string) ( $ev['street_address_2'] ?? '' ) ),
-			trim( (string) ( $ev['street_address_3'] ?? '' ) ),
-		) );
+		$addr1 = trim( (string) ( $ev['street_address_1'] ?? '' ) );
+		$addr2 = trim( (string) ( $ev['street_address_2'] ?? '' ) );
+		$addr3 = trim( (string) ( $ev['street_address_3'] ?? '' ) );
 
 		$city_line = trim(
 			trim( (string) ( $ev['city'] ?? '' ) ) . ', ' .
@@ -487,27 +485,53 @@ class HMO_Page_Sync {
 			', '
 		);
 
-		$lines = array();
+		$blocks = array();
+
 		if ( $displayed !== '' ) {
-			$lines[] = esc_html( $displayed );
+			$blocks[] = $this->host_venue_line_html( 'displayed', esc_html( $displayed ) );
 		} elseif ( $host_name !== '' ) {
-			$lines[] = 'Hosted by ' . esc_html( $host_name );
-		}
-		if ( $location !== '' ) {
-			$lines[] = esc_html( $location );
-		}
-		foreach ( $addr_lines as $line ) {
-			$lines[] = esc_html( $line );
-		}
-		if ( $city_line !== '' ) {
-			$lines[] = esc_html( $city_line );
+			$blocks[] = $this->host_venue_line_html( 'host', 'Hosted by ' . esc_html( $host_name ) );
 		}
 
-		if ( $lines === array() ) {
+		if ( $location !== '' ) {
+			$blocks[] = $this->host_venue_line_html( 'location', esc_html( $location ) );
+		}
+
+		$extra_street = ( $addr2 !== '' || $addr3 !== '' );
+		if ( $addr1 !== '' && ! $extra_street && $city_line !== '' ) {
+			$blocks[] = $this->host_venue_line_html(
+				'address-single',
+				esc_html( $addr1 . ', ' . $city_line )
+			);
+		} else {
+			if ( $addr1 !== '' ) {
+				$blocks[] = $this->host_venue_line_html( 'address-1', esc_html( $addr1 ) );
+			}
+			if ( $addr2 !== '' ) {
+				$blocks[] = $this->host_venue_line_html( 'address-2', esc_html( $addr2 ) );
+			}
+			if ( $addr3 !== '' ) {
+				$blocks[] = $this->host_venue_line_html( 'address-3', esc_html( $addr3 ) );
+			}
+			if ( $city_line !== '' ) {
+				$blocks[] = $this->host_venue_line_html( 'city', esc_html( $city_line ) );
+			}
+		}
+
+		if ( $blocks === array() ) {
 			return '';
 		}
 
-		return '<p>' . implode( '<br>', $lines ) . '</p>' . "\n";
+		return '<div class="gwu-host-venue-lines">' . implode( '', $blocks ) . '</div>' . "\n";
+	}
+
+	/**
+	 * One host/venue row for GWU shortcode styling (class gwu-host-venue-line--{suffix}).
+	 */
+	private function host_venue_line_html( string $suffix, string $inner_html ): string {
+		$suffix = preg_replace( '/[^a-z0-9-]/', '', strtolower( $suffix ) );
+		return '<div class="gwu-host-venue-line gwu-host-venue-line--' . esc_attr( $suffix ) . '">'
+			. $inner_html . '</div>';
 	}
 
 	/**

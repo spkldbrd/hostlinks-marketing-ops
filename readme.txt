@@ -220,6 +220,9 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.29 =
+* Host/venue sync HTML: each line wrapped in `gwu-host-venue-line--*` classes; single street line merges with city/state/zip as one row.
+
 = 1.11.28 =
 * GWU Page Sync: sync `_gwu_host_venue_html` for `[event_host_venue]` on grantwritingusa.com (GWU Event Pages 1.2.25+).
 * Settings → GWU Page Sync: optional checkbox to include host/venue in synced body (off by default).
