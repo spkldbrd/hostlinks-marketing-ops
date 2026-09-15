@@ -315,10 +315,39 @@ class HMO_Page_Template {
 			return '';
 		}
 		$content = self::get_section_content( $key, $type_key );
+		$content = self::strip_legacy_inline_section_heading( $key, $content );
 		if ( ! empty( $tokens ) ) {
 			$content = str_replace( array_keys( $tokens ), array_values( $tokens ), $content );
 		}
 		return $content . "\n";
+	}
+
+	/**
+	 * Removes redundant "Section title:" prefixes from body copy now that H2 headings are synced separately.
+	 */
+	public static function strip_legacy_inline_section_heading( string $section_key, string $content ): string {
+		$labels = array(
+			'itinerary_inperson' => 'Itinerary and Location',
+			'itinerary_zoom'     => 'Date and Time',
+		);
+		if ( ! isset( $labels[ $section_key ] ) || $content === '' ) {
+			return $content;
+		}
+
+		$label = preg_quote( $labels[ $section_key ], '/' );
+		$pattern = '/(<p[^>]*>)\s*' . $label . '\s*:\s*/iu';
+		$updated = preg_replace( $pattern, '$1', $content, 1 );
+		if ( is_string( $updated ) ) {
+			$content = $updated;
+		}
+
+		$pattern_plain = '/^\s*' . $label . '\s*:\s*/iu';
+		$updated       = preg_replace( $pattern_plain, '', $content, 1 );
+		if ( is_string( $updated ) ) {
+			$content = $updated;
+		}
+
+		return $content;
 	}
 
 	// -------------------------------------------------------------------------

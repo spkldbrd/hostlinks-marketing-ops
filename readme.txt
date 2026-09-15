@@ -220,6 +220,9 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.31 =
+* Page sync: strip legacy inline "Itinerary and Location:" / "Date and Time:" from itinerary template body (H2 is synced separately).
+
 = 1.11.30 =
 * Marketing page hotels: name, address, then phone (for two-column card layout on GWU).
 
