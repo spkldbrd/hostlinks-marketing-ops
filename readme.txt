@@ -220,6 +220,10 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.22 =
+* GWU Page Sync: optional Course Type in synced body; always sync `_gwu_course_type_html` for `[event_course_type]` on grantwritingusa.com.
+* Settings → GWU Page Sync: checkbox to omit Course Type from main page HTML.
+
 = 1.11.21 =
 * Page Sync: format hotels JSON as readable HTML on marketing pages (name, phone, address, optional link).
 

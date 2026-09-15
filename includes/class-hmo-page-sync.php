@@ -23,6 +23,13 @@ class HMO_Page_Sync {
 	const CONST_PARENT = 'GWU_EVENTS_PARENT_PAGE_ID';
 	const CONST_STATUS = 'GWU_PAGE_STATUS';
 
+	/** When false, Course Type HTML is omitted from synced body (use [event_course_type] on GWU). */
+	const OPT_INCLUDE_COURSE_TYPE_BODY = 'hmo_gwu_page_include_course_type_body';
+
+	public static function include_course_type_in_body(): bool {
+		return (int) get_option( self::OPT_INCLUDE_COURSE_TYPE_BODY, 1 ) === 1;
+	}
+
 	/**
 	 * Returns the post status used for newly created GWU pages.
 	 * Honors GWU_PAGE_STATUS constant; defaults to 'publish'.
@@ -254,8 +261,9 @@ class HMO_Page_Sync {
 	 */
 	public function build_gwu_page_meta( array $ev ): array {
 		return array(
-			'_gwu_event_id' => (int) ( $ev['eve_id'] ?? 0 ),
-			'_gwu_reg_url'  => esc_url_raw( trim( (string) ( $ev['eve_trainer_url'] ?? '' ) ) ),
+			'_gwu_event_id'         => (int) ( $ev['eve_id'] ?? 0 ),
+			'_gwu_reg_url'          => esc_url_raw( trim( (string) ( $ev['eve_trainer_url'] ?? '' ) ) ),
+			'_gwu_course_type_html' => $this->build_format_html( $ev ),
 		);
 	}
 
@@ -365,7 +373,6 @@ class HMO_Page_Sync {
 			$itinerary_html = HMO_Page_Template::render_section( 'itinerary_zoom', array(
 				'{{DATE_LONG}}' => esc_html( $date_long ),
 			), $type_key );
-			$format_html = HMO_Page_Template::render_section( 'format_zoom', array(), $type_key );
 		} else {
 			$itinerary_html = HMO_Page_Template::render_section( 'itinerary_inperson', array(
 				'{{DATE_LONG}}'  => esc_html( $date_long ),
@@ -373,8 +380,9 @@ class HMO_Page_Sync {
 				'{{HOST_LINE}}' => $host_line,
 				'{{ADDR_BLOCK}}' => $addr_block,
 			), $type_key );
-			$format_html = HMO_Page_Template::render_section( 'format_inperson', array(), $type_key );
 		}
+
+		$format_html = $this->build_format_html( $ev );
 
 		// Hotels section (dynamic — not template-editable).
 		$hotels_html = $this->render_hotels_html( $hotels );
@@ -390,7 +398,9 @@ class HMO_Page_Sync {
 		$c .= '<h2>Welcome!</h2>' . "\n";
 		$c .= HMO_Page_Template::render_section( 'welcome', array(), $type_key );
 		$c .= $itinerary_html;
-		$c .= $format_html;
+		if ( self::include_course_type_in_body() ) {
+			$c .= $format_html;
+		}
 		$c .= $special_html;
 
 		$c .= '<h2>Tuition</h2>' . "\n";
@@ -420,6 +430,22 @@ class HMO_Page_Sync {
 		$c .= $hotels_html;
 
 		return $c;
+	}
+
+	/**
+	 * Course Type block (Grant Writing / Management / Subaward, Zoom or in-person).
+	 *
+	 * @param array $ev Event row from event_details_list.
+	 */
+	public function build_format_html( array $ev ): string {
+		$type_key = HMO_Page_Template::event_type_key( (int) ( $ev['eve_type'] ?? 0 ) );
+		$is_zoom  = ( ( $ev['eve_zoom'] ?? '' ) === 'yes' );
+
+		if ( $is_zoom ) {
+			return HMO_Page_Template::render_section( 'format_zoom', array(), $type_key );
+		}
+
+		return HMO_Page_Template::render_section( 'format_inperson', array(), $type_key );
 	}
 
 	// -------------------------------------------------------------------------

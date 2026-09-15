@@ -2,7 +2,35 @@
 	$sync_status  = HMO_Page_Sync::get_config_status();
 	$sync_nonce   = wp_create_nonce( 'hmo_page_sync_test' );
 	$all_defined  = ! in_array( false, $sync_status, true );
+	$include_ct   = HMO_Page_Sync::include_course_type_in_body();
 ?>
+
+<h2>Generated Page Layout</h2>
+<form method="post" action="">
+	<?php wp_nonce_field( 'hmo_save_page_sync' ); ?>
+	<input type="hidden" name="hmo_save_page_sync" value="1">
+	<table class="form-table" style="max-width:720px;">
+		<tr>
+			<th scope="row">Course Type in page body</th>
+			<td>
+				<label>
+					<input type="checkbox" name="hmo_gwu_include_course_type_body" value="1" <?php checked( $include_ct ); ?>>
+					Include <strong>Course Type</strong> in the synced HTML body (between itinerary and tuition)
+				</label>
+				<p class="description" style="max-width:640px;">
+					Uncheck when using the <code>[event_course_type]</code> shortcode in your DIVI sidebar on grantwritingusa.com
+					(GWU Event Pages 1.2.23+). Course Type text is still saved to page meta on every regenerate for the shortcode.
+					Regenerate event pages after changing this setting.
+				</p>
+			</td>
+		</tr>
+	</table>
+	<p class="submit" style="padding-left:0;">
+		<button type="submit" class="button button-primary">Save Page Sync Settings</button>
+	</p>
+</form>
+
+<hr style="margin:28px 0;">
 
 <h2>GWU Page Sync — Configuration Status</h2>
 <p>

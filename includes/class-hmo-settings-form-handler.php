@@ -139,6 +139,16 @@ class HMO_Settings_Form_Handler {
 			$notice = '<div class="notice notice-success is-dismissible"><p>Maps settings saved.</p></div>';
 		}
 
+		if ( isset( $_POST['hmo_save_page_sync'] ) ) {
+			check_admin_referer( 'hmo_save_page_sync' );
+			update_option(
+				HMO_Page_Sync::OPT_INCLUDE_COURSE_TYPE_BODY,
+				isset( $_POST['hmo_gwu_include_course_type_body'] ) ? 1 : 0,
+				false
+			);
+			$notice = '<div class="notice notice-success is-dismissible"><p>GWU Page Sync settings saved.</p></div>';
+		}
+
 		if ( isset( $_POST['hmo_save_page_template'] ) ) {
 			check_admin_referer( 'hmo_page_template', 'hmo_page_template_nonce' );
 
