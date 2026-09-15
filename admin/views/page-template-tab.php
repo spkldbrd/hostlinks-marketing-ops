@@ -28,6 +28,7 @@ $base_url = add_query_arg(
 <p style="color:#666;margin-top:0;">
 	Edit the boilerplate used when auto-generating GWU marketing pages.
 	Each event type can have its own override for any section — leave type-specific sections blank to inherit from <strong>Default</strong>.
+	Clear a section and save on the <strong>Default</strong> tab to hide that section (and its heading) on generated pages.
 	<strong>Tokens</strong> (e.g. <code>{{DATE_LONG}}</code>) are replaced with live event data at page-creation time.
 	<strong>Course Type (In-Person)</strong> and <strong>Course Type (Zoom)</strong> can appear in the main body and/or in the DIVI sidebar via
 	<code>[event_course_type]</code> on grantwritingusa.com — see <a href="<?php echo esc_url( admin_url( 'admin.php?page=hmo-settings&tab=page-sync' ) ); ?>">GWU Page Sync</a>.

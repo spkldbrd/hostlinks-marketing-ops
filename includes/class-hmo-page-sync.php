@@ -395,34 +395,20 @@ class HMO_Page_Sync {
 		// Assemble using template sections for all static boilerplate.
 		// Register buttons: use [event_register_button] in the DIVI layout (GWU Event Pages 1.2.21+).
 		$c  = '';
-		$c .= '<h2>Welcome!</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'welcome', array(), $type_key );
-		$c .= $itinerary_html;
+		$c .= $this->append_template_heading_section( 'Welcome!', 'welcome', array(), $type_key );
+		$c .= $this->append_template_section( $itinerary_html );
 		if ( self::include_course_type_in_body() ) {
-			$c .= $format_html;
+			$c .= $this->append_template_section( $format_html );
 		}
 		$c .= $special_html;
 
-		$c .= '<h2>Tuition</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'tuition', array(), $type_key );
-
-		$c .= '<h2>COVID Guidelines</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'covid', array(), $type_key );
-
-		$c .= '<h2>CEU Credits</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'ceu', array(), $type_key );
-
-		$c .= '<h2>Payment Policy</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'payment', array(), $type_key );
-
-		$c .= '<h2>Purchase Orders</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'purchase_orders', array(), $type_key );
-
-		$c .= '<h2>Cancel Policy</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'cancel', array(), $type_key );
-
-		$c .= '<h2>Questions?</h2>' . "\n";
-		$c .= HMO_Page_Template::render_section( 'questions', array(), $type_key );
+		$c .= $this->append_template_heading_section( 'Tuition', 'tuition', array(), $type_key );
+		$c .= $this->append_template_heading_section( 'COVID Guidelines', 'covid', array(), $type_key );
+		$c .= $this->append_template_heading_section( 'CEU Credits', 'ceu', array(), $type_key );
+		$c .= $this->append_template_heading_section( 'Payment Policy', 'payment', array(), $type_key );
+		$c .= $this->append_template_heading_section( 'Purchase Orders', 'purchase_orders', array(), $type_key );
+		$c .= $this->append_template_heading_section( 'Cancel Policy', 'cancel', array(), $type_key );
+		$c .= $this->append_template_heading_section( 'Questions?', 'questions', array(), $type_key );
 
 		$c .= '<h2>Ready to enroll?</h2>' . "\n";
 		$c .= '<p>Great &mdash; it\'s easy!</p>' . "\n";
@@ -430,6 +416,24 @@ class HMO_Page_Sync {
 		$c .= $hotels_html;
 
 		return $c;
+	}
+
+	/**
+	 * Outputs H2 + template section, or nothing when section content is blank.
+	 */
+	private function append_template_heading_section( string $heading, string $section_key, array $tokens, string $type_key ): string {
+		$body = HMO_Page_Template::render_section( $section_key, $tokens, $type_key );
+		if ( trim( $body ) === '' ) {
+			return '';
+		}
+		return '<h2>' . esc_html( $heading ) . '</h2>' . "\n" . $body;
+	}
+
+	/**
+	 * Appends pre-rendered section HTML only when non-empty.
+	 */
+	private function append_template_section( string $html ): string {
+		return trim( $html ) === '' ? '' : $html;
 	}
 
 	/**

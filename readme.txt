@@ -220,6 +220,10 @@ A push to main triggers a GitHub Actions workflow that builds and publishes the 
 
 == Changelog ==
 
+= 1.11.23 =
+* Page Template: saving a section blank on Default hides it and its H2 on synced pages; Reset restores built-in default.
+* Page sync skips empty itinerary, format, and heading sections.
+
 = 1.11.22 =
 * GWU Page Sync: optional Course Type in synced body; always sync `_gwu_course_type_html` for `[event_course_type]` on grantwritingusa.com.
 * Settings → GWU Page Sync: checkbox to omit Course Type from main page HTML.

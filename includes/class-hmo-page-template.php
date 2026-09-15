@@ -212,23 +212,23 @@ class HMO_Page_Template {
 
 	/**
 	 * Returns the active content for a section:
-	 *   1. Type-specific saved option (if type_key given and option exists).
-	 *   2. Default saved option.
-	 *   3. Hard-coded default string.
+	 *   1. Type-specific saved option (if type_key given and option exists), including empty = hidden.
+	 *   2. Default saved option (empty string = hidden).
+	 *   3. Hard-coded default string when no option is saved.
 	 *
 	 * @param string $key      Section key.
 	 * @param string $type_key Event type context key, or '' for default.
 	 */
 	public static function get_section_content( string $key, string $type_key = '' ): string {
 		if ( $type_key && $type_key !== self::TYPE_DEFAULT ) {
-			$saved = get_option( self::get_option_key( $key, $type_key ), null );
-			if ( $saved !== null && $saved !== '' ) {
-				return $saved;
+			$type_saved = get_option( self::get_option_key( $key, $type_key ), null );
+			if ( $type_saved !== null ) {
+				return (string) $type_saved;
 			}
 		}
 		$saved = get_option( self::OPT_PREFIX . $key, null );
-		if ( $saved !== null && $saved !== '' ) {
-			return $saved;
+		if ( $saved !== null ) {
+			return (string) $saved;
 		}
 		return self::get_default( $key );
 	}
@@ -273,6 +273,9 @@ class HMO_Page_Template {
 	 */
 	public static function render_section( string $key, array $tokens = array(), string $type_key = '' ): string {
 		$content = self::get_section_content( $key, $type_key );
+		if ( trim( $content ) === '' ) {
+			return '';
+		}
 		if ( ! empty( $tokens ) ) {
 			$content = str_replace( array_keys( $tokens ), array_values( $tokens ), $content );
 		}
